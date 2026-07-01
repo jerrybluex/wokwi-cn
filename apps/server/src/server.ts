@@ -5,6 +5,7 @@ import cookie from '@fastify/cookie';
 import jwt from '@fastify/jwt';
 import { WOKWI_API_VERSION } from '@wokwi/shared';
 import { authRoutes, meRoute } from './auth-routes.js';
+import { projectRoutes, publicShareRoute } from './projects-routes.js';
 
 const SESSION_COOKIE = 'wokwi_session';
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-only-jwt-secret-replace-in-production';
@@ -47,6 +48,10 @@ export async function buildServer() {
   // D6 — auth + me
   await authRoutes(app);
   await meRoute(app);
+
+  // D7 — project CRUD + share
+  await projectRoutes(app);
+  await publicShareRoute(app);
 
   return app;
 }

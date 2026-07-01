@@ -38,6 +38,9 @@ export function App() {
                   <Link to="/editor">编辑器</Link>
                 </li>
                 <li>
+                  <Link to="/projects">我的项目</Link>
+                </li>
+                <li>
                   <span className="opacity-50 text-xs">ID: {user.id.slice(0, 8)}…</span>
                 </li>
                 <li>
