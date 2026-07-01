@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wokwi Clone · 在线 Arduino 模拟器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* ===== Reset & Base ===== */
+  *,
+  *::before,
+  *::after { box-sizing: border-box; }
+  :root {
+    --bg-0: #0e1116;
+    --bg-1: #161a22;
+    --bg-2: #1d222b;
+    --bg-3: #262c37;
+    --line: #2f3641;
+    --line-strong: #3a4250;
+    --text: #d8dee9;
+    --text-dim: #8b95a4;
+    --text-faint: #5d6775;
+    --accent: #3aa856;
+    --accent-2: #2d8a45;
+    --warn: #e0a35a;
+    --danger: #e85a5a;
+    --blue: #0096d6;
+    --pin: #f3c623;
+    --grid: #232a35;
+    --wokwi-green: #42b883;
+  }
+  html, body { height: 100%; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg-0);
+    color: var(--text);
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; }
+  input, textarea { font-family: inherit; }
+
+  /* ===== Layout ===== */
+  .app {
+    display: grid;
+    grid-template-rows: 48px 1fr;
+    height: 100vh;
+  }
+
+  /* ===== Header ===== */
+  .topbar {
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 12px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  .brand .logo {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #42b883, #2d8a45);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 12px;
+  }
+  .brand .logo::after { content: 'W'; }
+  .filename {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 6px;
+    width: 180px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .filename:focus { outline: none; border-color: var(--accent); }
+  .actions { margin-left: auto; display: flex; gap: 8px; }
+  .btn {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--line-strong); }
+  .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent-2); }
+  .btn-primary[disabled] { background: var(--line-strong); border-color: var(--line-strong); }
+  .btn-danger {
+    background: #4a2727;
+    border-color: #6c3535;
+    color: #ffb6b6;
+  }
+
+  /* ===== Main ===== */
+  main {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* ===== Left Panel ===== */
+  .left {
+    background: var(--bg-1);
+    border-right: 1px solid var(--line);
+    display: grid;
+    grid-template-rows: 1fr auto;
+    min-height: 0;
+  }
+  .editor-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    padding: 10px 14px 6px;
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--line);
+  }
+  .code {
+    flex: 1;
+    width: 100%;
+    background: #0b0e13;
+    color: #d8dee9;
+    border: 0;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    resize: none;
+    outline: none;
+    tab-size: 4;
+    white-space: pre;
+    user-select: text;
+  }
+  .parts-panel {
+    background: var(--bg-1);
+    border-top: 1px solid var(--line);
+    padding: 10px 14px 14px;
+  }
+  .parts-panel .panel-title { padding: 0 0 8px; border: none; background: transparent; }
+  .parts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .part {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: grab;
+    transition: all 0.15s;
+  }
+  .part:hover { background: var(--bg-3); border-color: var(--line-strong); }
+  .part:active { cursor: grabbing; }
+  .part-icon { font-size: 24px; display: block; margin-bottom: 4px; }
+  .part-name { font-size: 11px; color: var(--text-dim); }
+
+  /* ===== Canvas ===== */
+  .canvas-wrap {
+    position: relative;
+    background: var(--bg-2);
+    overflow: hidden;
+    min-height: 0;
+  }
+  #canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background:
+      radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-position: 0 0;
+  }
+  .canvas-hint {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    font-size: 11px;
+    color: var(--text-faint);
+    background: rgba(0,0,0,0.35);
+    padding: 6px 10px;
+    border-radius: 6px;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  .canvas-hint.hidden { opacity: 0; }
+
+  /* ===== Right Panel ===== */
+  .right {
+    background: var(--bg-1);
+    border-left: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .serial {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: #0b0e13;
+    user-select: text;
+  }
+  .serial-empty { color: var(--text-faint); font-style: italic; }
+  .serial-line { padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
+  .serial-input-wrap {
+    border-top: 1px solid var(--line);
+    padding: 8px;
+    background: var(--bg-1);
+  }
+  .serial-input {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    outline: none;
+  }
+  .serial-input:focus { border-color: var(--accent); }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bg-3);
+    border: 1px solid var(--line-strong);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s;
+    max-width: 480px;
+    z-index: 1000;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.error { border-color: var(--danger); color: #ffb6b6; }
+  .toast.success { border-color: var(--accent); }
+
+  /* ===== SVG element styles ===== */
+  .component { cursor: grab; }
+  .component.dragging { cursor: grabbing; opacity: 0.85; }
+  .component-body { fill: var(--bg-3); stroke: var(--line-strong); stroke-width: 1.5; }
+  .pin {
+    fill: var(--pin);
+    stroke: #1a1f29;
+    stroke-width: 1;
+    cursor: crosshair;
+    transition: r 0.15s;
+  }
+  .pin:hover { fill: #ffd44a; }
+  .pin.selected { fill: #ff5252; stroke: #fff; stroke-width: 2; }
+  .pin-label {
+    fill: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    pointer-events: none;
+  }
+  .wire {
+    stroke: #ff5252;
+    stroke-width: 2.5;
+    fill: none;
+  }
+  .wire.green { stroke: #42b883; }
+  .wire.blue { stroke: #4ea1ff; }
+  .wire.pending {
+    stroke-dasharray: 5 4;
+    opacity: 0.7;
+  }
+
+  .arduino-body { fill: #1a4a8a; stroke: #0c2c54; stroke-width: 2; }
+  .arduino-pcb { fill: #0a3a6a; }
+  .arduino-text {
+    fill: #d8e6f3;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    pointer-events: none;
+  }
+
+  .led-off { fill: #444; }
+  .led-lit-red { fill: #ff3b3b; filter: drop-shadow(0 0 6px #ff3b3b); }
+  .led-lit-green { fill: #42b883; filter: drop-shadow(0 0 6px #42b883); }
+  .led-lit-blue { fill: #4ea1ff; filter: drop-shadow(0 0 6px #4ea1ff); }
+  .led-lit-yellow { fill: #ffd44a; filter: drop-shadow(0 0 6px #ffd44a); }
+
+  .resistor-body { fill: #d2b48c; stroke: #8b6f3e; stroke-width: 1; }
+  .resistor-band { fill: #8b6f3e; }
+
+  .button-body { fill: var(--bg-3); stroke: var(--line-strong); stroke-width: 1.5; }
+  .button-cap-off { fill: #555; stroke: #333; stroke-width: 1; }
+  .button-cap-on { fill: #ff5252; stroke: #5c1a1a; stroke-width: 1; filter: drop-shadow(0 0 4px #ff5252); }
+
+  /* Potentiometer */
+  .pot-body { fill: #1a1a1a; stroke: #555; stroke-width: 1.5; }
+  .pot-knob { fill: linear-gradient(135deg, #444, #222); stroke: #777; }
+  .pot-indicator { stroke: #fff; stroke-width: 3; stroke-linecap: round; fill: none; }
+  .pot-value-text { fill: #d8dee9; font-family: 'JetBrains Mono', monospace; font-size: 10px; pointer-events: none; }
+
+  /* OLED display (foreignObject containing an HTML canvas) */
+  .oled-wrap { background: #000; border: 2px solid #444; border-radius: 4px; padding: 2px; display: block; }
+  .oled-canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; background: #000; cursor: inherit; }
+
+  /* MPU6050 */
+  .mpu-body { fill: #1c2733; stroke: #2c3a48; stroke-width: 1.5; }
+  .mpu-chip { fill: #2a3742; stroke: #3d4f60; }
+  .mpu-axis-label { fill: #8aa2b8; font-family: 'JetBrains Mono', monospace; font-size: 9px; pointer-events: none; }
+  .mpu-axis-val { fill: #42b883; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; pointer-events: none; }
+
+  /* PWM pin marker on Arduino */
+  .pwm-marker { fill: #d2b48c; }
+  .pin-label.pwm { fill: var(--text); font-weight: 600; }
+
+  /* ===== Scrollbars ===== */
+  .serial::-webkit-scrollbar { width: 8px; }
+  .serial::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+  .serial::-webkit-scrollbar-track { background: transparent; }
+
+  /* ===== Helpers ===== */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="brand"><div class="logo"></div><span>Wokwi&nbsp;Clone</span></div>
+    <input class="filename" id="filename" value="sketch.ino" />
+    <div class="actions">
+      <button class="btn" id="reset-btn" title="Reset Code to Default">↺ Reset</button>
+      <button class="btn" id="stop-btn" disabled>■ Stop</button>
+      <button class="btn btn-primary" id="run-btn">▶ Start Simulation</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left: Code + Parts -->
+    <aside class="left">
+      <div class="editor-wrap">
+        <div class="panel-title">SKETCH · ARDUINO C++</div>
+        <textarea id="code" class="code" spellcheck="false">// Wokwi Clone — full demo
+// Try: rotate the POTENTIOMETER, press the BUTTON, drag the MPU6050 cube.
+// D9  = PWM LED       D2  = button (INPUT_PULLUP)
+// A0  = potentiometer wiper
+// A4/A5 = I2C bus (SDA/SCL) shared by OLED (0x3C) and MPU6050 (0x68)
+
+void setup() {
+  pinMode(9, OUTPUT);    // ~D9 = PWM
+  pinMode(2, INPUT_PULLUP);
+  Serial.begin(9600);
+  Wire.begin();
+  Wire.beginTransmission(0x68);  // MPU6050 WHO_AM_I check
+  Wire.write(0x75);
+  Wire.endTransmission();
+  Wire.requestFrom(0x68, 1);
+  int who = Wire.read();
+  Serial.print("MPU6050 WHO_AM_I = 0x");
+  Serial.println(who, HEX);
+}
+
+void loop() {
+  // ---- Read potentiometer (analog) ----
+  int raw = analogRead(A0);                  // 0..1023
+  int pwm = raw / 4;                         // map to 0..255
+  analogWrite(9, pwm);                       // LED brightness follows the knob
+  Serial.print("POT raw=");
+  Serial.print(raw);
+  Serial.print(" pwm=");
+  Serial.println(pwm);
+
+  // ---- Read button ----
+  int btn = digitalRead(2);
+  if (btn == LOW) {
+    // (button is pressed) — flash LED full briefly
+    analogWrite(9, 255);
+    Serial.println("  button: PRESSED");
+  }
+
+  // ---- Render to OLED via I2C ----
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("POT: ");
+  display.print(raw);
+  display.print("  BTN: ");
+  display.println(btn == LOW ? "Y" : "N");
+  display.print("PWM: ");
+  display.println(pwm);
+  // Optional bars
+  display.drawRect(0, 36, 128, 14, 1);
+  display.fillRect(2, 38, (raw * 124) / 1023, 10, 1);
+  display.setCursor(0, 56);
+  display.print("> MPU6050 ready");
+
+  delay(120);
+}
+</textarea>
+      </div>
+      <div class="parts-panel">
+        <div class="panel-title">PARTS · DRAG TO CANVAS</div>
+        <div class="parts-grid">
+          <div class="part" draggable="true" data-part="arduino-uno" title="Arduino UNO">
+            <span class="part-icon">📟</span>
+            <span class="part-name">Arduino UNO</span>
+          </div>
+          <div class="part" draggable="true" data-part="led" title="LED">
+            <span class="part-icon">💡</span>
+            <span class="part-name">LED</span>
+          </div>
+          <div class="part" draggable="true" data-part="button" title="Push Button">
+            <span class="part-icon">🔘</span>
+            <span class="part-name">Button</span>
+          </div>
+          <div class="part" draggable="true" data-part="resistor" title="Resistor">
+            <span class="part-icon">🌀</span>
+            <span class="part-name">Resistor</span>
+          </div>
+          <div class="part" draggable="true" data-part="potentiometer" title="Potentiometer">
+            <span class="part-icon">🎛️</span>
+            <span class="part-name">Potentiometer</span>
+          </div>
+          <div class="part" draggable="true" data-part="oled" title="SSD1306 OLED 128×64 (I2C)">
+            <span class="part-icon">📺</span>
+            <span class="part-name">OLED Display</span>
+          </div>
+          <div class="part" draggable="true" data-part="mpu6050" title="MPU6050 IMU (I2C)">
+            <span class="part-icon">🧭</span>
+            <span class="part-name">MPU6050</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center: Canvas -->
+    <section class="canvas-wrap">
+      <svg id="canvas" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.05)" />
+          </pattern>
+        </defs>
+        <rect id="bg-grid" width="100%" height="100%" fill="url(#grid)" />
+        <g id="layer-wires"></g>
+        <g id="layer-pending"></g>
+        <g id="layer-components"></g>
+        <g id="layer-pins"></g>
+      </svg>
+      <div class="canvas-hint" id="hint">💡 拖入元件 · 点击圆点连线 · 拖动电位器改值 · 拖动 MPU6050 区域俯仰倾斜 · 点 LED 切换颜色</div>
+    </section>
+
+    <!-- Right: Serial Monitor -->
+    <aside class="right">
+      <div class="panel-title">SERIAL MONITOR · 9600 BAUD · NL+CR</div>
+      <div class="serial" id="serial-output">
+        <div class="serial-empty">// Serial monitor is empty. Start simulation to see output.</div>
+      </div>
+      <div class="serial-input-wrap">
+        <input class="serial-input" id="serial-input" placeholder="Type and press Enter to send to Arduino..." />
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+ *  Wokwi Clone — Core Implementation
+ *  - SVG-based schematic canvas
+ *  - Drag-and-drop parts
+ *  - Pin-to-pin wiring
+ *  - Async Arduino C++ interpreter (subset)
+ *  - Live LED / button / serial behavior
+ * ========================================================= */
+
+(function () {
+  'use strict';
+
+  // ------------------ State ------------------
+  const state = {
+    components: [],   // see addComponent()
+    connections: [],  // {from: {compId, pinId}, to: {compId, pinId}}
+    pendingFrom: null,// {compId, pinId, x, y}
+    mouse: { x: 0, y: 0 },
+    nextId: 1,
+    hoverComp: null,
+  };
+
+  // Persistent info on each Arduino pin
+  const arduinoState = {}; // pinNum -> { mode: 'OUTPUT'|'INPUT'|..., value: 0|1 }
+
+  // ------------------ DOM Refs ------------------
+  const svg = document.getElementById('canvas');
+  const layerWires     = document.getElementById('layer-wires');
+  const layerPending   = document.getElementById('layer-pending');
+  const layerComps     = document.getElementById('layer-components');
+  const layerPins      = document.getElementById('layer-pins');
+  const codeEl         = document.getElementById('code');
+  const serialEl       = document.getElementById('serial-output');
+  const serialInputEl  = document.getElementById('serial-input');
+  const runBtn         = document.getElementById('run-btn');
+  const stopBtn        = document.getElementById('stop-btn');
+  const resetBtn       = document.getElementById('reset-btn');
+  const toastEl        = document.getElementById('toast');
+  const hintEl         = document.getElementById('hint');
+
+  // ------------------ Toast ------------------
+  let toastTimer = null;
+  function toast(msg, type = 'info') {
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show ' + (type === 'error' ? 'error' : type === 'success' ? 'success' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+  }
+
+  // ------------------ Serial Monitor ------------------
+  function serialPrint(text, newline = false) {
+    const empty = serialEl.querySelector('.serial-empty');
+    if (empty) empty.remove();
+
+    const line = document.createElement('div');
+    line.className = 'serial-line';
+    line.textContent = String(text) + (newline ? '\n' : '');
+    serialEl.appendChild(line);
+    serialEl.scrollTop = serialEl.scrollHeight;
+  }
+  function serialClear() {
+    serialEl.innerHTML = '<div class="serial-empty">// Serial monitor cleared.</div>';
+  }
+  serialInputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && engine.userCode) {
+      const val = serialInputEl.value;
+      if (engine.onSerialInput) engine.onSerialInput(val);
+      serialPrint('> ' + val, true);
+      serialInputEl.value = '';
+    }
+  });
+
+  // =========================================================
+  //                     SVG RENDER HELPERS
+  // =========================================================
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs = {}, children = []) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) {
+      if (k === 'class') e.setAttribute('class', attrs[k]);
+      else if (k === 'text') e.textContent = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    for (const c of children) e.appendChild(c);
+    return e;
+  }
+
+  // Convert client coords to SVG coords
+  function getSvgPoint(evt) {
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const inv = ctm.inverse();
+    const p = pt.matrixTransform(inv);
+    return { x: p.x, y: p.y };
+  }
+
+  // =========================================================
+  //                     COMPONENTS / PARTS
+  // =========================================================
+  // A component is created with addComponent(type, x, y).
+  // It defines pins (in its local coordinate space).
+  // type => { view(g, comp), pins:[{id, x, y, label}] }
+
+  // Pre-cached color table for LEDs (RGB hex values used during rendering)
+  const colorMap = { red: '#ff3b3b', green: '#42b883', blue: '#4ea1ff', yellow: '#ffd44a' };
+
+  // Compact 5x7 ASCII font covering 0-9, A-Z, a few symbols + lowercase.
+  // Each entry: 5 bytes describing rows, bit 0 = top row.
+  const FONT_5X7 = {
+    ' ': [0,0,0,0,0],
+    '!': [0,0,0x5F,0,0],
+    '\'': [0,0x07,0,0,0],
+    '(': [0x1C,0x22,0x41,0,0],
+    ')': [0,0x41,0x22,0x1C,0],
+    '+': [0x08,0x08,0x3E,0x08,0x08],
+    ',': [0,0,0x40,0x30,0],
+    '-': [0x08,0x08,0x08,0x08,0x08],
+    '.': [0,0,0,0x30,0],
+    '/': [0x20,0x10,0x08,0x04,0x02],
+    '0': [0x3E,0x51,0x49,0x45,0x3E],
+    '1': [0,0x42,0x7F,0x40,0],
+    '2': [0x42,0x61,0x51,0x49,0x46],
+    '3': [0x21,0x41,0x45,0x4B,0x31],
+    '4': [0x18,0x14,0x12,0x7F,0x10],
+    '5': [0x27,0x45,0x45,0x45,0x39],
+    '6': [0x3C,0x4A,0x49,0x49,0x30],
+    '7': [0x01,0x71,0x09,0x05,0x03],
+    '8': [0x36,0x49,0x49,0x49,0x36],
+    '9': [0x06,0x49,0x49,0x29,0x1E],
+    ':': [0,0x36,0x36,0,0],
+    '=': [0x08,0x08,0x08,0x08,0x08],
+    '?': [0x02,0x01,0x51,0x09,0x06],
+    'A': [0x7C,0x12,0x11,0x12,0x7C],
+    'B': [0x7F,0x49,0x49,0x49,0x36],
+    'C': [0x3E,0x41,0x41,0x41,0x22],
+    'D': [0x7F,0x41,0x41,0x22,0x1C],
+    'E': [0x7F,0x49,0x49,0x49,0x41],
+    'F': [0x7F,0x09,0x09,0x09,0x01],
+    'G': [0x3E,0x41,0x49,0x49,0x7A],
+    'H': [0x7F,0x08,0x08,0x08,0x7F],
+    'I': [0,0x41,0x7F,0x41,0],
+    'J': [0x20,0x40,0x41,0x3F,0x01],
+    'K': [0x7F,0x08,0x14,0x22,0x41],
+    'L': [0x7F,0x40,0x40,0x40,0x40],
+    'M': [0x7F,0x02,0x0C,0x02,0x7F],
+    'N': [0x7F,0x04,0x08,0x10,0x7F],
+    'O': [0x3E,0x41,0x41,0x41,0x3E],
+    'P': [0x7F,0x09,0x09,0x09,0x06],
+    'Q': [0x3E,0x41,0x51,0x21,0x5E],
+    'R': [0x7F,0x09,0x19,0x29,0x46],
+    'S': [0x46,0x49,0x49,0x49,0x31],
+    'T': [0x01,0x01,0x7F,0x01,0x01],
+    'U': [0x3F,0x40,0x40,0x40,0x3F],
+    'V': [0x1F,0x20,0x40,0x20,0x1F],
+    'W': [0x3F,0x40,0x38,0x40,0x3F],
+    'X': [0x63,0x14,0x08,0x14,0x63],
+    'Y': [0x07,0x08,0x70,0x08,0x07],
+    'Z': [0x61,0x51,0x49,0x45,0x43],
+    'a': [0x20,0x54,0x54,0x54,0x78],
+    'b': [0x7F,0x48,0x44,0x44,0x38],
+    'c': [0x38,0x44,0x44,0x44,0x20],
+    'd': [0x38,0x44,0x44,0x48,0x7F],
+    'e': [0x38,0x54,0x54,0x54,0x18],
+    'f': [0x08,0x7E,0x09,0x01,0x02],
+    'g': [0x0C,0x52,0x52,0x52,0x3E],
+    'h': [0x7F,0x08,0x04,0x04,0x78],
+    'i': [0,0x44,0x7D,0x40,0],
+    'j': [0x20,0x40,0x44,0x3D,0],
+    'k': [0x7F,0x10,0x28,0x44,0],
+    'l': [0,0x41,0x7F,0x40,0],
+    'm': [0x7C,0x04,0x18,0x04,0x78],
+    'n': [0x7C,0x08,0x04,0x04,0x78],
+    'o': [0x38,0x44,0x44,0x44,0x38],
+    'p': [0x7C,0x14,0x14,0x14,0x08],
+    'q': [0x08,0x14,0x14,0x18,0x7C],
+    'r': [0x7C,0x08,0x04,0x04,0x08],
+    's': [0x48,0x54,0x54,0x54,0x20],
+    't': [0x04,0x3F,0x44,0x40,0x20],
+    'u': [0x3C,0x40,0x40,0x20,0x7C],
+    'v': [0x1C,0x20,0x40,0x20,0x1C],
+    'w': [0x3C,0x40,0x30,0x40,0x3C],
+    'x': [0x44,0x28,0x10,0x28,0x44],
+    'y': [0x0C,0x50,0x50,0x50,0x3C],
+    'z': [0x44,0x64,0x54,0x4C,0x44],
+    '°': [0x06,0x09,0x09,0x09,0x06],
+  };
+
+  const PART_DEFS = {
+    'arduino-uno': {
+      width: 220, height: 140,
+      pins: () => {
+        // Digital pins D0..D13 on the right; Power/Analog on the left.
+        // PWM-capable pins are marked (~D3 ~D5 ~D6 ~D9 ~D10 ~D11).
+        const pwmPins = new Set([3, 5, 6, 9, 10, 11]);
+        const right = [];
+        for (let i = 0; i <= 13; i++) {
+          const isPwm = pwmPins.has(i);
+          right.push({
+            id: 'D' + i,
+            x: 220,
+            y: 30 + i * 8,
+            label: (isPwm ? '~' : '') + 'D' + i,
+            pwm: isPwm,
+          });
+        }
+        const left = [
+          { id: '5V', x: 0, y: 30, label: '5V' },
+          { id: '3V3', x: 0, y: 50, label: '3.3V' },
+          { id: 'GND', x: 0, y: 70, label: 'GND' },
+          { id: 'A0', x: 0, y: 100, label: 'A0' },
+          { id: 'A1', x: 0, y: 108, label: 'A1' },
+        ];
+        return right.concat(left);
+      },
+      render(g, comp) {
+        // PCB
+        g.appendChild(el('rect', { x: 0, y: 0, width: 220, height: 140, rx: 4, class: 'arduino-body' }));
+        g.appendChild(el('rect', { x: 12, y: 12, width: 196, height: 116, rx: 2, class: 'arduino-pcb' }));
+        // USB connector
+        g.appendChild(el('rect', { x: -14, y: 30, width: 14, height: 24, rx: 2, fill: '#888', stroke: '#444' }));
+        // Power jack
+        g.appendChild(el('rect', { x: 200, y: -8, width: 14, height: 8, rx: 2, fill: '#222' }));
+        // Chip
+        g.appendChild(el('rect', { x: 80, y: 50, width: 60, height: 40, rx: 2, fill: '#1a1a1a', stroke: '#444' }));
+        // Pin headers (visual reference)
+        for (let i = 0; i <= 13; i++) {
+          g.appendChild(el('rect', { x: 212, y: 27 + i * 8, width: 14, height: 4, fill: '#ddd' }));
+        }
+        // Labels
+        const arduinoLabel = el('text', { x: 110, y: 124, 'text-anchor': 'middle', class: 'arduino-text' });
+        arduinoLabel.textContent = 'ARDUINO UNO';
+        g.appendChild(arduinoLabel);
+        g.appendChild(el('text', { x: 50, y: 70, 'text-anchor': 'middle', class: 'arduino-text', fill: '#8AB4D8' }, [])).textContent = 'ATmega328';
+      },
+    },
+
+    'led': {
+      width: 60, height: 50,
+      pins: () => [
+        { id: 'A', x: 0, y: 14, label: 'A' },
+        { id: 'K', x: 0, y: 36, label: 'K' },
+      ],
+      render(g, comp) {
+        const color = comp.color || 'red';
+        const brightness = comp._brightness || 0;
+        const lit = brightness > 0;
+        // Wires down from pins
+        g.appendChild(el('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: '#888', 'stroke-width': 1.5 }));
+        g.appendChild(el('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: '#888', 'stroke-width': 1.5 }));
+        // LED dome — base color depends on selection, opacity reflects brightness
+        const baseFill = lit ? (colorMap[color] || '#ff3b3b') : '#444';
+        const opacity = lit ? Math.max(0.15, brightness) : 1;
+        g.appendChild(el('circle', { cx: 30, cy: 25, r: 12, fill: baseFill, 'fill-opacity': opacity }));
+        if (lit && brightness > 0.6) {
+          // Glow halo when bright
+          g.appendChild(el('circle', { cx: 30, cy: 25, r: 16, fill: baseFill, 'fill-opacity': brightness * 0.35 }));
+        }
+        // Flat side
+        g.appendChild(el('line', { x1: 22, y1: 17, x2: 22, y2: 33, stroke: '#222', 'stroke-width': 2 }));
+        // Label
+        const labelTxt = el('text', { x: 30, y: 50, 'text-anchor': 'middle', class: 'arduino-text' });
+        labelTxt.textContent = lit ? Math.round(brightness * 100) + '%' : 'LED';
+        g.appendChild(labelTxt);
+      },
+    },
+
+    'button': {
+      width: 60, height: 50,
+      pins: () => [
+        { id: 'A', x: 0, y: 14, label: 'A' },
+        { id: 'B', x: 0, y: 36, label: 'B' },
+      ],
+      render(g, comp) {
+        const pressed = comp._pressed;
+        // Wires
+        g.appendChild(el('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: '#888', 'stroke-width': 1.5 }));
+        g.appendChild(el('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: '#888', 'stroke-width': 1.5 }));
+        // Body
+        g.appendChild(el('rect', { x: 16, y: 8, width: 32, height: 34, rx: 3, class: 'button-body' }));
+        // Cap
+        const capClass = pressed ? 'button-cap-on' : 'button-cap-off';
+        g.appendChild(el('circle', { cx: 32, cy: 25, r: 9, class: capClass }));
+        // Label
+        const labelTxt = el('text', { x: 32, y: 50, 'text-anchor': 'middle', class: 'arduino-text' });
+        labelTxt.textContent = pressed ? 'PRESSED' : 'BUTTON';
+        g.appendChild(labelTxt);
+      },
+    },
+
+    'resistor': {
+      width: 100, height: 40,
+      pins: () => [
+        { id: 'A', x: 0, y: 20, label: 'A' },
+        { id: 'B', x: 100, y: 20, label: 'B' },
+      ],
+      render(g, comp) {
+        g.appendChild(el('line', { x1: 0, y1: 20, x2: 30, y2: 20, stroke: '#888', 'stroke-width': 1.5 }));
+        g.appendChild(el('line', { x1: 70, y1: 20, x2: 100, y2: 20, stroke: '#888', 'stroke-width': 1.5 }));
+        g.appendChild(el('rect', { x: 30, y: 8, width: 40, height: 24, rx: 4, class: 'resistor-body' }));
+        // Color bands
+        g.appendChild(el('rect', { x: 38, y: 8, width: 3, height: 24, class: 'resistor-band' }));
+        g.appendChild(el('rect', { x: 45, y: 8, width: 3, height: 24, fill: '#c0392b' }));
+        g.appendChild(el('rect', { x: 52, y: 8, width: 3, height: 24, fill: '#f39c12' }));
+        g.appendChild(el('rect', { x: 59, y: 8, width: 3, height: 24, class: 'resistor-band' }));
+        // Label
+        const labelTxt = el('text', { x: 50, y: 38, 'text-anchor': 'middle', class: 'arduino-text' });
+        labelTxt.textContent = '220Ω';
+        g.appendChild(labelTxt);
+      },
+    },
+
+    'potentiometer': {
+      width: 60, height: 80,
+      pins: () => [
+        { id: 'A', x: 0,  y: 18, label: 'A' },
+        { id: 'B', x: 60, y: 18, label: 'B' },
+        { id: 'W', x: 30, y: 80, label: 'W' },
+      ],
+      render(g, comp) {
+        const v = Math.max(0, Math.min(100, comp.value || 0));
+        // Outer ring
+        g.appendChild(el('circle', { cx: 30, cy: 30, r: 24, class: 'pot-body' }));
+        g.appendChild(el('circle', { cx: 30, cy: 30, r: 22, fill: '#0a0a0a' }));
+        // Notch (orientation guide)
+        g.appendChild(el('circle', { cx: 30, cy: 6,  r: 1.5, fill: '#777' }));
+        // Indicator pointing based on value (-135° to +135°)
+        const angle = -135 + (v / 100) * 270;
+        const rad = angle * Math.PI / 180;
+        const x2 = 30 + Math.sin(rad) * 16;
+        const y2 = 30 - Math.cos(rad) * 16;
+        g.appendChild(el('line', { x1: 30, y1: 30, x2: x2, y2: y2, class: 'pot-indicator' }));
+        // Centre cap
+        g.appendChild(el('circle', { cx: 30, cy: 30, r: 3, fill: '#888' }));
+        // Value text
+        const valTxt = el('text', { x: 30, y: 70, 'text-anchor': 'middle', class: 'pot-value-text' });
+        valTxt.textContent = Math.round(v) + '%';
+        g.appendChild(valTxt);
+        // Pin wires
+        g.appendChild(el('line', { x1: 0,  y1: 18, x2: 18, y2: 18, stroke: '#888', 'stroke-width': 1.5 }));
+        g.appendChild(el('line', { x1: 60, y1: 18, x2: 42, y2: 18, stroke: '#888', 'stroke-width': 1.5 }));
+      },
+    },
+
+    'oled': {
+      width: 160, height: 100,
+      pins: () => [
+        { id: 'VCC', x: 0,   y: 18, label: 'VCC' },
+        { id: 'GND', x: 0,   y: 36, label: 'GND' },
+        { id: 'SDA', x: 0,   y: 54, label: 'SDA' },
+        { id: 'SCL', x: 0,   y: 72, label: 'SCL' },
+      ],
+      render(g, comp) {
+        // Body bezel
+        g.appendChild(el('rect', { x: 0, y: 0, width: 160, height: 100, rx: 4, fill: '#1a1a1a', stroke: '#333', 'stroke-width': 1 }));
+        // Place the canvas at the right of the bezel
+        const fo = el('foreignObject', { x: 8, y: 8, width: 128, height: 64 });
+        const htmlCanvas = document.createElement('canvas');
+        htmlCanvas.width = 128; htmlCanvas.height = 64;
+        htmlCanvas.classList.add('oled-canvas');
+        htmlCanvas.setAttribute('data-comp-id', comp.id);
+        // store reference for engine updates
+        comp._canvas = htmlCanvas;
+        // Pin legend on right
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'width:128px;height:64px;background:#000;';
+        wrap.appendChild(htmlCanvas);
+        fo.appendChild(wrap);
+        g.appendChild(fo);
+
+        // Pin labels / wires
+        const wires = [['VCC', 18], ['GND', 36], ['SDA', 54], ['SCL', 72]];
+        for (const [name, y] of wires) {
+          g.appendChild(el('line', { x1: 0, y1: y, x2: 8, y2: y, stroke: '#888', 'stroke-width': 1.5 }));
+        }
+        // Model label
+        const lbl = el('text', { x: 142, y: 80, 'text-anchor': 'middle', class: 'arduino-text' });
+        lbl.textContent = 'SSD1306';
+        g.appendChild(lbl);
+        const addr = el('text', { x: 142, y: 92, 'text-anchor': 'middle', class: 'arduino-text', fill: '#888' });
+        addr.textContent = '0x3C';
+        g.appendChild(addr);
+        // Initialise display canvas
+        initOledDisplay(comp);
+      },
+    },
+
+    'mpu6050': {
+      width: 90, height: 90,
+      pins: () => [
+        { id: 'VCC', x: 0,  y: 12, label: 'VCC' },
+        { id: 'GND', x: 0,  y: 30, label: 'GND' },
+        { id: 'SDA', x: 90, y: 12, label: 'SDA' },
+        { id: 'SCL', x: 90, y: 30, label: 'SCL' },
+      ],
+      render(g, comp) {
+        // PCB
+        g.appendChild(el('rect', { x: 8, y: 8, width: 74, height: 74, rx: 4, class: 'mpu-body' }));
+        // Mounting holes
+        g.appendChild(el('circle', { cx: 14, cy: 14, r: 2.5, fill: '#0a0a0a' }));
+        g.appendChild(el('circle', { cx: 76, cy: 14, r: 2.5, fill: '#0a0a0a' }));
+        g.appendChild(el('circle', { cx: 14, cy: 76, r: 2.5, fill: '#0a0a0a' }));
+        g.appendChild(el('circle', { cx: 76, cy: 76, r: 2.5, fill: '#0a0a0a' }));
+        // Centre IC chip
+        const fo = el('foreignObject', { x: 22, y: 22, width: 46, height: 46 });
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'width:46px;height:46px;background:#1c2733;display:flex;align-items:center;justify-content:center;border-radius:3px;cursor:grab;';
+        // 3D cube area (interactive)
+        wrap.innerHTML = `
+          <div data-mpu-id="${comp.id}" style="width:46px;height:46px;display:grid;grid-template-columns:1fr;gap:1px;font-family:'JetBrains Mono',monospace;font-size:9px;color:#42b883;text-align:center;background:#0a0e13;padding:2px;border-radius:2px;">
+            <div style="display:flex;justify-content:space-between;"><span>X</span><span data-mpu-axis="x">0</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>Y</span><span data-mpu-axis="y">0</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>Z</span><span data-mpu-axis="z">0</span></div>
+          </div>`;
+        fo.appendChild(wrap);
+        g.appendChild(fo);
+        // Pin wires
+        g.appendChild(el('line', { x1: 0, y1: 12, x2: 8, y2: 12, stroke: '#888', 'stroke-width': 1.5 }));
+        g.appendChild(el('line', { x1: 0, y1: 30, x2: 8, y2: 30, stroke: '#888', 'stroke-width': 1.5 }));
+        g.appendChild(el('line', { x1: 90, y1: 12, x2: 82, y2: 12, stroke: '#888', 'stroke-width': 1.5 }));
+        g.appendChild(el('line', { x1: 90, y1: 30, x2: 82, y2: 30, stroke: '#888', 'stroke-width': 1.5 }));
+
+        // Attach mouse-drag rotation handlers to the label area
+        comp._tilt = comp._tilt || { pitch: 0, roll: 0, yaw: 0 };
+        comp._dragging = false;
+        // store reference
+        comp._domRoot = wrap;
+        initMpuLabels(comp);
+      },
+    },
+  };
+
+  // Create a component instance
+  function addComponent(type, x, y) {
+    const def = PART_DEFS[type];
+    if (!def) return null;
+    const id = 'C' + (state.nextId++);
+    const comp = {
+      id,
+      type,
+      x, y,
+      width: def.width,
+      height: def.height,
+      _lit: false,
+      _brightness: 0,
+      _pressed: false,
+      color: type === 'led' ? 'red' : undefined,
+      value: type === 'potentiometer' ? 50 : undefined,
+    };
+    state.components.push(comp);
+    renderAll();
+    hideHint();
+    return comp;
+  }
+
+  function removeComponent(id) {
+    state.components = state.components.filter(c => c.id !== id);
+    state.connections = state.connections.filter(
+      c => c.from.compId !== id && c.to.compId !== id
+    );
+    renderAll();
+  }
+
+  function clearAll() {
+    state.components = [];
+    state.connections = [];
+    state.pendingFrom = null;
+    renderAll();
+  }
+
+  // Get a pin world position (SVG coords)
+  // Normalize a pin identifier like 'D13' or 'A0' to an Arduino pin number (D13→13, A0→14).
+  function normalizePin(pinId) {
+    if (typeof pinId === 'number') return pinId;
+    if (/^D\d+$/.test(pinId)) return parseInt(pinId.slice(1), 10);
+    if (/^A\d+$/.test(pinId)) return 14 + parseInt(pinId.slice(1), 10);
+    return pinId;
+  }
+
+  function pinPos(compId, pinId) {
+    const comp = state.components.find(c => c.id === compId);
+    if (!comp) return null;
+    const def = PART_DEFS[comp.type];
+    const pins = def.pins();
+    const p = pins.find(pp => pp.id === pinId);
+    if (!p) return null;
+    return { x: comp.x + p.x, y: comp.y + p.y };
+  }
+
+  // =========================================================
+  //                     RENDERING
+  // =========================================================
+  function renderAll() {
+    renderWires();
+    renderComponents();
+  }
+
+  function renderWires() {
+    layerWires.innerHTML = '';
+    for (const c of state.connections) {
+      const a = pinPos(c.from.compId, c.from.pinId);
+      const b = pinPos(c.to.compId, c.to.pinId);
+      if (!a || !b) continue;
+      // Curved bezier for nicer aesthetics
+      const dx = (b.x - a.x) * 0.4;
+      const c1 = `${a.x + dx} ${a.y}`;
+      const c2 = `${b.x - dx} ${b.y}`;
+      const wireColor = c.color || pickWireColor(c);
+      const d = `M ${a.x} ${a.y} C ${c1}, ${c2}, ${b.x} ${b.y}`;
+      layerWires.appendChild(el('path', { d, class: 'wire ' + wireColor }));
+    }
+    // Pending wire
+    layerPending.innerHTML = '';
+    if (state.pendingFrom) {
+      const a = pinPos(state.pendingFrom.compId, state.pendingFrom.pinId);
+      if (a) {
+        const dx = (state.mouse.x - a.x) * 0.4;
+        const c1 = `${a.x + dx} ${a.y}`;
+        const c2 = `${state.mouse.x - dx} ${state.mouse.y}`;
+        const d = `M ${a.x} ${a.y} C ${c1}, ${c2}, ${state.mouse.x} ${state.mouse.y}`;
+        layerPending.appendChild(el('path', { d, class: 'wire pending' }));
+      }
+    }
+  }
+
+  function pickWireColor(conn) {
+    // Arduino D pins red, others green
+    const fromC = state.components.find(c => c.id === conn.from.compId);
+    const isArduinoDigital = fromC && fromC.type === 'arduino-uno' && /^D\d+$/.test(conn.from.pinId);
+    return isArduinoDigital ? '' : 'green';
+  }
+
+  function renderComponents() {
+    layerComps.innerHTML = '';
+    layerPins.innerHTML = '';
+    for (const comp of state.components) {
+      const def = PART_DEFS[comp.type];
+      const g = el('g', { class: 'component', transform: `translate(${comp.x}, ${comp.y})`, 'data-comp-id': comp.id });
+      def.render(g, comp);
+
+      // Hover/drag interactions
+      const onMouseDown = (e) => {
+        e.stopPropagation();
+        startDragComponent(comp, e);
+      };
+      g.addEventListener('mousedown', onMouseDown);
+
+      // Component-specific click handlers (e.g. change LED color)
+      if (comp.type === 'led') {
+        const handle = el('rect', {
+          x: 18, y: 13, width: 24, height: 24,
+          fill: 'transparent', style: 'cursor: pointer;',
+        });
+        handle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const colors = ['red', 'green', 'blue', 'yellow'];
+          const cur = colors.indexOf(comp.color);
+          comp.color = colors[(cur + 1) % colors.length];
+          renderAll();
+        });
+        g.appendChild(handle);
+      }
+
+      layerComps.appendChild(g);
+
+      // Pins (separate layer to keep z-order on top)
+      const pins = def.pins();
+      for (const p of pins) {
+        const cx = comp.x + p.x;
+        const cy = comp.y + p.y;
+        const isSelected = state.pendingFrom &&
+          state.pendingFrom.compId === comp.id && state.pendingFrom.pinId === p.id;
+        const c = el('circle', {
+          cx, cy, r: 5,
+          class: 'pin' + (isSelected ? ' selected' : ''),
+          'data-comp-id': comp.id,
+          'data-pin-id': p.id,
+        });
+        c.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          onPinClick(comp.id, p.id);
+        });
+        layerPins.appendChild(c);
+
+        const label = el('text', {
+          x: comp.x + p.x + (p.x === 0 ? -8 : 8),
+          y: comp.y + p.y + 3,
+          'text-anchor': p.x === 0 ? 'end' : 'start',
+          class: 'pin-label' + (p.pwm ? ' pwm' : ''),
+        });
+        label.textContent = p.label;
+        layerPins.appendChild(label);
+      }
+    }
+  }
+
+  function hideHint() {
+    if (!hintEl.classList.contains('hidden')) {
+      hintEl.classList.add('hidden');
+    }
+  }
+
+  // =========================================================
+  //                     INTERACTIONS
+  // =========================================================
+  // -- Drag-from-palette --
+  document.querySelectorAll('.part').forEach(p => {
+    p.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', p.dataset.part);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+  });
+  svg.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  svg.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData('text/plain');
+    if (!PART_DEFS[type]) return;
+    const pt = getSvgPoint(e);
+    // Center the placed component on the cursor
+    const def = PART_DEFS[type];
+    addComponent(type, pt.x - def.width / 2, pt.y - def.height / 2);
+  });
+
+  // -- Mouse tracking for pending wire --
+  svg.addEventListener('mousemove', (e) => {
+    state.mouse = getSvgPoint(e);
+    if (state.pendingFrom) renderWires();
+  });
+
+  // -- Click on empty space cancels pending wire --
+  svg.addEventListener('mousedown', (e) => {
+    if (!e.target.classList.contains('pin') && !e.target.closest('.component')) {
+      state.pendingFrom = null;
+      renderAll();
+    }
+  });
+
+  // -- Pin click: connect or start pending wire --
+  function onPinClick(compId, pinId) {
+    const comp = state.components.find(c => c.id === compId);
+
+    if (!state.pendingFrom) {
+      // Start a new wire
+      state.pendingFrom = { compId, pinId };
+      renderAll();
+      return;
+    }
+
+    // We have a pending pin
+    if (state.pendingFrom.compId === compId && state.pendingFrom.pinId === pinId) {
+      // Clicked same pin -> cancel
+      state.pendingFrom = null;
+      renderAll();
+      return;
+    }
+    // Complete a connection
+    const a = state.pendingFrom;
+    const b = { compId, pinId };
+
+    // Check if either pin is an Arduino pin (denote numeric pin)
+    const aComp = state.components.find(c => c.id === a.compId);
+    const bComp = comp;
+    const aIsArduino = aComp && aComp.type === 'arduino-uno' && /^D\d+$/.test(a.pinId);
+    const bIsArduino = bComp && bComp.type === 'arduino-uno' && /^D\d+$/.test(b.pinId);
+
+    if (!aIsArduino && !bIsArduino) {
+      toast('至少一端需要接到 Arduino 引脚上', 'error');
+      return;
+    }
+    if (aIsArduino && bIsArduino) {
+      toast('不能在两个 Arduino 引脚间连线', 'error');
+      return;
+    }
+    // Remove any existing connection involving either pin
+    state.connections = state.connections.filter(c =>
+      !(c.from.compId === a.compId && c.from.pinId === a.pinId) &&
+      !(c.to.compId === a.compId && c.to.pinId === a.pinId) &&
+      !(c.from.compId === b.compId && c.from.pinId === b.pinId) &&
+      !(c.to.compId === b.compId && c.to.pinId === b.pinId)
+    );
+
+    state.connections.push({ from: a, to: b });
+    state.pendingFrom = null;
+    renderAll();
+    toast('已连接', 'success');
+  }
+
+  // -- Drag a component around the canvas --
+  let dragInfo = null;
+  function startDragComponent(comp, evt) {
+    const start = getSvgPoint(evt);
+    dragInfo = {
+      comp,
+      dx: start.x - comp.x,
+      dy: start.y - comp.y,
+    };
+    const onMove = (e) => {
+      const p = getSvgPoint(e);
+      comp.x = p.x - dragInfo.dx;
+      comp.y = p.y - dragInfo.dy;
+      renderAll();
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      dragInfo = null;
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  // =========================================================
+  //                     BUTTON PRESS
+  // =========================================================
+  layerPins.addEventListener('mousedown', (e) => {
+    if (!e.target.classList.contains('pin')) return;
+    const compId = e.target.getAttribute('data-comp-id');
+    const pinId = e.target.getAttribute('data-pin-id');
+    const comp = state.components.find(c => c.id === compId);
+    if (comp && comp.type === 'button') {
+      comp._pressed = true;
+      renderAll();
+      const onUp = () => {
+        comp._pressed = false;
+        renderAll();
+        window.removeEventListener('mouseup', onUp);
+      };
+      window.addEventListener('mouseup', onUp);
+    }
+  });
+
+  // =========================================================
+  //                     ARDUINO ENGINE
+  // =========================================================
+  const engine = {
+    userCode: null,
+    running: false,
+    _abort: false,
+    fn: null,
+
+    reset() {
+      this._abort = true;
+      // Signal the running user-code wrapper (which lives in its own closure)
+      window.__engine_aborted = true;
+      this.running = false;
+      // Clear all pin states
+      for (const k in arduinoState) delete arduinoState[k];
+      for (const c of state.components) {
+        if (c.type === 'led') c._lit = false;
+      }
+    },
+
+    async run(code) {
+      this.reset();
+      // Wait for any prior run to settle
+      await new Promise(r => setTimeout(r, 30));
+      this._abort = false;
+      window.__engine_aborted = false;
+      this.userCode = code;
+
+      let transformed;
+      try {
+        transformed = preprocessArduino(code);
+      } catch (e) {
+        toast('编译错误: ' + e.message, 'error');
+        serialPrint('Compilation error: ' + e.message, true);
+        return;
+      }
+
+      let AsyncFunction;
+      try {
+        AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+        this.fn = new AsyncFunction(
+          'pinMode',
+          'digitalWrite',
+          'digitalRead',
+          'analogRead',
+          'analogWrite',
+          'delay',
+          'millis',
+          'micros',
+          'Serial',
+          'Wire',
+          'display',
+          transformed
+        );
+      } catch (e) {
+        toast('编译错误: ' + e.message, 'error');
+        serialPrint('Compilation error: ' + e.message, true);
+        return;
+      }
+
+      this.running = true;
+      runBtn.disabled = true;
+      stopBtn.disabled = false;
+
+      const Serial = makeSerial();
+      const bind = (api) => api.bind(this);
+      try {
+        await this.fn(
+          bind(this.pinMode),
+          bind(this.digitalWrite),
+          bind(this.digitalRead),
+          bind(this.analogRead),
+          bind(this.analogWrite),
+          bind(this.delay),
+          bind(this.millis),
+          bind(this.micros),
+          Serial,
+          makeWire(),
+          getDisplayApi()
+        );
+      } catch (e) {
+        // Likely user-aborted via abort error
+        if (!this._abort) {
+          toast('运行时错误: ' + e.message, 'error');
+          serialPrint('Runtime error: ' + e.message, true);
+        }
+      } finally {
+        this.running = false;
+        runBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+    },
+
+    pinMode(pin, mode) {
+      const m = typeof mode === 'string' ? mode : (mode === 0 ? 'INPUT' : 'OUTPUT');
+      if (!arduinoState[pin]) arduinoState[pin] = { mode: m, value: 0, pwm: 0 };
+      else arduinoState[pin].mode = m;
+      if (m === 'INPUT_PULLUP') arduinoState[pin].value = 1;
+    },
+
+    digitalWrite(pin, val) {
+      if (!arduinoState[pin]) arduinoState[pin] = { mode: 'OUTPUT', value: 0, pwm: 0 };
+      // Mark that this pin is under digital control (no PWM override).
+      arduinoState[pin]._digital = true;
+      arduinoState[pin].value = val ? 1 : 0;
+    },
+
+    digitalRead(pin) {
+      // Find the Arduino UNO; check all wires touching this pin.
+      const arduinos = state.components.filter(c => c.type === 'arduino-uno');
+      for (const a of arduinos) {
+        for (const c of state.connections) {
+          const otherEnd =
+            (c.from.compId === a.id && normalizePin(c.from.pinId) === pin) ? c.to :
+            (c.to.compId   === a.id && normalizePin(c.to.pinId)   === pin) ? c.from :
+            null;
+          if (!otherEnd) continue;
+          const oc = state.components.find(cc => cc.id === otherEnd.compId);
+          if (!oc) continue;
+          if (oc.type === 'button') {
+            return oc._pressed ? 0 : 1; // INPUT_PULLUP default: not pressed = 1
+          }
+        }
+      }
+      // Default: pull-up returns 1, otherwise 0
+      return arduinoState[pin] && arduinoState[pin].mode === 'INPUT_PULLUP' ? 1 : 0;
+    },
+
+    analogRead(pin) {
+      // Look for a connection from this analog pin to a potentiometer wiper.
+      const arduinos = state.components.filter(c => c.type === 'arduino-uno');
+      for (const a of arduinos) {
+        for (const c of state.connections) {
+          const arduinoEnd =
+            (c.from.compId === a.id && normalizePin(c.from.pinId) === pin) ? c.from :
+            (c.to.compId   === a.id && normalizePin(c.to.pinId)   === pin) ? c.to :
+            null;
+          if (!arduinoEnd) continue;
+          const otherEnd = (c.from === arduinoEnd) ? c.to : c.from;
+          const oc = state.components.find(cc => cc.id === otherEnd.compId);
+          if (!oc) continue;
+          if (oc.type === 'potentiometer' && otherEnd.pinId === 'W') {
+            // value 0..100 → 0..5V → 0..1023
+            const v = Math.max(0, Math.min(100, oc.value || 0));
+            return Math.round((v / 100) * 1023);
+          }
+          // Could also read from MPU6050 analog output, but use raw values.
+        }
+      }
+      return 0;
+    },
+
+    analogWrite(pin, val) {
+      // Pin must be PWM-capable. Arduino UNO: ~D3, ~D5, ~D6, ~D9, ~D10, ~D11.
+      const pwmPins = [3, 5, 6, 9, 10, 11];
+      const normalizedPin = pin;
+      const clamped = Math.max(0, Math.min(255, val | 0));
+      if (!arduinoState[pin]) arduinoState[pin] = { mode: 'OUTPUT', value: 0, pwm: 0 };
+      arduinoState[pin]._digital = false;
+      arduinoState[pin].pwm = clamped;
+      // Approximate duty-cycle-based digital snapshot for non-PWM pin consumers.
+      arduinoState[pin].value = clamped >= 128 ? 1 : 0;
+      if (!pwmPins.includes(normalizedPin)) {
+        // Non-PWM pin: degrade to digital behaviour but warn once.
+        if (!window.__pwmWarned) {
+          toast('D' + normalizedPin + ' 不是 PWM pin，已降级为 digitalWrite', 'error');
+          window.__pwmWarned = true;
+        }
+      }
+    },
+
+    delay(ms) {
+      return new Promise((resolve) => {
+        const start = Date.now();
+        let remain = ms;
+        const step = () => {
+          if (window.__engine_aborted) { resolve(); return; }
+          const elapsed = Date.now() - start;
+          remain = ms - elapsed;
+          if (remain <= 0) { resolve(); return; }
+          setTimeout(step, Math.min(remain, 50));
+        };
+        step();
+      });
+    },
+
+    millis() { return Date.now() - this._t0; },
+    micros() { return (Date.now() - this._t0) * 1000; },
+
+    onSerialInput: null,
+  };
+  engine._t0 = Date.now();
+
+  function makeSerial() {
+    return {
+      _baud: 0,
+      begin(baud) { this._baud = baud; },
+      // Arduino signature: print(value, format?) where format is BIN/OCT/DEC/HEX
+      _formatValue(value, format) {
+        if (typeof value === 'string') return value;
+        const base = ({ BIN: 2, OCT: 8, DEC: 10, HEX: 16 })[format] != null ? ({ BIN: 2, OCT: 8, DEC: 10, HEX: 16 })[format] : (typeof format === 'number' ? format : 10);
+        if (typeof value === 'number' && base !== 10) {
+          return Math.trunc(value).toString(base).toUpperCase();
+        }
+        return engine._fmt(value);
+      },
+      print(...args) {
+        let msg;
+        if (args.length === 1) msg = engine._fmt(args[0]);
+        else if (args.length === 2 && (typeof args[1] === 'string' || typeof args[1] === 'number')) {
+          msg = this._formatValue(args[0], args[1]);
+        } else msg = args.map(a => engine._fmt(a)).join(' ');
+        serialPrint(msg, false);
+      },
+      println(...args) {
+        let msg;
+        if (args.length === 1) msg = engine._fmt(args[0]);
+        else if (args.length === 2 && (typeof args[1] === 'string' || typeof args[1] === 'number')) {
+          msg = this._formatValue(args[0], args[1]);
+        } else msg = args.map(a => engine._fmt(a)).join(' ');
+        serialPrint(msg, true);
+      },
+      available() { return 0; },
+      read() { return -1; },
+    };
+  }
+  engine._fmt = function (v) {
+    if (typeof v === 'string') return v;
+    if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(4);
+    if (typeof v === 'boolean') return v ? 'true' : 'false';
+    try { return JSON.stringify(v); } catch { return String(v); }
+  };
+  // Default serial input handler: surface to monitor (Arduino rarely reads it without setup)
+  engine.onSerialInput = (line) => {
+    serialPrint('< ' + line, true);
+  };
+
+  // Find the first OLED component on canvas and return its drawing API.
+  function getDisplayApi() {
+    const oled = state.components.find(c => c.type === 'oled');
+    if (!oled) {
+      return new Proxy({}, { get: () => () => toast('No OLED component on canvas', 'error') });
+    }
+    return makeOledApi(oled);
+  }
+
+  // =========================================================
+  //         SOFT I2C BUS — Wire library
+  // =========================================================
+  // A simple in-memory I2C bus: each device registers itself by address.
+  // Wire.begin / beginTransmission / write / endTransmission / requestFrom /
+  // available / read are dispatched to the device callbacks.
+  // Wire.onReceive / onRequest register user-side handlers (master RX/TX callbacks).
+  const i2cDevices = new Map(); // address (number) -> device
+  function registerI2CDevice(addr, device) {
+    i2cDevices.set(addr, device);
+  }
+  function unregisterI2CDevice(addr) {
+    i2cDevices.delete(addr);
+  }
+
+  function makeWire() {
+    const w = {
+      _txAddr: null,
+      _txBuf: [],
+      _rxLen: 0,
+      _rxBuf: [],
+      _rxIdx: 0,
+      _onReceive: null,
+      _onRequest: null,
+      _begun: false,
+
+      begin() { this._begun = true; },
+
+      beginTransmission(addr) {
+        this._txAddr = (addr & 0x7F) | ((addr & 0x7F) ? 0 : 0); // 7-bit
+        this._txAddr = (typeof addr === 'number') ? addr : parseInt(addr, 16);
+        this._txBuf = [];
+      },
+      write(...args) {
+        // Accept single byte, array of bytes, or string
+        for (const a of args) {
+          if (typeof a === 'string') {
+            for (let i = 0; i < a.length; i++) this._txBuf.push(a.charCodeAt(i) & 0xFF);
+          } else if (Array.isArray(a) || a instanceof Uint8Array) {
+            for (const v of a) this._txBuf.push(v & 0xFF);
+          } else {
+            this._txBuf.push((a | 0) & 0xFF);
+          }
+        }
+      },
+      endTransmission(stop = true) {
+        if (!this._txAddr || !i2cDevices.has(this._txAddr)) return 2; // NODRESS
+        const dev = i2cDevices.get(this._txAddr);
+        try {
+          if (typeof dev.write === 'function') dev.write(this._txBuf);
+        } catch (e) {
+          serialPrint('I2C bus error: ' + e.message, true);
+          return 4;
+        }
+        this._txBuf = [];
+        this._txAddr = null;
+        return 0;
+      },
+      requestFrom(addr, len, stop = true) {
+        const a = (typeof addr === 'number') ? addr : parseInt(addr, 16);
+        this._rxLen = len;
+        this._rxBuf = [];
+        this._rxIdx = 0;
+        const dev = i2cDevices.get(a);
+        if (dev && typeof dev.read === 'function') {
+          const bytes = dev.read(len) || [];
+          for (const b of bytes) this._rxBuf.push(b & 0xFF);
+        }
+        if (this._rxBuf.length < len) {
+          // pad with 0xFF like real Wire
+          while (this._rxBuf.length < len) this._rxBuf.push(0xFF);
+        }
+        return this._rxBuf.length;
+      },
+      available() { return this._rxBuf.length - this._rxIdx; },
+      read() { return this._rxIdx < this._rxBuf.length ? this._rxBuf[this._rxIdx++] : -1; },
+      onReceive(cb) { this._onReceive = cb; },
+      onRequest(cb) { this._onRequest = cb; },
+    };
+    return w;
+  }
+
+  // =========================================================
+  //         SSD1306 OLED DISPLAY (simplified Adafruit-like API)
+  // =========================================================
+  function initOledDisplay(comp) {
+    comp._oled = {
+      buffer: new Uint8Array(128 * 64 / 8),
+      cursorX: 0,
+      cursorY: 0,
+      textSize: 1,
+      dirty: true,
+      // Minimal 5x7 font (cached)
+      _font: getOledFont(),
+    };
+    // Default: 0x3C, with optional 0x3D
+    registerI2CDevice(0x3C, makeSsd1306Device(comp));
+  }
+
+  function makeSsd1306Device(comp) {
+    return {
+      _state: 'CMD',
+      _cmdBuf: [],
+      _colStart: 0,
+      _colEnd: 127,
+      _pageStart: 0,
+      _pageEnd: 7,
+      write(buf) {
+        // Standard SSD1306 protocol: control bytes 0x00 (cmd) or 0x40 (data).
+        let i = 0;
+        while (i < buf.length) {
+          const control = buf[i++];
+          if (control === 0x00) {
+            // Command stream
+            while (i < buf.length && (buf[i] & 0x80) === 0) {
+              const c = buf[i++];
+              handleSsd1306Cmd(comp, c);
+            }
+          } else if (control === 0x40) {
+            // Data stream (write to framebuffer)
+            while (i < buf.length && (buf[i] & 0x80) === 0) {
+              const byte = buf[i++];
+              drawSsd1306Byte(comp, byte);
+            }
+          } else if ((control & 0xC0) === 0x80 || (control & 0xC0) === 0x00) {
+            // Some libraries skip control byte altogether: treat as raw data
+            drawSsd1306Byte(comp, control);
+          } else {
+            // unknown control; assume data follows
+            drawSsd1306Byte(comp, control);
+          }
+        }
+        comp._oled.dirty = true;
+      },
+      read(n) {
+        // Most SSD1306 implementations don't support read; return dummy.
+        return [];
+      },
+    };
+  }
+
+  function handleSsd1306Cmd(comp, cmd) {
+    const o = comp._oled;
+    switch (cmd) {
+      case 0xAE: case 0xAF:
+        // Display OFF / ON
+        o._displayOn = cmd === 0xAF;
+        break;
+      case 0x00: case 0x10:
+        // Set column address high/low nibble
+        o._colHigh = (cmd & 0x0F) << 4;
+        break;
+      case 0x20: o._addressingMode = 0; break;
+      case 0x21:
+        o._colStart = 0; // next byte
+        break;
+      case 0x22:
+        o._pageStart = 0; break;
+      case 0xB0: case 0xB1: case 0xB2: case 0xB3:
+      case 0xB4: case 0xB5: case 0xB6: case 0xB7:
+        o._page = (cmd & 0x0F);
+        o._col = 0;
+        break;
+      case 0x40: case 0x41: case 0x42: case 0x43:
+      case 0x44: case 0x45: case 0x46: case 0x47:
+        o._startLine = cmd & 0x3F; break;
+    }
+  }
+
+  function drawSsd1306Byte(comp, byte) {
+    const o = comp._oled;
+    // Naive: write at current page, incrementing column
+    const page = o._page != null ? o._page : 0;
+    const col = o._col != null ? o._col : 0;
+    const idx = page * 128 + col;
+    if (idx >= 0 && idx < o.buffer.length) o.buffer[idx] = byte;
+    o._col = (col + 1) & 0x7F;
+  }
+
+  // Minimal 5x7 ASCII font (subset covering printable characters; missing glyphs render as '?')
+  function getOledFont() {
+    if (getOledFont._cache) return getOledFont._cache;
+    // Compressed base64 font would be ideal but for clarity use an inline ASCII subset.
+    getOledFont._cache = FONT_5X7;
+    return getOledFont._cache;
+  }
+
+  // Render the OLED buffer to its canvas (called periodically)
+  function paintOled(comp) {
+    if (!comp._oled) return;
+    // Always look up the live canvas, since renderAll() recreates DOM elements.
+    const liveCanvas = comp._canvas && comp._canvas.isConnected
+      ? comp._canvas
+      : document.querySelector('#canvas canvas[data-comp-id="' + comp.id + '"]');
+    if (liveCanvas) comp._canvas = liveCanvas;
+    if (!liveCanvas) return;
+    const ctx = liveCanvas.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 128, 64);
+    ctx.fillStyle = '#fff';
+    const buf = comp._oled.buffer;
+    for (let page = 0; page < 8; page++) {
+      for (let col = 0; col < 128; col++) {
+        const b = buf[page * 128 + col];
+        for (let bit = 0; bit < 8; bit++) {
+          if (b & (1 << bit)) {
+            ctx.fillRect(col, page * 8 + bit, 1, 1);
+          }
+        }
+      }
+    }
+  }
+
+  // Generate a user-facing OLED API bound to a specific component
+  function makeOledApi(comp) {
+    return {
+      display() { /* triggering display ON handled via cmd */ },
+      clearDisplay() {
+        comp._oled.buffer.fill(0);
+        comp._oled.dirty = true;
+      },
+      setTextSize(n) { comp._oled.textSize = n; },
+      setCursor(x, y) { comp._oled.cursorX = x; comp._oled.cursorY = y; },
+      print(text) {
+        const s = String(text);
+        const font = getOledFont();
+        for (let i = 0; i < s.length; i++) {
+          drawOledChar(comp, s.charCodeAt(i));
+        }
+        comp._oled.dirty = true;
+      },
+      println(text) { this.print(text || ''); this.print('\n'); },
+      drawPixel(x, y, color) {
+        const b = comp._oled.buffer;
+        const page = (y >> 3) | 0;
+        const bit = y & 7;
+        if (page < 0 || page > 7) return;
+        const idx = page * 128 + x;
+        if (x < 0 || x > 127) return;
+        if (color === 1 || color === true) b[idx] |= (1 << bit);
+        else b[idx] &= ~(1 << bit);
+        comp._oled.dirty = true;
+      },
+      drawLine(x0, y0, x1, y1, color) {
+        // Bresenham
+        let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+        let sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+        let err = dx - dy;
+        while (true) {
+          this.drawPixel(x0, y0, color);
+          if (x0 === x1 && y0 === y1) break;
+          const e2 = err * 2;
+          if (e2 > -dy) { err -= dy; x0 += sx; }
+          if (e2 <  dx) { err += dx; y0 += sy; }
+        }
+        comp._oled.dirty = true;
+      },
+      drawRect(x, y, w, h, color) {
+        for (let i = 0; i < w; i++) { this.drawPixel(x + i, y, color); this.drawPixel(x + i, y + h - 1, color); }
+        for (let j = 0; j < h; j++) { this.drawPixel(x, y + j, color); this.drawPixel(x + w - 1, y + j, color); }
+        comp._oled.dirty = true;
+      },
+      fillRect(x, y, w, h, color) {
+        for (let i = 0; i < w; i++) for (let j = 0; j < h; j++) this.drawPixel(x + i, y + j, color);
+        comp._oled.dirty = true;
+      },
+    };
+  }
+
+  function drawOledChar(comp, ch) {
+    const o = comp._oled;
+    const font = o._font;
+    const glyph = font[ch] || font['?'];
+    const size = o.textSize;
+    const charWidth = 6 * size; // 5 + 1 spacing
+    for (let col = 0; col < 5; col++) {
+      const line = glyph[col];
+      for (let row = 0; row < 7; row++) {
+        if (line & (1 << row)) {
+          oledFillRectRaw(o, o.cursorX + col * size, o.cursorY + row * size, size, size);
+        }
+      }
+    }
+    o.cursorX += charWidth;
+    if (o.cursorX + charWidth > 128) { o.cursorX = 0; o.cursorY += 8 * size; }
+  }
+
+  function oledFillRectRaw(o, x, y, w, h) {
+    for (let i = 0; i < w; i++)
+      for (let j = 0; j < h; j++)
+        oledSetPixel(o, x + i, y + j);
+  }
+  function oledSetPixel(o, x, y) {
+    if (x < 0 || x > 127 || y < 0 || y > 63) return;
+    const page = (y >> 3) | 0;
+    const bit = y & 7;
+    o.buffer[page * 128 + x] |= (1 << bit);
+  }
+
+  // Periodic OLED refresh (no need for high frequency — display holds)
+  setInterval(() => {
+    for (const c of state.components) {
+      if (c.type === 'oled' && c._oled && c._oled.dirty) {
+        paintOled(c);
+        c._oled.dirty = false;
+      }
+    }
+  }, 100);
+
+  // =========================================================
+  //         MPU6050 device
+  // =========================================================
+  function initMpuLabels(comp) {
+    comp._mpu = {
+      ax: 0, ay: 0, az: 16384, // raw 16-bit signed (~1g)
+      gx: 0, gy: 0, gz: 0,
+      temp: 3665, // ~21°C in raw units
+      pitch: 0, roll: 0, yaw: 0,
+    };
+    registerI2CDevice(0x68, makeMpu6050Device(comp));
+    refreshMpuLabels(comp);
+  }
+
+  function makeMpu6050Device(comp) {
+    return {
+      _reg: null,
+      _buf: [],
+      write(buf) {
+        for (const b of buf) {
+          if (this._reg === null) {
+            // first byte is the register address
+            this._reg = b;
+            this._buf = [];
+          } else {
+            this._buf.push(b);
+            // single-byte writes commit immediately; multi-byte we'll let the user push more
+            // For simplicity: commit each byte sequentially (matches streaming writes).
+            mpuWriteReg(comp, this._reg, this._buf.shift());
+            this._reg = (this._reg + 1) & 0xFF;
+          }
+        }
+      },
+      read(len) {
+        // Read from current register (which was set by the user via a write of 0x.., or
+        // defaults to WHO_AM_I). We'll simulate standard register window reads.
+        const bytes = [];
+        for (let i = 0; i < len; i++) bytes.push(mpuReadReg(comp, (this._reg || 0) + i));
+        return bytes;
+      },
+    };
+  }
+
+  function mpuWriteReg(comp, reg, val) {
+    switch (reg) {
+      case 0x1C: case 0x1B: case 0x1A:
+        // Accel/gyro config — accept any value silently
+        break;
+      case 0x6B:
+        // PWR_MGMT_1 — 0x6B=0 wakes up
+        break;
+    }
+  }
+
+  function mpuReadReg(comp, reg) {
+    // 0x75 = WHO_AM_I → 0x68
+    if (reg === 0x75) return 0x68;
+    // 0x3B..0x40: ACCEL_X, ACCEL_Y, ACCEL_Z, TEMP, GYRO_X, GYRO_Y, GYRO_Z (high bytes)
+    const m = comp._mpu;
+    const block = reg - 0x3B;
+    if (block >= 0 && block <= 13) {
+      const idx = Math.floor(block / 2);
+      const high = block % 2 === 0;
+      const arr = [m.ax, m.ay, m.az, m.temp, m.gx, m.gy, m.gz];
+      const v = arr[idx] || 0;
+      return high ? (v >> 8) & 0xFF : v & 0xFF;
+    }
+    return 0;
+  }
+
+  function refreshMpuLabels(comp) {
+    if (!comp._mpu) return;
+    // Look up the live DOM node — renderAll() recreates elements on every change.
+    const liveNode = comp._domRoot && comp._domRoot.isConnected
+      ? comp._domRoot
+      : document.querySelector('#canvas [data-mpu-id="' + comp.id + '"]');
+    if (liveNode) comp._domRoot = liveNode;
+    if (!liveNode) return;
+    const m = comp._mpu;
+    const xEl = liveNode.querySelector('[data-mpu-axis="x"]');
+    const yEl = liveNode.querySelector('[data-mpu-axis="y"]');
+    const zEl = liveNode.querySelector('[data-mpu-axis="z"]');
+    if (xEl) xEl.textContent = (m.ax / 16384).toFixed(2);
+    if (yEl) yEl.textContent = (m.ay / 16384).toFixed(2);
+    if (zEl) zEl.textContent = (m.az / 16384).toFixed(2);
+  }
+
+  // Mouse-drag the MPU6050 cube area to set tilt values
+  document.addEventListener('mousedown', (e) => {
+    const tgt = e.target;
+    if (!tgt || !tgt.closest || !tgt.closest('[data-mpu-id]')) return;
+    const id = tgt.closest('[data-mpu-id]').getAttribute('data-mpu-id');
+    const comp = state.components.find(c => c.id === id);
+    if (!comp) return;
+    const startX = e.clientX, startY = e.clientY;
+    const startPitch = comp._mpu.pitch, startRoll = comp._mpu.roll;
+    const onMove = (ev) => {
+      const dx = (ev.clientX - startX) / 2;
+      const dy = (ev.clientY - startY) / 2;
+      comp._mpu.pitch = Math.max(-90, Math.min(90, startPitch + dy));
+      comp._mpu.roll  = Math.max(-90, Math.min(90,  startRoll  + dx));
+      // map tilt to accel/gyro readings
+      const pRad = comp._mpu.pitch * Math.PI / 180;
+      const rRad = comp._mpu.roll  * Math.PI / 180;
+      comp._mpu.ax = Math.round(Math.sin(rRad) * 16384);
+      comp._mpu.ay = Math.round(-Math.sin(pRad) * Math.cos(rRad) * 16384);
+      comp._mpu.az = Math.round(Math.cos(pRad) * Math.cos(rRad) * 16384);
+      refreshMpuLabels(comp);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+
+  // Potentiometer rotation: click+drag the body (between 8 and 52 in y) to set value 0–100
+  document.addEventListener('mousedown', (e) => {
+    if (!e.target || !e.target.closest) return;
+    const compGroup = e.target.closest('.component');
+    if (!compGroup) return;
+    const compId = compGroup.getAttribute('data-comp-id');
+    const comp = state.components.find(c => c.id === compId);
+    if (!comp || comp.type !== 'potentiometer') return;
+    // Don't intercept pin clicks
+    if (e.target.classList && e.target.classList.contains('pin')) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    const startValue = comp.value || 0;
+    const onMove = (ev) => {
+      const dx = (ev.clientX - startX) / 1.5;
+      const dy = (startY - ev.clientY) / 1.5; // up = positive
+      let nv = startValue + dx + dy;
+      comp.value = Math.max(0, Math.min(100, nv));
+      renderAll();
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, true);
+
+  // =========================================================
+  //         ARDUINO C++ PREPROCESSOR → JS SOURCE
+  // =========================================================
+  function preprocessArduino(src) {
+    // 1. Replace function signatures: void setup() { ... } -> async function setup(){ ... }
+    let code = src;
+
+    // Remove comments (single + multi-line) — keep simple
+    code = code.replace(/\/\/[^\n]*/g, '');
+    code = code.replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // Convert `int x = 0;` style declarations to `let`; keep as-is for simplicity.
+    // We'll instead wrap with `'use strict';` and provide our APIs.
+    code = code.replace(/\bvoid\s+setup\s*\(/g, 'async function setup(');
+    code = code.replace(/\bvoid\s+loop\s*\(/g, 'async function loop(');
+
+    // Convert remaining `int|float|double|boolean|byte|char|long|short|unsigned\s+\w+` -> let
+    // (lightweight: just `int`, `long`, etc. — keep `unsigned long` too)
+    code = code.replace(
+      /\b(int|float|double|long|short|byte|char|boolean|unsigned\s+long|unsigned\s+int)\s+([a-zA-Z_][\w]*)/g,
+      'let $2'
+    );
+
+    // Replace `delay(` with `await delay(` to support coroutine without explicit await
+    code = code.replace(/(^|[^a-zA-Z_])delay\s*\(/g, '$1await delay(');
+
+    // Wire in entry point: invoke setup once, then loop forever (with abort check).
+    const entry = `
+const __abortCheck = () => { if (engine_state_aborted) throw new Error('aborted'); };
+try {
+  if (typeof setup === 'function') await setup();
+} catch (e) { if (e.message !== 'aborted') throw e; }
+while (true) {
+  if (engine_state_aborted) break;
+  try { if (typeof loop === 'function') await loop(); } catch (e) { throw e; }
+}
+`;
+
+    return `
+"use strict";
+// Arduino-equivalent constants
+const HIGH = 1, LOW = 0;
+const INPUT = 0, OUTPUT = 1, INPUT_PULLUP = 2;
+const BIN = 2, OCT = 8, DEC = 10, HEX = 16;
+const A0 = 14, A1 = 15, A2 = 16, A3 = 17, A4 = 18, A5 = 19;
+const true_ = true, false_ = false;
+
+// User code
+${code}
+
+// Entry point: setup once, then loop forever
+try {
+  if (typeof setup === 'function') await setup();
+} catch (e) { if (e.message !== 'aborted') throw e; }
+while (!window.__engine_aborted) {
+  try { if (typeof loop === 'function') await loop(); } catch (e) { if (e.message === 'aborted') break; throw e; }
+}
+`;
+  }
+
+  // =========================================================
+  //         LED STATE SYNC FROM HARDWARE → VIEW
+  // =========================================================
+  function syncLEDS() {
+    // For each LED, check the connection to Arduino pin and the pin's level (or PWM duty).
+    const arduinos = state.components.filter(c => c.type === 'arduino-uno');
+    let dirty = false;
+    for (const led of state.components) {
+      if (led.type !== 'led') continue;
+      let brightness = 0; // 0..1
+      for (const a of arduinos) {
+        for (const c of state.connections) {
+          const arduinoEnd = (c.from.compId === a.id) ? c.from
+                          : (c.to.compId === a.id) ? c.to
+                          : null;
+          if (!arduinoEnd) continue;
+          const otherEnd = (arduinoEnd === c.from) ? c.to : c.from;
+          if (otherEnd.compId !== led.id || otherEnd.pinId !== 'A') continue;
+          const pinNum = normalizePin(arduinoEnd.pinId);
+          const p = arduinoState[pinNum];
+          if (!p || p.mode !== 'OUTPUT') { brightness = 0; break; }
+          // PWM takes priority unless pin was just digitalWrite'd.
+          if (p.pwm !== undefined && !p._digital) {
+            brightness = Math.max(brightness, p.pwm / 255);
+          } else if (p.value === 1) {
+            brightness = Math.max(brightness, 1);
+          } else {
+            brightness = Math.max(brightness, 0);
+          }
+        }
+      }
+      // throttle re-renders: only when brightness changes meaningfully
+      const prev = led._brightness ?? 0;
+      if (Math.abs(prev - brightness) > 0.02 || (prev === 0) !== (brightness === 0)) {
+        led._brightness = brightness;
+        led._lit = brightness > 0;
+        dirty = true;
+      }
+    }
+    if (dirty) renderAll();
+  }
+  // Sync at ~20 FPS for smooth PWM dimming
+  setInterval(syncLEDS, 50);
+
+  // =========================================================
+  //                     BUTTONS (UI)
+  // =========================================================
+  runBtn.addEventListener('click', async () => {
+    serialClear();
+    engine._t0 = Date.now();
+    await engine.run(codeEl.value);
+  });
+  stopBtn.addEventListener('click', () => {
+    engine.reset();
+    toast('仿真已停止', 'info');
+  });
+  resetBtn.addEventListener('click', () => {
+    if (engine.running) {
+      toast('请先停止仿真再重置代码', 'error');
+      return;
+    }
+    codeEl.value = document.querySelector('#code').dataset.original || codeEl.value;
+    serialClear();
+  });
+
+  // =========================================================
+  //                     BOOT — DEMO SCENE
+  // =========================================================
+  function loadDemo() {
+    clearAll();
+    const uno = addComponent('arduino-uno', 60, 60);
+    const led = addComponent('led', 380, 80);
+    const btn = addComponent('button', 380, 200);
+    const pot = addComponent('potentiometer', 380, 320);
+    const oled = addComponent('oled', 600, 80);
+    const mpu = addComponent('mpu6050', 600, 220);
+    // Pre-wire:
+    //   D9 (~PWM) -> LED.A      ;  GND -> LED.K
+    //   D2 <- Button A          ;  GND -> Button B  (INPUT_PULLUP)
+    //   5V -> Pot A             ;  GND -> Pot B     ;  Pot W -> A0
+    //   5V -> OLED VCC          ;  GND -> OLED GND
+    //   A4 (SDA) -> OLED SDA    ;  A5 (SCL) -> OLED SCL
+    //   A4 (SDA) -> MPU SDA     ;  A5 (SCL) -> MPU SCL   ;  5V -> MPU VCC  ;  GND -> MPU GND
+    state.connections.push(
+      // LED
+      { from: { compId: uno.id, pinId: 'D9'  }, to: { compId: led.id, pinId: 'A' } },
+      { from: { compId: uno.id, pinId: 'GND' }, to: { compId: led.id, pinId: 'K' } },
+      // Button
+      { from: { compId: uno.id, pinId: 'D2'  }, to: { compId: btn.id, pinId: 'A' } },
+      { from: { compId: uno.id, pinId: 'GND' }, to: { compId: btn.id, pinId: 'B' } },
+      // Potentiometer: A=5V B=GND W=A0
+      { from: { compId: uno.id, pinId: '5V'  }, to: { compId: pot.id, pinId: 'A' } },
+      { from: { compId: uno.id, pinId: 'GND' }, to: { compId: pot.id, pinId: 'B' } },
+      { from: { compId: uno.id, pinId: 'A0'  }, to: { compId: pot.id, pinId: 'W' } },
+      // OLED I2C
+      { from: { compId: uno.id, pinId: '5V'  }, to: { compId: oled.id, pinId: 'VCC' } },
+      { from: { compId: uno.id, pinId: 'GND' }, to: { compId: oled.id, pinId: 'GND' } },
+      { from: { compId: uno.id, pinId: 'A4'  }, to: { compId: oled.id, pinId: 'SDA' } },
+      { from: { compId: uno.id, pinId: 'A5'  }, to: { compId: oled.id, pinId: 'SCL' } },
+      // MPU6050 I2C
+      { from: { compId: uno.id, pinId: '5V'  }, to: { compId: mpu.id, pinId: 'VCC' } },
+      { from: { compId: uno.id, pinId: 'GND' }, to: { compId: mpu.id, pinId: 'GND' } },
+      { from: { compId: uno.id, pinId: 'A4'  }, to: { compId: mpu.id, pinId: 'SDA' } },
+      { from: { compId: uno.id, pinId: 'A5'  }, to: { compId: mpu.id, pinId: 'SCL' } }
+    );
+    renderAll();
+  }
+
+  // Save default code for reset
+  codeEl.dataset.original = codeEl.value;
+
+  loadDemo();
+  renderAll();
+})();
+</script>
+</body>
+</html>
