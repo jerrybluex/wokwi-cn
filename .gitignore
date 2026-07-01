@@ -37,3 +37,13 @@ coverage/
 
 # Worktree
 .worktrees/
+node_modules
+dist
+build
+*.log
+
+# Local DB (sqlite file lives next to schema)
+prisma/dev.db
+prisma/dev.db-journal
+prisma/migrations/dev.db
+prisma/migrations/migration_lock.toml.bak

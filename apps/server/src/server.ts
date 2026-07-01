@@ -1,7 +1,13 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import cookie from '@fastify/cookie';
+import jwt from '@fastify/jwt';
 import { WOKWI_API_VERSION } from '@wokwi/shared';
+import { authRoutes, meRoute } from './auth-routes.js';
+
+const SESSION_COOKIE = 'wokwi_session';
+const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-only-jwt-secret-replace-in-production';
 
 export async function buildServer() {
   const app = Fastify({
@@ -10,14 +16,27 @@ export async function buildServer() {
     },
   });
 
-  // D6 实装用户路由之前,先 register 最小中间件
   await app.register(helmet);
   await app.register(cors, {
     origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
     credentials: true,
   });
+  await app.register(cookie);
+  await app.register(jwt, {
+    secret: JWT_SECRET,
+    cookie: { cookieName: SESSION_COOKIE, signed: false },
+  });
 
-  // 健康检查端点 — D1 stub,后续所有路由加在下面
+  // Decorate app with authenticate — checks session cookie OR Authorization header
+  app.decorate('authenticate', async function (req: any, reply: any) {
+    try {
+      await req.jwtVerify();
+    } catch {
+      return reply.code(401).send({ error: 'unauthenticated' });
+    }
+  });
+
+  // Health check
   app.get('/health', async () => ({
     status: 'ok',
     time: new Date().toISOString(),
@@ -25,8 +44,16 @@ export async function buildServer() {
     version: WOKWI_API_VERSION,
   }));
 
-  // D7 实装 share link 公开路由 GET /p/:shareId
-  // D6 实装 /api/auth/*, /api/projects/*, /api/courses/*, /api/ai/chat
+  // D6 — auth + me
+  await authRoutes(app);
+  await meRoute(app);
 
   return app;
+}
+
+// Re-declare augment for `app.authenticate`
+declare module 'fastify' {
+  interface FastifyInstance {
+    authenticate: (req: any, reply: any) => Promise<void>;
+  }
 }
