@@ -1,12 +1,14 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "skipLibCheck": true,
+    "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "noEmit": true,
+    "skipLibCheck": true,
     "jsx": "react-jsx",
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,

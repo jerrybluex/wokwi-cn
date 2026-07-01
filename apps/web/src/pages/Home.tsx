@@ -16,7 +16,7 @@ export function HomePage() {
               <li>pnpm workspace + monorepo</li>
               <li>Vite + React + TS</li>
               <li>Tailwind + daisyUI</li>
-              <li>路由 / · /login · /p/:shareId</li>
+              <li>路由 / · /editor · /login · /p/:shareId</li>
               <li>Fastify 后端 + Vitest 单测</li>
               <li>GitHub Actions CI</li>
             </ul>
@@ -25,9 +25,11 @@ export function HomePage() {
 
         <div className="card bg-base-200 shadow-sm">
           <div className="card-body">
-            <h3 className="card-title text-primary">→ 接下来</h3>
+            <h3 className="card-title text-primary">→ D2 进行中</h3>
             <ul className="text-sm space-y-1 text-base-content/70 mt-2">
-              <li>D2 simavr WASM 集成</li>
+              <li><strong>✓</strong> JS 软仿真器在浏览器跑(降级路径)</li>
+              <li><strong>✓</strong> Editor + 数字 LED 视图</li>
+              <li className="text-base-content/40">— simavr WASM 集成(后置)</li>
               <li>D3 元件 8 件</li>
               <li>D4 CodeMirror 6</li>
               <li>D5 SVG 画布</li>
@@ -41,8 +43,11 @@ export function HomePage() {
         </div>
       </div>
 
-      <div className="mt-8 flex gap-3">
-        <Link to="/login" className="btn btn-primary btn-sm">
+      <div className="mt-8 flex gap-3 flex-wrap">
+        <Link to="/editor" className="btn btn-primary btn-sm">
+          试一下 D2 编辑器 →
+        </Link>
+        <Link to="/login" className="btn btn-ghost btn-sm">
           登录入口 (D6)
         </Link>
         <Link to="/p/demo123" className="btn btn-ghost btn-sm">
