@@ -1,0 +1,14 @@
+{
+  "buildCommand": "pnpm --filter @wokwi/web build",
+  "outputDirectory": "apps/web/dist",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://wokwi-server.up.railway.app/api/$1" },
+    { "source": "/health", "destination": "https://wokwi-server.up.railway.app/health" }
+  ],
+  "env": {
+    "VITE_API_BASE": "https://wokwi-server.up.railway.app",
+    "VITE_SENTRY_DSN": "@sentry_web_dsn"
+  }
+}

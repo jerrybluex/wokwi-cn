@@ -15,6 +15,20 @@ export const WOKWI_API_VERSION = '0.1.0' as const;
 
 export const WOKWI_AI_DAILY_LIMIT = 20 as const;
 
+export type AiTaskType = 'explain' | 'error' | 'hint';
+
+export type AiChatRequest = {
+  taskType: AiTaskType;
+  code?: string;
+  errorMessage?: string;
+  question?: string;
+};
+
+export type AiChatChunk = { chunk: string };
+export type AiChatDone = { done: true; tokensIn: number; tokensOut: number };
+export type AiChatFallback = { fallback: true; message: string };
+export type AiChatRateLimit = { rateLimit: true; remaining: number; resetsAt: string };
+
 export type ApiHealth = {
   status: 'ok';
   time: string;

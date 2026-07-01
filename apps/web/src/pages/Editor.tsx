@@ -19,6 +19,8 @@ import { toWiringJSON, fromWiringJSON } from '../canvas/wiring';
 import { buildDemoCircuit } from '../canvas/demo';
 import { projectsApi } from '../projects/api';
 import { useAutosave } from '../projects/useAutosave';
+import { AiButton } from '../ai/AiButton';
+import { AiDrawer } from '../ai/AiDrawer';
 
 const DEFAULT_CODE = `// D5 Demo: blink D13 on the canvas
 // 右侧画布已预置:UNO + 220Ω + LED
@@ -66,6 +68,16 @@ export function EditorPage() {
     null,
   );
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
+  const [aiTaskType, setAiTaskType] = useState<'explain' | 'error' | 'hint'>('explain');
+  const [aiRemaining, setAiRemaining] = useState<number>(20);
+
+  // ── AI remaining quota ──
+  useEffect(() => {
+    import('../ai/api').then(({ aiApi: api }) => {
+      api.getRemaining().then((r) => setAiRemaining(r.remaining)).catch(() => {});
+    });
+  }, []);
 
   // ── Load project when projectId changes ──
   useEffect(() => {
@@ -327,6 +339,15 @@ export function EditorPage() {
           <button onClick={onClearCanvas} className="btn btn-ghost btn-xs text-error" title="清空画布">
             🗑
           </button>
+          <AiButton
+            code={code}
+            compileError={status === 'error' ? message : null}
+            remaining={aiRemaining}
+            onOpen={(type) => {
+              setAiTaskType(type);
+              setAiDrawerOpen(true);
+            }}
+          />
         </div>
       </header>
 
@@ -415,6 +436,14 @@ export function EditorPage() {
           </div>
         </div>
       </div>
+      <AiDrawer
+        open={aiDrawerOpen}
+        taskType={aiTaskType}
+        code={code}
+        compileError={status === 'error' ? message : null}
+        onClose={() => setAiDrawerOpen(false)}
+        initialRemaining={aiRemaining}
+      />
     </div>
   );
 }

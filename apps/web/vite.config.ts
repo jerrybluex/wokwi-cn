@@ -1,9 +1,23 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+
+const SENTRY_AUTH_TOKEN = process.env.SENTRY_AUTH_TOKEN ?? '';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    ...(SENTRY_AUTH_TOKEN
+      ? [
+          sentryVitePlugin({
+            authToken: SENTRY_AUTH_TOKEN,
+            org: process.env.SENTRY_ORG ?? '',
+            project: 'web',
+          }),
+        ]
+      : []),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

@@ -20,8 +20,10 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  tokens        EmailToken[]
-  projects      Project[]
+  tokens          EmailToken[]
+  projects       Project[]
+  aiCalls        AiCall[]
+  progress       CourseProgress[]
 
   @@index([email])
 }
@@ -53,4 +55,28 @@ model Project {
 
   @@index([userId])
   @@index([shareId])
+}
+
+model AiCall {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskType  String   // 'explain' | 'error' | 'hint'
+  tokensIn  Int      @default(0)
+  tokensOut Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model CourseProgress {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseSlug   String
+  stepIdx      Int       @default(0)
+  completedAt  DateTime?
+
+  @@unique([userId, courseSlug])
+  @@index([userId])
 }

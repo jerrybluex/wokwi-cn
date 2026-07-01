@@ -8,7 +8,7 @@ import type { CanvasState, CanvasPart, Wire } from './state';
 import { getPartSpec } from '../parts/registry';
 
 export type WiringJSON = {
-  version: 1;
+  version?: 1;
   parts: Array<{
     id: string;
     type: string;

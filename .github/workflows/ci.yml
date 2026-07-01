@@ -38,4 +38,8 @@ jobs:
         run: pnpm typecheck
 
       - name: Test
+        env:
+          DATABASE_URL: "file:./dev.db"
+          JWT_SECRET: "ci-test-secret"
+          WEB_ORIGIN: "http://localhost:5173"
         run: pnpm test

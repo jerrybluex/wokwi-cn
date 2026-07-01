@@ -1,10 +1,28 @@
 import { buildServer } from './server.js';
+import * as Sentry from '@sentry/node';
+
+const SENTRY_DSN = process.env.SENTRY_DSN;
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    tracesSampleRate: 1.0,
+  });
+}
 
 const PORT = Number(process.env.PORT ?? 4000);
 const HOST = process.env.HOST ?? '127.0.0.1';
 
 async function main() {
   const app = await buildServer();
+
+  // Sentry Fastify error handler
+  if (SENTRY_DSN) {
+    app.setErrorHandler((err, req, reply) => {
+      Sentry.captureException(err, { extra: { url: req.url, method: req.method } });
+      app.log.error(err);
+      reply.code(500).send({ error: 'internal_server_error' });
+    });
+  }
 
   // graceful shutdown
   const shutdown = async (signal: string) => {

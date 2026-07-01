@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    setupFiles: ['./src/vitest-setup.ts'],
     // 排除 exFAT 上的 AppleDouble 元数据(._xxx)避免被 Vitest 当 .ts 文件 transform
     exclude: ['**/node_modules/**', '**/dist/**', '**/._*'],
   },

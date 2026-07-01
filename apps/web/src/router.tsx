@@ -6,6 +6,7 @@ import { ForgotPage } from './pages/Forgot';
 import { ShareViewPage } from './pages/ShareView';
 import { EditorPage } from './pages/Editor';
 import { ProjectsPage } from './pages/Projects';
+import { CoursePage } from './pages/Course';
 import { RequireAuth } from './auth/RequireAuth';
 
 export const router: ReturnType<typeof createBrowserRouter> = createBrowserRouter([
@@ -19,6 +20,7 @@ export const router: ReturnType<typeof createBrowserRouter> = createBrowserRoute
       { path: 'login', element: <LoginPage /> },
       { path: 'forgot', element: <ForgotPage /> },
       { path: 'p/:shareId', element: <ShareViewPage /> },
+      { path: 'learn/:slug', element: <RequireAuth><CoursePage /></RequireAuth> },
     ],
   },
 ]);
