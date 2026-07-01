@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArduinoRunner, type PinEvent } from '../sim';
+import { led } from '../parts/led';
 
 const DEFAULT_CODE = `// D2 Demo: blink D13
 // 按 Run 即可看到右侧 LED 模拟闪
@@ -18,17 +19,47 @@ void loop() {
 
 type Status = 'idle' | 'running' | 'error';
 
+/**
+ * LED indicator that uses the D3 PartSpec from parts/led.ts.
+ * Subscribes to `d13` value and re-renders the SVG group when it changes.
+ *
+ * Purpose: prove the PartSpec API works end-to-end from React state to SVG.
+ */
+function LedIndicator({ d13, tick }: { d13: number; tick: number }) {
+  const ref = useRef<SVGGElement | null>(null);
+  const [, force] = useState(0);
+
+  useEffect(() => {
+    if (ref.current) {
+      while (ref.current.firstChild) ref.current.removeChild(ref.current.firstChild);
+      led.render(ref.current, { pins: { A: d13 } });
+    }
+    force((x) => x + 1);
+  }, [d13, tick]);
+
+  return (
+    <svg
+      width={120}
+      height={96}
+      viewBox="0 0 60 50"
+      className="block mx-auto"
+      aria-label={d13 > 0 ? 'LED on' : 'LED off'}
+      role="img"
+    >
+      <g ref={ref} />
+    </svg>
+  );
+}
+
 export function EditorPage() {
   const [code, setCode] = useState(DEFAULT_CODE);
   const runnerRef = useRef<ArduinoRunner | null>(null);
   const [pins, setPins] = useState<Record<number, number>>({});
   const [status, setStatus] = useState<Status>('idle');
   const [message, setMessage] = useState<string>('就绪');
-  const [tick, setTick] = useState(0); // forces re-render of LED ring
+  const [tick, setTick] = useState(0);
 
   const events = useRef<PinEvent[]>([]);
-  // Use a small ring of "recent events" so LED brightness can do decay later.
-  // For now we simply render latest pin state.
 
   const onRun = async () => {
     runnerRef.current?.abort();
@@ -126,7 +157,11 @@ export function EditorPage() {
                 </button>
                 <span
                   className={`text-xs self-center font-mono ${
-                    status === 'error' ? 'text-error' : status === 'running' ? 'text-primary' : 'text-base-content/60'
+                    status === 'error'
+                      ? 'text-error'
+                      : status === 'running'
+                        ? 'text-primary'
+                        : 'text-base-content/60'
                   }`}
                 >
                   {message}
@@ -139,58 +174,32 @@ export function EditorPage() {
         <div className="lg:col-span-1">
           <div className="card bg-base-200 shadow-sm">
             <div className="card-body p-4 items-center text-center">
-              <h3 className="card-title text-base w-full">D13 输出</h3>
-              <LedIndicator lit={isLit} tick={tick} />
+              <h3 className="card-title text-base w-full">D13 输出 (D3 PartSpec)</h3>
+              <LedIndicator d13={d13} tick={tick} />
               <div className="text-xs font-mono mt-2 self-start w-full space-y-1 max-h-72 overflow-y-auto">
                 {Object.entries(pins).length === 0 ? (
                   <div className="text-base-content/40">暂无事件 — 点 Run 跑</div>
                 ) : (
                   Object.entries(pins).map(([pin, value]) => (
-                    <div key={pin} className="flex justify-between border-b border-base-300/40 py-0.5">
+                    <div
+                      key={pin}
+                      className="flex justify-between border-b border-base-300/40 py-0.5"
+                    >
                       <span>D{pin}</span>
-                      <span className={value ? 'text-success' : 'text-base-content/50'}>{value ? 'HIGH' : 'LOW'}</span>
+                      <span className={value ? 'text-success' : 'text-base-content/50'}>
+                        {value ? 'HIGH' : 'LOW'}
+                      </span>
                     </div>
                   ))
                 )}
+              </div>
+              <div className="text-[10px] text-base-content/40 self-start w-full mt-1">
+                {isLit ? 'LED 当前点亮 (D13=HIGH)' : 'LED 当前熄灭 (D13=LOW)'}
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function LedIndicator({ lit, tick: _tick }: { lit: boolean; tick: number }) {
-  // _tick 当前未用,保留以便以后加渐变
-  return (
-    <svg
-      width={96}
-      height={96}
-      viewBox="0 0 96 96"
-      className="block mx-auto"
-      aria-label={lit ? 'LED on' : 'LED off'}
-      role="img"
-    >
-      <defs>
-        <radialGradient id="ledGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor={lit ? '#ff5252' : '#3a3a3a'} stopOpacity="0.9" />
-          <stop offset="100%" stopColor={lit ? '#ff5252' : '#3a3a3a'} stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      {/* halo */}
-      <circle cx="48" cy="48" r="46" fill="url(#ledGlow)" />
-      {/* dome */}
-      <circle
-        cx="48"
-        cy="48"
-        r="22"
-        fill={lit ? '#ff5252' : '#3a3a3a'}
-        stroke={lit ? '#ff8585' : '#5d5d5d'}
-        strokeWidth="2"
-      />
-      {/* flat side */}
-      <line x1="32" y1="38" x2="32" y2="58" stroke="#222" strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
   );
 }
