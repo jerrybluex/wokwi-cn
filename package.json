@@ -1,0 +1,28 @@
+{
+  "name": "wokwi-cn",
+  "private": true,
+  "version": "0.1.0",
+  "description": "在浏览器里学 Arduino 单片机的中文教学产品 (高职方向 MVP)",
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --reporter=append-only run dev",
+    "build": "pnpm -r --reporter=append-only run build",
+    "start": "pnpm --filter @wokwi/server start",
+    "test": "pnpm -r --reporter=append-only run test",
+    "lint": "pnpm -r --reporter=append-only run lint",
+    "typecheck": "pnpm -r --reporter=append-only run typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,css}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}

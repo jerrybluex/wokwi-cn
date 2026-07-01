@@ -1,0 +1,17 @@
+{
+  "name": "@wokwi/shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "echo \"(no tests in @wokwi/shared — types are compiled-time checked)\" && exit 0",
+    "lint": "echo '(D1 stub — no JS files in @wokwi/shared; tsc handles TS)'",
+    "typecheck": "tsc --noEmit"
+  }
+}
