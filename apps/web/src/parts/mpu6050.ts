@@ -1,5 +1,5 @@
 import type { PartModel, PartSpec, PinWrite } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * MPU-6050 — 6-axis accelerometer + gyroscope (I2C).
@@ -28,6 +28,11 @@ function makeMpu6050(): PartSpec {
     ],
     render(g, _state) {
       appendAll(g, [
+        pinPad('vcc', 0, 12),
+        pinPad('gnd', 0, 28),
+        pinPad('scl', 0, 44),
+        pinPad('sda', 0, 60),
+        pinPad('int', 90, 36),
         svg('rect', { x: 8, y: 8, width: 74, height: 52, rx: 4, fill: 'var(--part-body)', stroke: 'var(--part-stroke)', 'stroke-width': 1.5 }),
         svg('rect', { x: 32, y: 22, width: 26, height: 26, rx: 2, fill: '#2a2a3a', stroke: '#5a5a7a', 'stroke-width': 1 }),
         svg('line', { x1: 38, y1: 35, x2: 52, y2: 35, stroke: '#ff6b6b', 'stroke-width': 1.5 }),

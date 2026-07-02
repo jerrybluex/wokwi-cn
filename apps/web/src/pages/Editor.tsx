@@ -467,7 +467,7 @@ export function EditorPage() {
                   'hcsr04',
                   'servo',
                   'buzzer',
-                  'oled',
+                  'ssd1306',
                   'mpu6050',
                   'seven-segment',
                   'rgb-led',

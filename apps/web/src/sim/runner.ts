@@ -65,12 +65,15 @@ export class ArduinoRunner {
       emit(pin, value ? 1 : 0, 'digital');
     };
 
-    const digitalRead = (_pin: number): number => 0; // MVP: buttons not yet wired
+    // Track last written value per pin so digitalRead can reflect analogWrite/digitalWrite.
+    const pinState: Record<number, number> = {};
+    const digitalRead = (pin: number): number => pinState[pin] ?? 0;
     const analogRead = (_pin: number): number => 0;
 
     const analogWrite = (pin: number, value: number): void => {
-      // MVP: treat as fully-on above 128; UI maps to brightness 0..255.
-      emit(pin, Math.max(0, Math.min(255, value | 0)), 'analog');
+      const v = Math.max(0, Math.min(255, value | 0));
+      pinState[pin] = v;
+      emit(pin, v, 'analog');
     };
 
     const delay = (ms: number): Promise<void> =>
