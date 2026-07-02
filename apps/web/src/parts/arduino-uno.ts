@@ -1,5 +1,5 @@
 import type { PartSpec } from './types';
-// @ts-ignore — vite raw import
+// @ts-expect-error — vite raw import
 import unoPcbSvgRaw from './arduino-uno-pcb.svg?raw';
 import { svg, appendAll } from './svg';
 
