@@ -582,10 +582,14 @@ function CanvasToolbar({
       <div className="bg-base-200/90 rounded-md border border-base-300 px-1 py-0.5 flex gap-1 pointer-events-auto">
         <button
           onClick={onToggleWireMode}
-          className={`btn btn-ghost btn-xs px-2 ${wireMode ? 'text-warning' : ''}`}
+          className={`btn btn-ghost btn-xs px-2 gap-1 ${wireMode ? 'text-warning' : ''}`}
           title="连线模式 (按 ESC 退出)"
         >
-          🔗 连线
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 9l8 6 8-6" />
+            <path d="M4 15l8-6 8 6" />
+          </svg>
+          连线
         </button>
         <button
           onClick={onUndo}
@@ -618,10 +622,16 @@ function CanvasToolbar({
           </button>
           <button
             onClick={onDelete}
-            className="btn btn-ghost btn-xs px-2 text-error"
+            className="btn btn-ghost btn-xs px-2 text-error gap-1"
             title="删除 (Delete)"
           >
-            ✕ 删除
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+            </svg>
+            删除
           </button>
         </div>
       )}

@@ -114,11 +114,16 @@ export function AiDrawer({ open, taskType, code, compileError, onClose, initialR
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-base-300 bg-base-200">
           <div className="flex items-center gap-2">
-            <span>🤖</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3l1.9 5.9 6.1.6-4.7 4 1.4 6-4.7-3.5L7.3 19.5l1.4-6-4.7-4 6.1-.6L12 3z" />
+            </svg>
             <span className="font-bold text-sm">AI 助教</span>
           </div>
-          <button onClick={handleClose} className="btn btn-ghost btn-xs btn-square">
-            ✕
+          <button onClick={handleClose} className="btn btn-ghost btn-xs btn-square" aria-label="关闭">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
 

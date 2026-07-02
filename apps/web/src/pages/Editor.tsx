@@ -304,24 +304,49 @@ export function EditorPage() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onLoadDemo} className="btn btn-ghost btn-xs" title="加载 Demo 电路">
-            📦 Demo
+          <button onClick={onLoadDemo} className="btn btn-ghost btn-xs gap-1" title="加载 Demo 电路">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="16.5" y1="9.4" x2="7.5" y2="4.21" />
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+            Demo
           </button>
           <button
             onClick={onToggleShare}
-            className={`btn btn-xs ${shareId ? 'btn-info' : 'btn-ghost'}`}
+            className={`btn btn-xs gap-1 ${shareId ? 'btn-info' : 'btn-ghost'}`}
             title={shareId ? `已分享 /p/${shareId}` : '生成公开链接'}
           >
-            {shareId ? `🔗 ${shareId}` : '🔗 分享'}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+            </svg>
+            {shareId ? shareId : '分享'}
           </button>
-          <button onClick={onExportWiring} className="btn btn-ghost btn-xs" title="导出 wiring.json">
-            ⤓ JSON
+          <button onClick={onExportWiring} className="btn btn-ghost btn-xs gap-1" title="导出 wiring.json">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            JSON
           </button>
-          <button onClick={onSaveNow} className="btn btn-primary btn-xs" title="保存">
-            💾 保存
+          <button onClick={onSaveNow} className="btn btn-primary btn-xs gap-1" title="保存">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            保存
           </button>
-          <button onClick={onClearCanvas} className="btn btn-ghost btn-xs text-error" title="清空画布">
-            🗑
+          <button onClick={onClearCanvas} className="btn btn-ghost btn-xs text-error gap-1" title="清空画布">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+            </svg>
+            清空
           </button>
           <AiButton
             code={code}
@@ -349,12 +374,18 @@ export function EditorPage() {
               <button
                 onClick={onRun}
                 disabled={status === 'running'}
-                className="btn btn-primary btn-xs"
+                className="btn btn-primary btn-xs gap-1"
               >
-                ▶ Run
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polygon points="6 3 20 12 6 21 6 3" />
+                </svg>
+                Run
               </button>
-              <button onClick={onStop} disabled={status !== 'running'} className="btn btn-xs">
-                ■ Stop
+              <button onClick={onStop} disabled={status !== 'running'} className="btn btn-xs gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="6" y="6" width="12" height="12" />
+                </svg>
+                Stop
               </button>
               <button
                 onClick={() => {
@@ -363,9 +394,13 @@ export function EditorPage() {
                   setStatus('idle');
                   setMessage('已重置代码');
                 }}
-                className="btn btn-ghost btn-xs"
+                className="btn btn-ghost btn-xs gap-1"
               >
-                ↺ 重置
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                重置
               </button>
             </div>
           </div>
