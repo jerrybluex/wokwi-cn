@@ -89,13 +89,12 @@ const POWER_PINS: { id: string; label: string }[] = [
  * 简化:用 pcb silkscreen 标号 + pad 位置定义 pin 物理坐标,然后 scale to 170x133。
  */
 
-// DIGITAL 14 pad (顶部,来自 Fritzing breadboard viewPad connector0-68 真实 pad 中心)
-// connector60-51 在左段 D13-D4 (cx 71-136),connector68-65 在右段 D3-D0 (cx 147-169)
+// DIGITAL 14 pad (顶部,实物 UNO R3 数字 header segmentation 6+6+2)
+// connector60-55 左段 D13-D8 (cx 71-107) + connector54-51 + 68-67 中段 D7-D2 (cx 114-154) + connector66-65 单独 D1-D0 (cx 161-169)
 const DIGITAL_PAD_CX_PCB = [
-  71.251, 78.452, 85.652, 92.852, 100.052, 107.252, // D13 D12 D11 D10 D9 D8
-  114.452, 121.652, 128.852, 136.051, // D7 D6 D5 D4
-  147.573, 154.772, // D3 D2
-  161.972, 169.172, // D1 D0
+  71.251, 78.452, 85.652, 92.852, 100.052, 107.252, // D13 D12 D11 D10 D9 D8 (左段 6)
+  114.452, 121.652, 128.852, 136.051, 147.573, 154.772, // D7 D6 D5 D4 D3 D2 (中段 6)
+  161.972, 169.172, // D1 D0 (单独 2)
 ];
 const DIGITAL_PAD_CY_PCB = 7.2;
 
