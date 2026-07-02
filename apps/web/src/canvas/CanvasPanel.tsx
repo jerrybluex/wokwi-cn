@@ -34,8 +34,10 @@ export interface CanvasPanelProps {
   selectedWireId: string | null;
   wireMode?: boolean;
   onToggleWireMode?: () => void;
+  /** Called ONLY when a wire is completed (both pins selected) */
   onWireCreate?: (from: { partId: string; pinId: string }, to: { partId: string; pinId: string }) => void;
-  pendingWireFrom?: { partId: string; pinId: string } | null;
+  /** Runtime pin values from the simulator runner (pin number → 0/1 or 0..255). */
+  pins?: Record<number, number>;
   width?: number;
   height?: number;
 }
@@ -54,13 +56,109 @@ export function CanvasPanel(props: CanvasPanelProps) {
     wireMode = false,
     onToggleWireMode,
     onWireCreate,
-    pendingWireFrom = null,
+    pins = {},
     width = 800,
     height = 500,
   } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [dragPartId, setDragPartId] = useState<string | null>(null);
+  const [pendingWireFrom, setPendingWireFrom] = useState<{ partId: string; pinId: string } | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Clear pending wire when exiting wire mode
+  useEffect(() => {
+    if (!wireMode) setPendingWireFrom(null);
+  }, [wireMode]);
+
+  // Map runner pin values to each part's pins via wire topology.
+  // Wire electrically connects two pins — they share the same voltage/current.
+  // Algorithm:
+  //  1. Build adjacency list: (partId, pinId) → [connected (partId, pinId)...]
+  //  2. Find "source pins" — pins named D<num> that have a runner value (e.g. u1.D13)
+  //  3. BFS from all sources, propagating values through wires
+  //  4. Each pin gets the value of whichever source it connects to
+  const partPins: Record<string, Record<string, number>> = {};
+
+  // Build adjacency list from wires
+  const adj = new Map<string, string[]>();
+  const addEdge = (a: string, b: string) => {
+    if (!adj.has(a)) adj.set(a, []);
+    if (!adj.has(b)) adj.set(b, []);
+    adj.get(a)!.push(b);
+    adj.get(b)!.push(a);
+  };
+  for (const wire of state.wires) {
+    const a = `${wire.from.partId}:${wire.from.pinId}`;
+    const b = `${wire.to.partId}:${wire.to.pinId}`;
+    addEdge(a, b);
+  }
+
+  // Internal pin connections: for passive 2-pin parts (resistor, LED), both pins
+  // are on the same electrical net so they share the same voltage level.
+  // We add an internal edge between every pair of pins on the same part.
+  for (const part of state.parts) {
+    const spec = getPartSpec(part.type);
+    if (!spec || spec.pins.length < 2) continue;
+    const pinKeys = spec.pins.map((p) => `${part.id}:${p.id}`);
+    for (let i = 0; i < pinKeys.length; i++) {
+      for (let j = i + 1; j < pinKeys.length; j++) {
+        addEdge(pinKeys[i], pinKeys[j]);
+      }
+    }
+  }
+
+  // Init every pin with default 0
+  const pinValue = new Map<string, number>();
+  for (const part of state.parts) {
+    for (const pin of getPartSpec(part.type)?.pins ?? []) {
+      pinValue.set(`${part.id}:${pin.id}`, 0);
+    }
+  }
+
+  // Source pins: named D<num> (Arduino digital pins) with a runner value
+  const sourcePins: Array<{ key: string; value: number }> = [];
+  for (const part of state.parts) {
+    for (const pin of getPartSpec(part.type)?.pins ?? []) {
+      const num = parseInt(pin.id.replace(/\D/g, ''), 10);
+      if (!isNaN(num) && pin.id.toUpperCase().startsWith('D')) {
+        const runnerVal = pins[num];
+        if (runnerVal !== undefined) {
+          sourcePins.push({ key: `${part.id}:${pin.id}`, value: runnerVal });
+        }
+      }
+    }
+  }
+
+  // BFS: propagate values from sources through the wire graph
+  const visited = new Set<string>();
+  const queue: Array<{ key: string; value: number }> = [...sourcePins];
+  for (const s of sourcePins) pinValue.set(s.key, s.value);
+
+  while (queue.length > 0) {
+    const { key, value } = queue.shift()!;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    const neighbors = adj.get(key) ?? [];
+    for (const nb of neighbors) {
+      if (!visited.has(nb)) {
+        // If this neighbor hasn't been assigned a source value yet, assign ours
+        if (!pinValue.has(nb) || pinValue.get(nb) === 0) {
+          pinValue.set(nb, value);
+        }
+        queue.push({ key: nb, value });
+      }
+    }
+  }
+
+  // Pack into per-part maps
+  for (const part of state.parts) {
+    const partMap: Record<string, number> = {};
+    for (const pin of getPartSpec(part.type)?.pins ?? []) {
+      partMap[pin.id] = pinValue.get(`${part.id}:${pin.id}`) ?? 0;
+    }
+    partPins[part.id] = partMap;
+  }
 
   // ----- Keyboard shortcuts: Delete, R, Ctrl+Z, Ctrl+Shift+Z, ESC -----
   useEffect(() => {
@@ -83,9 +181,9 @@ export function CanvasPanel(props: CanvasPanelProps) {
         onSelect?.(null);
         return;
       }
-      if (e.key === 'Escape' && wireMode) {
+      if (e.key === 'Escape' && pendingWireFrom) {
         e.preventDefault();
-        onToggleWireMode?.();
+        setPendingWireFrom(null);
         return;
       }
       if (e.key.toLowerCase() === 'r' && selectedId && !wireMode) {
@@ -96,7 +194,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onChange, onSelect, onUndo, onRedo, selectedId, wireMode, onToggleWireMode]);
+  }, [onChange, onSelect, onUndo, onRedo, selectedId, pendingWireFrom]);
 
   // ----- Drop from library → add a part at the drop point -----
   const onDragOver = (e: React.DragEvent) => {
@@ -170,6 +268,10 @@ export function CanvasPanel(props: CanvasPanelProps) {
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         onClick={onSvgClick}
+        onMouseMove={(e) => {
+          const pt = clientToSvg(svgRef.current, e.clientX, e.clientY);
+          setMousePos(pt);
+        }}
         role="img"
         aria-label="电路画布"
       >
@@ -186,6 +288,13 @@ export function CanvasPanel(props: CanvasPanelProps) {
             />
           ))}
         </g>
+        {pendingWireFrom && (
+          <PendingWire
+            pendingFrom={pendingWireFrom}
+            mousePos={mousePos}
+            state={state}
+          />
+        )}
         <g>
           {state.parts.map((p) => (
             <PartNode
@@ -193,19 +302,21 @@ export function CanvasPanel(props: CanvasPanelProps) {
               part={p}
               selected={selectedId === p.id}
               dragging={dragPartId === p.id}
-              wireMode={wireMode}
+              wireMode={wireMode || !!pendingWireFrom}
               pendingFrom={pendingWireFrom}
+              pinValues={partPins[p.id] ?? {}}
               onMouseDown={(e) => onPartMouseDown(e, p.id)}
               onPinClick={(pinId) => {
-                if (!wireMode || !onWireCreate) return;
                 if (!pendingWireFrom) {
-                  // start wire from this pin
-                  onWireCreate({ partId: p.id, pinId }, { partId: p.id, pinId });
+                  // Step 1: start pending
+                  setPendingWireFrom({ partId: p.id, pinId });
                 } else if (pendingWireFrom.partId === p.id && pendingWireFrom.pinId === pinId) {
-                  // same pin: cancel
-                  onWireCreate({ partId: '', pinId: '' }, { partId: '', pinId: '' });
+                  // Step 2: same pin → cancel
+                  setPendingWireFrom(null);
                 } else {
-                  onWireCreate(pendingWireFrom, { partId: p.id, pinId });
+                  // Step 3: complete wire
+                  onWireCreate?.(pendingWireFrom, { partId: p.id, pinId });
+                  setPendingWireFrom(null);
                 }
               }}
             />
@@ -241,7 +352,6 @@ export function CanvasPanel(props: CanvasPanelProps) {
         }}
         wireMode={wireMode}
         onToggleWireMode={onToggleWireMode}
-        pendingWireFrom={pendingWireFrom}
       />
     </div>
   );
@@ -271,6 +381,7 @@ function PartNode({
   dragging,
   wireMode,
   pendingFrom,
+  pinValues,
   onMouseDown,
   onPinClick,
 }: {
@@ -279,6 +390,7 @@ function PartNode({
   dragging: boolean;
   wireMode: boolean;
   pendingFrom: { partId: string; pinId: string } | null;
+  pinValues: Record<string, number>;
   onMouseDown: (e: React.MouseEvent) => void;
   onPinClick: (pinId: string) => void;
 }) {
@@ -290,7 +402,7 @@ function PartNode({
       onMouseDown={onMouseDown}
       style={{ cursor: dragging ? 'grabbing' : wireMode ? 'crosshair' : 'grab' }}
     >
-      <PartBody spec={spec} part={part} />
+      <PartBody spec={spec} part={part} pinValues={pinValues} />
       {selected && (
         <rect
           x={part.x - 4}
@@ -346,28 +458,27 @@ function PartNode({
   );
 }
 
-function PartBody({ spec, part }: { spec: PartSpec; part: CanvasPart }) {
+function PartBody({ spec, part, pinValues }: { spec: PartSpec; part: CanvasPart; pinValues: Record<string, number> }) {
   // Re-render the part's body inside an SVG <g> by calling spec.render.
   // We attach a ref to that <g> and let PartBodyView re-render it on each
-  // pin update. Since canvas parts don't get state for the MVP, we render
-  // once via a small wrapper.
+  // pin update.
   return (
     <g
       transform={`translate(${part.x} ${part.y}) rotate(${part.rotation} ${spec.width / 2} ${spec.height / 2})`}
     >
-      <PartBodyView spec={spec} part={part} />
+      <PartBodyView spec={spec} part={part} pinValues={pinValues} />
     </g>
   );
 }
 
-function PartBodyView({ spec, part }: { spec: PartSpec; part: CanvasPart }) {
+function PartBodyView({ spec, part, pinValues }: { spec: PartSpec; part: CanvasPart; pinValues: Record<string, number> }) {
   const ref = useRef<SVGGElement | null>(null);
   useEffect(() => {
     const g = ref.current;
     if (!g) return;
     while (g.firstChild) g.removeChild(g.firstChild);
-    spec.render(g, { pins: {} });
-  }, [spec, part.id, part.rotation]);
+    spec.render(g, { pins: pinValues });
+  }, [spec, part.id, part.rotation, pinValues]);
   return <g ref={ref} />;
 }
 
@@ -414,6 +525,34 @@ function WireLine({
   );
 }
 
+function PendingWire({
+  pendingFrom,
+  mousePos,
+  state,
+}: {
+  pendingFrom: { partId: string; pinId: string };
+  mousePos: { x: number; y: number };
+  state: CanvasState;
+}) {
+  const fromPart = state.parts.find((p) => p.id === pendingFrom.partId);
+  if (!fromPart) return null;
+  const a = pinPosition(fromPart, pendingFrom.pinId);
+  if (!a) return null;
+  // Bezier: straight mid-point offset curve
+  const mx = (a.x + mousePos.x) / 2;
+  const path = `M ${a.x} ${a.y} C ${mx} ${a.y} ${mx} ${mousePos.y} ${mousePos.x} ${mousePos.y}`;
+  return (
+    <path
+      d={path}
+      fill="none"
+      stroke="#ffb300"
+      strokeWidth={2}
+      strokeDasharray="6 4"
+      pointerEvents="none"
+    />
+  );
+}
+
 function CanvasToolbar({
   onUndo,
   onRedo,
@@ -426,7 +565,6 @@ function CanvasToolbar({
   onDelete,
   wireMode,
   onToggleWireMode,
-  pendingWireFrom,
 }: {
   onUndo: () => void;
   onRedo: () => void;
@@ -439,7 +577,6 @@ function CanvasToolbar({
   onDelete: () => void;
   wireMode: boolean;
   onToggleWireMode?: () => void;
-  pendingWireFrom: { partId: string; pinId: string } | null;
 }) {
   return (
     <div className="absolute top-2 left-2 right-2 flex items-center gap-1 text-xs pointer-events-none">
@@ -491,9 +628,7 @@ function CanvasToolbar({
       )}
       {wireMode && (
         <div className="ml-auto bg-warning/20 rounded-md border border-warning px-2 py-0.5 pointer-events-auto text-warning text-[10px] font-mono">
-          {pendingWireFrom
-            ? `已选 ${pendingWireFrom.partId}.${pendingWireFrom.pinId} — 再点一个 pin`
-            : '点两个 pin 起点 → 终点  •  ESC 取消'}
+          连线模式 — 点击两个 pin 连接 · ESC 取消
         </div>
       )}
     </div>

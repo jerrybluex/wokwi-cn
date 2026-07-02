@@ -158,7 +158,6 @@ describe('<CanvasPanel />', () => {
           wireMode = !wireMode;
         }}
         onWireCreate={() => {}}
-        pendingWireFrom={null}
       />,
     );
     // pin labels are <text> elements inside the pin <g> in wire mode

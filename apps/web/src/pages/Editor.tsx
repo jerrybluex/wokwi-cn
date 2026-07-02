@@ -64,9 +64,6 @@ export function EditorPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
   const [wireMode, setWireMode] = useState(false);
-  const [pendingWireFrom, setPendingWireFrom] = useState<{ partId: string; pinId: string } | null>(
-    null,
-  );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
   const [aiTaskType, setAiTaskType] = useState<'explain' | 'error' | 'hint'>('explain');
@@ -132,26 +129,14 @@ export function EditorPage() {
       from: { partId: string; pinId: string },
       to: { partId: string; pinId: string },
     ) => {
-      if (!from.partId || !to.partId) {
-        setPendingWireFrom(null);
-        setWireMode(false);
-        return;
-      }
       const wire = { id: genId('wire'), from, to };
       setHistory((h) => applyChange(h, { type: 'add-wire', wire }));
-      setPendingWireFrom(null);
       setWireMode(false);
     },
     [],
   );
 
-  const onToggleWireMode = useCallback(() => {
-    setWireMode((m) => {
-      const next = !m;
-      if (!next) setPendingWireFrom(null);
-      return next;
-    });
-  }, []);
+  const onToggleWireMode = useCallback(() => setWireMode((m) => !m), []);
 
   const onLoadDemo = () => {
     setHistory((h) => replaceAll(h, buildDemoCircuit()));
@@ -431,7 +416,7 @@ export function EditorPage() {
               wireMode={wireMode}
               onToggleWireMode={onToggleWireMode}
               onWireCreate={onWireCreate}
-              pendingWireFrom={pendingWireFrom}
+              pins={pins}
             />
           </div>
         </div>

@@ -47,7 +47,6 @@ export function CoursePlayer({ steps, progress }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
   const [wireMode, setWireMode] = useState(false);
-  const [pendingWireFrom, setPendingWireFrom] = useState<{ partId: string; pinId: string } | null>(null);
 
   // sync canvas when step changes
   useEffect(() => {
@@ -64,19 +63,12 @@ export function CoursePlayer({ steps, progress }: Props) {
   const onRedo = useCallback(() => setCanvasHistory((h) => redo(h)), []);
 
   const onWireCreate = useCallback(
-    (from: { partId: string; pinId: string }, to: { partId: string; pinId: string }) => {
-      setPendingWireFrom(null);
+    (_from: { partId: string; pinId: string }, _to: { partId: string; pinId: string }) => {
       setWireMode(false);
     },
     [],
   );
-  const onToggleWireMode = useCallback(() => {
-    setWireMode((m) => {
-      const next = !m;
-      if (!next) setPendingWireFrom(null);
-      return next;
-    });
-  }, []);
+  const onToggleWireMode = useCallback(() => setWireMode((m) => !m), []);
 
   return (
     <div className="h-screen flex flex-col">
@@ -156,7 +148,6 @@ export function CoursePlayer({ steps, progress }: Props) {
                   wireMode={wireMode}
                   onToggleWireMode={onToggleWireMode}
                   onWireCreate={onWireCreate}
-                  pendingWireFrom={pendingWireFrom}
                 />
               </div>
             </div>
