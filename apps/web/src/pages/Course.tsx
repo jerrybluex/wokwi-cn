@@ -43,6 +43,10 @@ export function CoursePage() {
     return () => { cancelled = true; };
   }, [slug, user]);
 
+  // Call hook unconditionally — hooks must never be inside conditional branches.
+  // Guard against missing course data inside the component return.
+  const progress = useCourseProgress(slug ?? '', course?.steps.length ?? 0);
+
   if (authLoading || courseLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -59,8 +63,6 @@ export function CoursePage() {
       </div>
     );
   }
-
-  const progress = useCourseProgress(course.slug, course.steps.length);
 
   if (progress.isLoading) {
     return (
