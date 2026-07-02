@@ -46,7 +46,7 @@ export function AiButton({ code, compileError, remaining, onOpen }: Props) {
       </button>
       <ul
         tabIndex={0}
-        className="dropdown-content z-50 menu p-1 shadow-lg bg-base-100 rounded-box w-52 border border-base-300"
+        className="dropdown-content z-50 menu p-1 shadow-lg bg-base-100 rounded-box w-52 max-w-[calc(100vw-1rem)] border border-base-300"
       >
         <li className="menu-title pt-1 pb-0">
           <span className="text-[10px] text-base-content/60">AI 助教 · 今日剩余 {limit} 次</span>

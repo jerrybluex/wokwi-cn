@@ -102,14 +102,21 @@ export function AiDrawer({ open, taskType, code, compileError, onClose, initialR
         aria-hidden="true"
       />
 
-      {/* Drawer */}
+      {/* Drawer
+       * 决策 PM(AI drawer UI bug) — 让 drawer 在所有常见视口都 in-viewport:
+       *  - w-[min(20rem,calc(100vw-2rem))]:mobile viewport 不会超右边
+       *  - h-[min(100vh,100dvh)] + overflow-y-auto:小高度 viewport 内部可滚
+       *  - translate-x-full 是关闭态:drawer 物理位置在 viewport 右边外,
+       *    open=true 切 translate-x-0 让 transform=matrix(1,0,0,1,0,0)
+       */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label="AI 助教"
-        className={`fixed right-0 top-0 h-full w-80 z-50 bg-base-100 shadow-2xl flex flex-col transition-transform duration-200 ${
-          open ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed right-0 top-0 z-50 bg-base-100 shadow-2xl flex flex-col transition-transform duration-200
+          w-[min(20rem,calc(100vw-1rem))]
+          h-[min(100vh,100dvh)]
+          ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-base-300 bg-base-200">
