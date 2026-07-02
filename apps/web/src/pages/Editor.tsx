@@ -247,7 +247,6 @@ export function EditorPage() {
   };
 
   const d13 = pins[13] ?? 0;
-  const isLit = d13 > 0;
   const partCount = history.current.parts.length;
   const wireCount = history.current.wires.length;
   const saveLabel =

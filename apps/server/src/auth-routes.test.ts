@@ -118,7 +118,8 @@ describe('POST /api/auth/login', () => {
 
   it('returns 401 on wrong password', async () => {
     const email = uniqueEmail('wrongpw');
-    const reg = await app.inject({
+    // register first (response not needed — we're testing wrong password)
+    await app.inject({
       method: 'POST',
       url: '/api/auth/register',
       payload: { email, password: TEST_PASSWORD },

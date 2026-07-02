@@ -23,6 +23,28 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split large runtime chunks so they load in parallel
+        manualChunks(id) {
+          if (id.includes('/node_modules/')) {
+            // React ecosystem
+            if (id.includes('/node_modules/react') || id.includes('/node_modules/prop-types')) {
+              return 'vendor-react';
+            }
+            // CodeMirror
+            if (id.includes('/node_modules/@codemirror')) {
+              return 'vendor-codemirror';
+            }
+          }
+          // Lazy-loaded app chunks — give them stable names instead of hash
+          if (id.includes('/src/ai/api')) return 'chunk-ai-api';
+          if (id.includes('/src/parts/led')) return 'chunk-parts-led';
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

@@ -47,6 +47,9 @@ prisma/dev.db
 prisma/dev.db-journal
 prisma/migrations/dev.db
 prisma/migrations/migration_lock.toml.bak
+apps/server/dev.db
+apps/server/dev.db-journal
+apps/server/*.db
 
 # Sprint watch state (Verifier agent)
 .sprint-watch-state.json

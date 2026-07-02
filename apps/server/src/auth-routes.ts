@@ -48,7 +48,7 @@ const resetSchema = z.object({
 function logEmailLink(kind: 'verify' | 'reset', token: string): void {
   const path = kind === 'verify' ? '/api/auth/verify' : '/api/auth/reset';
   const url = `${WEB_ORIGIN}${path}?token=${encodeURIComponent(token)}`;
-  // eslint-disable-next-line no-console
+   
   console.log(`[auth:email] ${kind} URL: ${url}`);
 }
 

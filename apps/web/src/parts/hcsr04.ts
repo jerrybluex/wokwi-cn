@@ -72,7 +72,7 @@ export const hcsr04: PartSpec = (() => {
   const spec = makeHcsr04();
   // Real-time model lands in Phase 3; D3 stub returns nothing.
   spec.model = (() => {
-    let lastTrigRise = 0;
+    let _lastTrigRise = 0;
     return (_ctx) => {
       // No-op until canvas wires ECHO pin; reserved for future logic.
       const writes: PinWrite[] = [];

@@ -499,9 +499,8 @@ function WireLine({
   const a = pinPosition(fromPart, wire.from.pinId);
   const b = pinPosition(toPart, wire.to.pinId);
   if (!a || !b) return null;
-  // Orthogonal-ish curve: straight line + midpoint offset
+  // Bezier: use midpoint-x as control point offset
   const mx = (a.x + b.x) / 2;
-  const my = (a.y + b.y) / 2;
   const path = `M ${a.x} ${a.y} C ${mx} ${a.y} ${mx} ${b.y} ${b.x} ${b.y}`;
   return (
     <g

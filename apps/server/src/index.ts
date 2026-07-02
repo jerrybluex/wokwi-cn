@@ -3,10 +3,16 @@ import * as Sentry from '@sentry/node';
 
 const SENTRY_DSN = process.env.SENTRY_DSN;
 if (SENTRY_DSN) {
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    tracesSampleRate: 1.0,
-  });
+  try {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      tracesSampleRate: 1.0,
+    });
+  } catch (err) {
+    console.warn('[sentry] init failed, skipping:', err);
+  }
+} else {
+  console.info('[sentry] SENTRY_DSN not set — error tracking disabled');
 }
 
 const PORT = Number(process.env.PORT ?? 4000);

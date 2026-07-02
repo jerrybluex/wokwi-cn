@@ -8,8 +8,6 @@
  *   onOpen        — called when button is clicked
  */
 
-const DAILY_LIMIT = 20;
-
 type Props = {
   code: string;
   compileError: string | null;

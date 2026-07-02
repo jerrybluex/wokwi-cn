@@ -1,6 +1,19 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from './auth/useAuth';
 
+function feedbackMailto() {
+  const body = [
+    `URL: ${window.location.href}`,
+    `UA: ${navigator.userAgent}`,
+    `Time: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`,
+    '',
+    '--- 请在此处填写反馈内容 ---',
+  ].join('\n');
+  const subject = encodeURIComponent('Wokwi 反馈');
+  const b = encodeURIComponent(body);
+  window.open(`mailto:feedback@wokwi-cn.example.com?subject=${subject}&body=${b}`, '_blank');
+}
+
 export function App() {
   const { loading, user, logout } = useAuth();
   const navigate = useNavigate();
@@ -60,6 +73,13 @@ export function App() {
               </Link>
             </>
           )}
+          <button
+            onClick={feedbackMailto}
+            className="btn btn-ghost btn-sm"
+            title="发送反馈"
+          >
+            💬 反馈
+          </button>
         </div>
       </header>
       <main className="flex-1">

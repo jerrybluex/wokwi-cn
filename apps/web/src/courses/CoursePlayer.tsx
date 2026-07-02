@@ -11,15 +11,13 @@
  *   │                  │  [◀ 上一步] [下一步 ▶]   │
  *   └──────────────────┴──────────────────────────┘
  */
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CodeEditor } from '../components/CodeEditor';
 import { CanvasPanel } from '../canvas/CanvasPanel';
 import {
   applyChange,
-  emptyCanvas,
   initHistory,
-  replaceAll,
   redo,
   undo,
   type History,

@@ -9,7 +9,7 @@
     "preview": "vite preview --port 5173",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "echo '(D1 stub — no JS files; D5 adds typescript-eslint)' && exit 0",
+    "lint": "cd ../.. && eslint apps/web/src --config eslint.config.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

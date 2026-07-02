@@ -1,6 +1,9 @@
 import js from '@eslint/js';
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsparser from '@typescript-eslint/parser';
 
 export default [
+  // ── Ignore patterns (apply to all configs below) ────────────────────────
   {
     ignores: [
       '**/dist/**',
@@ -14,14 +17,10 @@ export default [
       '**/pnpm-lock.yaml',
       // AppleDouble metadata (exFAT auto-generated)
       '**/._*',
-      // D1 阶段 ESLint 不解析 TS 文件(等 typescript-eslint D5 加入),避免 "no matching config" 错
-      '**/*.ts',
-      '**/*.tsx',
-      '**/*.d.ts',
     ],
   },
-  // D1 临时限定到 .js 文件。TS 文件用 tsc 做检查。
-  // D5 装 typescript-eslint + 加 typescript parser 后,扩展 *.ts/*.tsx。
+
+  // ── JS files (legacy, minimal) ──────────────────────────────────────────
   {
     files: ['**/*.{js,mjs,cjs}'],
     languageOptions: {
@@ -45,6 +44,80 @@ export default [
       'no-undef': 'error',
       'no-empty': 'warn',
       'no-console': 'off',
+    },
+  },
+
+  // ── TypeScript: web app ─────────────────────────────────────────────────
+  {
+    name: 'web/ts',
+    files: ['apps/web/src/**/*.ts', 'apps/web/src/**/*.tsx'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 2024,
+        sourceType: 'module',
+        ecmaFeatures: { jsx: true },
+      },
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        process: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        HTMLElement: 'readonly',
+        React: 'readonly',
+        JSX: 'readonly',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      ...tseslint.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      'no-undef': 'off',  // TS handles this
+    },
+  },
+
+  // ── TypeScript: server app ───────────────────────────────────────────────
+  {
+    name: 'server/ts',
+    files: ['apps/server/src/**/*.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 2024,
+        sourceType: 'module',
+      },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      ...tseslint.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      'no-undef': 'off',
     },
   },
 ];

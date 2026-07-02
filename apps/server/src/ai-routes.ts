@@ -14,7 +14,6 @@ import { z } from 'zod';
 import { prisma } from './db.js';
 import {
   AiTaskType,
-  AiChatRequest,
   WOKWI_AI_DAILY_LIMIT,
 } from '@wokwi/shared';
 
@@ -238,7 +237,6 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
         let tokensOut = 0;
 
         // read SSE lines from DeepSeek stream
-        const lines: string[] = [];
         while (!done) {
           const { value, done: readerDone } = await reader.read();
           done = readerDone;

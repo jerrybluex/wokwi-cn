@@ -9,7 +9,7 @@
     "start": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "echo '(D1 stub — no JS files; D5 adds typescript-eslint)' && exit 0",
+    "lint": "cd ../.. && eslint apps/server/src --config eslint.config.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

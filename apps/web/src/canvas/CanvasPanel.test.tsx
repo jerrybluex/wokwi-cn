@@ -173,13 +173,13 @@ describe('Keyboard shortcuts', () => {
     history = applyChange(history, { type: 'add-part', part: { id: 'l1', type: 'led', x: 0, y: 0, rotation: 0 } });
     history = applyChange(history, { type: 'add-part', part: { id: 'l2', type: 'led', x: 10, y: 10, rotation: 0 } });
     const before = history.current.parts.length;
-    let lastState = history.current;
+    let _lastState = history.current;
     const utils = render(
       <CanvasPanel
         state={history.current}
         history={history}
         onChange={() => {}}
-        onUndo={() => (lastState = (() => {
+        onUndo={() => (_lastState = (() => {
           const h = undo({ past: [history.current], current: history.current, future: [] });
           // simpler: just construct past manually
           return h.current;

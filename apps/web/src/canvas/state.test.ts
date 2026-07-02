@@ -12,7 +12,6 @@ import {
   replaceAll,
   genId,
   MAX_HISTORY,
-  type Change,
 } from './state';
 
 function part(id: string, x = 0, y = 0) {

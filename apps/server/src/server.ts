@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import cookie from '@fastify/cookie';
@@ -31,7 +31,7 @@ export async function buildServer() {
   });
 
   // Decorate app with authenticate — checks session cookie OR Authorization header
-  app.decorate('authenticate', async function (req: any, reply: any) {
+  app.decorate('authenticate', async function (req: FastifyRequest, reply: FastifyReply) {
     try {
       await req.jwtVerify();
     } catch {
@@ -67,6 +67,6 @@ export async function buildServer() {
 // Re-declare augment for `app.authenticate`
 declare module 'fastify' {
   interface FastifyInstance {
-    authenticate: (req: any, reply: any) => Promise<void>;
+    authenticate: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
