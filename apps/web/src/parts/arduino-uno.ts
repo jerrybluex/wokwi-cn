@@ -124,19 +124,59 @@ function makeArduinoUno(): PartSpec {
     render(g, _state) {
       const children: SVGElement[] = [];
 
-      // PCB 主板 — 深青绿(真图视觉色)
+      // SVG defs — PCB 渐变(借鉴 reference SVG 风格)
+      // linearGradient #00538a → #002d54 海军蓝
+      const defs = svg('defs', {});
+      const grad = svg('linearGradient', {
+        id: 'pcbGrad-uno',
+        x1: '0%',
+        y1: '0%',
+        x2: '100%',
+        y2: '100%',
+      });
+      const stop1 = svg('stop', { offset: '0%', 'stop-color': '#00538a' });
+      const stop2 = svg('stop', { offset: '100%', 'stop-color': '#002d54' });
+      grad.appendChild(stop1);
+      grad.appendChild(stop2);
+      defs.appendChild(grad);
+      children.push(defs);
+
+      // PCB 主板 — 渐变海军蓝 + 右下角圆弧切角(决策 14)
+      const PCB_CUT_R = 8;
       children.push(
-        svg('rect', {
-          x: 0,
-          y: 0,
-          width: W,
-          height: H,
-          rx: 4,
-          fill: 'var(--canvas-board-uno-pcb)',
-          stroke: 'var(--canvas-board-edge)',
-          'stroke-width': 1.5,
+        svg('path', {
+          d: `M 0 0 L ${W} 0 L ${W} ${H - PCB_CUT_R} A ${PCB_CUT_R} ${PCB_CUT_R} 0 0 1 ${W - PCB_CUT_R} ${H} L 0 ${H} Z`,
+          fill: 'url(#pcbGrad-uno)',
+          stroke: '#007ecc',
+          'stroke-width': 1.2,
         }),
       );
+
+      // 4 角安装孔(借鉴 reference 金边 r=14 风格,缩到 r=2)
+      const MOUNT_R = 2;
+      const MOUNT_MARGIN = 4;
+      [
+        { x: MOUNT_MARGIN, y: MOUNT_MARGIN },
+        { x: W - MOUNT_MARGIN, y: MOUNT_MARGIN },
+        { x: MOUNT_MARGIN, y: H - MOUNT_MARGIN },
+        { x: W - MOUNT_MARGIN - 4, y: H - MOUNT_MARGIN - 4 },
+      ].forEach((p) => {
+        // 孔(深色)
+        children.push(
+          svg('circle', { cx: p.x, cy: p.y, r: MOUNT_R, fill: '#0a0a0a' }),
+        );
+        // 金边(借鉴 reference)
+        children.push(
+          svg('circle', {
+            cx: p.x,
+            cy: p.y,
+            r: MOUNT_R + 0.6,
+            fill: 'none',
+            stroke: '#ffd700',
+            'stroke-width': 0.5,
+          }),
+        );
+      });
 
       // USB 接头 — 左侧中部突出,银色方头
       const USB_X = px2x(230); // 14.1
@@ -167,18 +207,15 @@ function makeArduinoUno(): PartSpec {
         }),
       );
 
-      // DC 电源 jack — 左下角,黑色方块 + 中心圆孔
+      // DC 电源 jack — 左下角,黑色梯形(顶边宽 28 底边窄 22)+ 中心圆孔
       const DC_X = px2x(230); // 14.1
       const DC_Y = px2y(540); // 103.4
-      const DC_W = px2w(160); // 28.3
+      const DC_W = px2w(160); // 28.3 (顶边)
+      const DC_W2 = px2w(125); // 22.1 (底边,梯形)
       const DC_H = px2h(90); // 22.2
       children.push(
-        svg('rect', {
-          x: DC_X,
-          y: DC_Y,
-          width: DC_W,
-          height: DC_H,
-          rx: 2,
+        svg('path', {
+          d: `M ${DC_X} ${DC_Y} L ${DC_X + DC_W} ${DC_Y} L ${DC_X + (DC_W + DC_W2) / 2} ${DC_Y + DC_H} L ${DC_X + (DC_W - DC_W2) / 2} ${DC_Y + DC_H} Z`,
           fill: 'var(--part-jack)',
           stroke: 'var(--part-chip-edge)',
           'stroke-width': 1,
@@ -196,7 +233,7 @@ function makeArduinoUno(): PartSpec {
         }),
       );
 
-      // 复位按钮 — 顶部左侧,银色金属外壳
+      // 复位按钮 — 顶部左侧,圆角矩形金属外壳 + 棕红按钮(借鉴 reference rx=4 圆角)
       const RST_X = px2x(320); // 30.2
       const RST_Y = px2y(130); // 2.5
       const RST_W = px2w(90); // 15.9
@@ -207,23 +244,23 @@ function makeArduinoUno(): PartSpec {
           y: RST_Y,
           width: RST_W,
           height: RST_H,
-          rx: 2,
-          fill: 'var(--part-lead)',
-          stroke: 'var(--part-chip-edge)',
+          rx: 4, // 借鉴 reference rx=4 圆角
+          fill: '#ccc',
+          stroke: '#888',
           'stroke-width': 0.5,
         }),
       );
-      // 红色按钮(居中)
+      // 棕红色按钮(决策 14 改棕红 #d9534f 接近 reference #d9534f)
       children.push(
         svg('circle', {
           cx: RST_X + RST_W / 2,
           cy: RST_Y + RST_H / 2,
           r: Math.min(RST_W, RST_H) / 3,
-          fill: '#b85252',
+          fill: '#d9534f',
         }),
       );
 
-      // 16MHz 晶振 — 左下(USB 下方),银色金属壳
+      // 16MHz 晶振 — 左下(USB 下方),银色金属壳(决策 14 删 16MHz 文字)
       const XTAL_X = px2x(350); // 35.4
       const XTAL_Y = px2y(450); // 81.3
       const XTAL_W = px2w(70); // 12.4
@@ -240,20 +277,11 @@ function makeArduinoUno(): PartSpec {
           'stroke-width': 0.5,
         }),
       );
-      // 晶振文字
-      const xtalLabel = svg('text', {
-        x: XTAL_X + XTAL_W / 2,
-        y: XTAL_Y + XTAL_H / 2 + 1.5,
-        'text-anchor': 'middle',
-        fill: 'var(--part-body-deep)',
-        'font-family': 'JetBrains Mono, monospace',
-        'font-size': 3,
-        'font-weight': '700',
-      });
-      xtalLabel.textContent = '16MHz';
-      children.push(xtalLabel);
 
-      // ICSP2 — 顶部中央(AREF 旁)6-pin 2x3
+      // ICSP2 — 挪到 SCL/SDA 下方(决策 14,y ≈ 22)6-pin 2x3
+      // 重新计算 ICSP2 位置:y = SCL_SDA_Y + SCL_SDA_GAP_Y + SCL_SDA_H + 间距
+      const ICSP2_X = px2x(460);
+      const ICSP2_Y = SCL_SDA_Y + SCL_SDA_GAP_Y + SCL_SDA_H + px2h(15); // ≈ 22 视觉
       const icspPinR = 1.2;
       const icspPinGap = px2w(15); // ≈ 2.7
       for (let row = 0; row < 2; row++) {
@@ -269,23 +297,31 @@ function makeArduinoUno(): PartSpec {
         }
       }
 
-      // SCL/SDA/AREF/GND 顶部左半 2x2(view-only 视觉装饰)
-      // 真图布局:左半 SCL/SDA 上排 + AREF/GND 下排
-      const sclGndXs = [SCL_SDA_X, SCL_SDA_X + SCL_SDA_GAP_X];
-      const sclGndYs = [SCL_SDA_Y, SCL_SDA_Y + SCL_SDA_GAP_Y];
-      for (let row = 0; row < 2; row++) {
-        for (let col = 0; col < 2; col++) {
-          children.push(
-            svg('rect', {
-              x: sclGndXs[col],
-              y: sclGndYs[row],
-              width: SCL_SDA_W,
-              height: SCL_SDA_H,
-              fill: 'var(--part-chip-pin)',
-            }),
-          );
-        }
-      }
+      // SCL/SDA/AREF/GND 顶部左半独立焊盘(决策 14 拆 2x2 为 4 个独立焊盘)
+      // 4 个独立 rect ~3x3,真图视觉每个独立白色方块
+      const padW = 3;
+      const padH = 3;
+      const padGapX = px2w(28); // ≈ 5
+      const padGapY = px2h(30); // ≈ 7
+      const pads = [
+        { x: SCL_SDA_X, y: SCL_SDA_Y, label: 'SCL' },
+        { x: SCL_SDA_X + padGapX, y: SCL_SDA_Y, label: 'SDA' },
+        { x: SCL_SDA_X, y: SCL_SDA_Y + padGapY, label: 'AREF' },
+        { x: SCL_SDA_X + padGapX, y: SCL_SDA_Y + padGapY, label: 'GND' },
+      ];
+      pads.forEach((p) => {
+        children.push(
+          svg('rect', {
+            x: p.x,
+            y: p.y,
+            width: padW,
+            height: padH,
+            fill: 'var(--part-chip-pin)',
+            stroke: 'var(--part-chip-edge)',
+            'stroke-width': 0.3,
+          }),
+        );
+      });
       // SCL/SDA 标号(上排)
       const sclLabel = svg('text', {
         x: SCL_SDA_X,
@@ -479,54 +515,84 @@ function makeArduinoUno(): PartSpec {
         'font-family': 'JetBrains Mono, monospace',
         'font-size': INF_SIZE,
       });
-      arduinoLabel.textContent = 'Arduino';
+      arduinoLabel.textContent = 'Arduino™';
       children.push(arduinoLabel);
 
-      // POWER pin 头(底部中央,7 针横排)
+      // POWER header 黑色塑料 + 金圆 pin + POWER 文字横标(借鉴 reference)
+      children.push(
+        svg('rect', {
+          x: POW_X_START - 2,
+          y: POW_Y + 3,
+          width: POW_X_END - POW_X_START + 4,
+          height: 4,
+          rx: 0.5,
+          fill: '#151515',
+          stroke: '#000',
+          'stroke-width': 0.3,
+        }),
+      );
       POWER_PINS.forEach((_, i) => {
+        // 金圆 pin(借鉴 reference r=4 fill #ffd700)
         children.push(
-          svg('rect', {
-            x: POW_X_START + i * POW_GAP_X - 2,
-            y: POW_Y + 5,
-            width: 4,
-            height: 2,
-            fill: 'var(--part-chip-pin)',
+          svg('circle', {
+            cx: POW_X_START + i * POW_GAP_X,
+            cy: POW_Y + 5,
+            r: 1.2,
+            fill: '#ffd700',
+            stroke: '#222',
+            'stroke-width': 0.3,
           }),
         );
       });
-
-      // ANALOG pin 头(底部右侧,6 针横排)
-      ANALOG_PINS.forEach((_, i) => {
-        children.push(
-          svg('rect', {
-            x: ANA_X_START + i * ANA_GAP_X - 2,
-            y: ANA_Y + 5,
-            width: 4,
-            height: 2,
-            fill: 'var(--part-chip-pin)',
-          }),
-        );
-      });
-
-      // "POWER" 标号
+      // "POWER" 文字横标(借鉴 reference) — 挪到 pin header 上方(board 内顶部)
       const powerLabel = svg('text', {
         x: POW_X_START + (POW_X_END - POW_X_START) / 2,
-        y: POW_Y - 3,
+        y: POW_Y - 1,
         'text-anchor': 'middle',
         fill: 'var(--canvas-text)',
         'font-family': 'JetBrains Mono, monospace',
-        'font-size': 3.5,
+        'font-size': 2.8,
+        'font-weight': '700',
+        'letter-spacing': '0.4',
       });
       powerLabel.textContent = 'POWER';
       children.push(powerLabel);
-      // "ANALOG IN" 标号
+
+      // ANALOG header 黑色塑料 + 金圆 pin + ANALOG IN 文字横标(借鉴 reference)
+      children.push(
+        svg('rect', {
+          x: ANA_X_START - 2,
+          y: ANA_Y + 3,
+          width: ANA_X_END - ANA_X_START + 4,
+          height: 4,
+          rx: 0.5,
+          fill: '#151515',
+          stroke: '#000',
+          'stroke-width': 0.3,
+        }),
+      );
+      ANALOG_PINS.forEach((_, i) => {
+        children.push(
+          svg('circle', {
+            cx: ANA_X_START + i * ANA_GAP_X,
+            cy: ANA_Y + 5,
+            r: 1.2,
+            fill: '#ffd700',
+            stroke: '#222',
+            'stroke-width': 0.3,
+          }),
+        );
+      });
+      // "ANALOG IN" 文字横标 — 挪到 pin header 上方
       const analogLabel = svg('text', {
         x: ANA_X_START + (ANA_X_END - ANA_X_START) / 2,
-        y: ANA_Y - 3,
+        y: ANA_Y - 1,
         'text-anchor': 'middle',
         fill: 'var(--canvas-text)',
         'font-family': 'JetBrains Mono, monospace',
-        'font-size': 3.5,
+        'font-size': 2.8,
+        'font-weight': '700',
+        'letter-spacing': '0.4',
       });
       analogLabel.textContent = 'ANALOG IN';
       children.push(analogLabel);
@@ -558,29 +624,29 @@ function makeArduinoUno(): PartSpec {
         children.push(t);
       });
 
-      // POWER pin 标号
+      // POWER pin 标号 — 在 header 上方(与 POWER 文字并排,字稍小)
       POWER_PINS.forEach((p, i) => {
         const t = svg('text', {
           x: POW_X_START + i * POW_GAP_X,
-          y: POW_Y + 12,
+          y: POW_Y + 10,
           'text-anchor': 'middle',
           fill: 'var(--canvas-text)',
           'font-family': 'JetBrains Mono, monospace',
-          'font-size': 2.8,
+          'font-size': 2.2,
         });
         t.textContent = p.label;
         children.push(t);
       });
 
-      // ANALOG pin 标号
+      // ANALOG pin 标号 — 在 header 下方
       ANALOG_PINS.forEach((i) => {
         const t = svg('text', {
           x: ANA_X_START + i * ANA_GAP_X,
-          y: ANA_Y + 12,
+          y: ANA_Y + 10,
           'text-anchor': 'middle',
           fill: 'var(--canvas-text)',
           'font-family': 'JetBrains Mono, monospace',
-          'font-size': 2.8,
+          'font-size': 2.2,
         });
         t.textContent = `A${i}`;
         children.push(t);
