@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArduinoRunner } from '../sim';
 import { CodeEditor } from '../components/CodeEditor';
-import { PartLibraryPanel } from '../canvas/PartLibraryPanel';
+// PartLibraryPanel replaced by inline <select> dropdown (decision 21).
 import { CanvasPanel } from '../canvas/CanvasPanel';
 import {
   applyChange,
@@ -365,7 +365,7 @@ export function EditorPage() {
       )}
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-1/2 border-r border-base-300 flex flex-col bg-base-100">
+        <div className="w-[34%] min-w-[260px] max-w-[420px] border-r border-base-300 flex flex-col bg-base-100">
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between">
             <span>sketch.ino</span>
             <div className="flex gap-1.5">
@@ -426,29 +426,72 @@ export function EditorPage() {
           </div>
         </div>
 
-        <div className="w-1/2 flex">
-          <PartLibraryPanel />
-          <div className="flex-1 flex flex-col">
-            <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between">
-              <span>画布 — 拖元件到此处</span>
-              <span className="font-mono text-base-content/50 normal-case">
+        <div className="flex-1 flex flex-col">
+          <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between gap-2">
+            <span>画布</span>
+            <div className="flex items-center gap-2">
+              <span className="text-base-content/40 normal-case font-mono">
                 {partCount} 件 / {wireCount} 线
               </span>
+              {/* Part library collapsed to a select (decision 21). Wokwi-style
+               * "add part" dropdown — picks a type, adds at canvas center. */}
+              <select
+                aria-label="添加元件"
+                className="select select-bordered select-xs w-40 font-mono"
+                value=""
+                onChange={(e) => {
+                  const type = e.target.value;
+                  if (!type) return;
+                  // 简单布局:在 canvas 中央插入,后续用户可拖动
+                  onChange({
+                    type: 'add-part',
+                    part: {
+                      id: `p${Math.random().toString(36).slice(2, 8)}`,
+                      type,
+                      x: 60,
+                      y: 60,
+                      rotation: 0,
+                    },
+                  });
+                  e.target.value = '';
+                }}
+                data-testid="part-library-select"
+              >
+                <option value="">+ 添加元件…</option>
+                {[
+                  'arduino-uno',
+                  'led',
+                  'button',
+                  'potentiometer',
+                  'resistor',
+                  'hcsr04',
+                  'servo',
+                  'buzzer',
+                  'oled',
+                  'mpu6050',
+                  'seven-segment',
+                  'rgb-led',
+                ].map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
             </div>
-            <CanvasPanel
-              state={history.current}
-              history={history}
-              onChange={onChange}
-              onUndo={onUndo}
-              onRedo={onRedo}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              selectedWireId={selectedWireId}
-              onSelectWire={setSelectedWireId}
-              onWireCreate={onWireCreate}
-              pins={pins}
-            />
           </div>
+          <CanvasPanel
+            state={history.current}
+            history={history}
+            onChange={onChange}
+            onUndo={onUndo}
+            onRedo={onRedo}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            selectedWireId={selectedWireId}
+            onSelectWire={setSelectedWireId}
+            onWireCreate={onWireCreate}
+            pins={pins}
+          />
         </div>
       </div>
       <AiDrawer
