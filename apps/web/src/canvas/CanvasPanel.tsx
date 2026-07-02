@@ -421,7 +421,8 @@ function PartNode({
         const pos = pinPosition(part, pin.id);
         if (!pos) return null;
         const isPending = pendingFrom?.partId === part.id && pendingFrom.pinId === pin.id;
-        const radius = wireMode ? 6 : 4;
+        // Wokwi-style pin markers: small dark dots (r=2.5), wire mode slightly larger (r=4).
+        const radius = wireMode ? 4 : 2.5;
         return (
           <g key={pin.id}>
             <circle
@@ -429,9 +430,9 @@ function PartNode({
               cx={pos.x}
               cy={pos.y}
               r={radius}
-              fill={isPending ? 'var(--canvas-pin-active)' : wireMode ? 'var(--canvas-wire)' : 'var(--canvas-grid-major)'}
-              stroke={wireMode || isPending ? 'var(--canvas-text)' : 'var(--canvas-pin)'}
-              strokeWidth={1}
+              fill={isPending ? 'var(--canvas-pin-active)' : wireMode ? 'var(--canvas-wire)' : '#1e1e1e'}
+              stroke={wireMode || isPending ? 'var(--canvas-text)' : '#3a3f4b'}
+              strokeWidth={wireMode || isPending ? 1 : 0.5}
               style={{ cursor: wireMode ? 'crosshair' : 'default' }}
               onClick={(e) => {
                 e.stopPropagation();
