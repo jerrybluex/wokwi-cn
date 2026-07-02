@@ -123,7 +123,6 @@ export function CoursePlayer({ steps, progress }: Props) {
   const [canvasHistory, setCanvasHistory] = useState<History>(history);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
-  const [wireMode, setWireMode] = useState(false);
 
   // ── code state (editable, sync on step change) ────────────────
   const [code, setCode] = useState<string>(step.taskCode);
@@ -133,7 +132,6 @@ export function CoursePlayer({ steps, progress }: Props) {
     setCanvasHistory(history);
     setSelectedId(null);
     setSelectedWireId(null);
-    setWireMode(false);
     setCode(step.taskCode);
   }, [history, step.taskCode]);
 
@@ -148,11 +146,10 @@ export function CoursePlayer({ steps, progress }: Props) {
 
   const onWireCreate = useCallback(
     (_from: { partId: string; pinId: string }, _to: { partId: string; pinId: string }) => {
-      setWireMode(false);
+      // No-op: CanvasPanel owns the in-progress wire state now.
     },
     [],
   );
-  const onToggleWireMode = useCallback(() => setWireMode((m) => !m), []);
 
   // Strip prefix like "看:" / "亮:" from step.title for display
   const displayTitle = step.title.replace(/^[^：]+：/, '').trim();
@@ -266,8 +263,6 @@ export function CoursePlayer({ steps, progress }: Props) {
                   onSelect={setSelectedId}
                   selectedWireId={selectedWireId}
                   onSelectWire={setSelectedWireId}
-                  wireMode={wireMode}
-                  onToggleWireMode={onToggleWireMode}
                   onWireCreate={onWireCreate}
                 />
               </div>

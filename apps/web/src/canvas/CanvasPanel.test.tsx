@@ -138,12 +138,14 @@ describe('<CanvasPanel />', () => {
     expect(l1.querySelector('[data-pin="K"]')).toBeTruthy();
   });
 
-  it('wire mode shows pin labels above each pin', () => {
+  it('click-and-drag on a pin starts a wire and shows pin labels', () => {
+    // Decision 20: wire interaction is event-driven, no wireMode prop.
+    // mousedown on a [data-pin] should set pendingWireFrom which enables
+    // the PartWireLabels overlay (text with the pin id).
     const state: CanvasState = {
       parts: [{ id: 'l1', type: 'led', x: 0, y: 0, rotation: 0 }],
       wires: [],
     };
-    let wireMode = true;
     const utils = render(
       <CanvasPanel
         state={state}
@@ -155,14 +157,15 @@ describe('<CanvasPanel />', () => {
         onSelect={() => {}}
         onSelectWire={() => {}}
         selectedWireId={null}
-        wireMode={wireMode}
-        onToggleWireMode={() => {
-          wireMode = !wireMode;
-        }}
         onWireCreate={() => {}}
       />,
     );
-    // wire-mode label overlay is its own <g> sibling — find the <text> with 'A'
+    const l1 = utils.getByTestId('canvas-part-l1');
+    const pinA = l1.querySelector('[data-pin="A"]')!;
+    act(() => {
+      fireEvent.mouseDown(pinA, { clientX: 5, clientY: 14 });
+    });
+    // After mousedown, PartWireLabels overlay should render the pin id text.
     const text = Array.from(utils.container.querySelectorAll('text')).find((t) => t.textContent === 'A');
     expect(text).toBeTruthy();
   });

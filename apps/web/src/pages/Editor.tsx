@@ -63,7 +63,8 @@ export function EditorPage() {
   const [history, setHistory] = useState<History>(() => initHistory(buildDemoCircuit()));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
-  const [wireMode, setWireMode] = useState(false);
+  // wireMode state removed (decision 20): click-and-drag is event-driven, no
+  // toggle button. CanvasPanel owns its own in-progress wire state now.
   const [loadError, setLoadError] = useState<string | null>(null);
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
   const [aiTaskType, setAiTaskType] = useState<'explain' | 'error' | 'hint'>('explain');
@@ -131,12 +132,9 @@ export function EditorPage() {
     ) => {
       const wire = { id: genId('wire'), from, to };
       setHistory((h) => applyChange(h, { type: 'add-wire', wire }));
-      setWireMode(false);
     },
     [],
   );
-
-  const onToggleWireMode = useCallback(() => setWireMode((m) => !m), []);
 
   const onLoadDemo = () => {
     setHistory((h) => replaceAll(h, buildDemoCircuit()));
@@ -447,8 +445,6 @@ export function EditorPage() {
               onSelect={setSelectedId}
               selectedWireId={selectedWireId}
               onSelectWire={setSelectedWireId}
-              wireMode={wireMode}
-              onToggleWireMode={onToggleWireMode}
               onWireCreate={onWireCreate}
               pins={pins}
             />

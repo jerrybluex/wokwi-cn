@@ -32,8 +32,6 @@ export interface CanvasPanelProps {
   selectedId: string | null;
   onSelectWire?: (wireId: string | null) => void;
   selectedWireId: string | null;
-  wireMode?: boolean;
-  onToggleWireMode?: () => void;
   /** Called ONLY when a wire is completed (both pins selected) */
   onWireCreate?: (from: { partId: string; pinId: string }, to: { partId: string; pinId: string }) => void;
   /** Runtime pin values from the simulator runner (pin number → 0/1 or 0..255). */
@@ -53,8 +51,6 @@ export function CanvasPanel(props: CanvasPanelProps) {
     selectedId,
     onSelectWire,
     selectedWireId,
-    wireMode = false,
-    onToggleWireMode,
     onWireCreate,
     pins = {},
     width = 800,
@@ -66,12 +62,18 @@ export function CanvasPanel(props: CanvasPanelProps) {
   const [pendingWireFrom, setPendingWireFrom] = useState<{ partId: string; pinId: string } | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Clear pending wire when exiting wire mode
-  useEffect(() => {
-    if (!wireMode) setPendingWireFrom(null);
-  }, [wireMode]);
+  // Wire interaction (decision 20) is event-driven — no wireMode button any more:
+  //   mousedown on [data-pin] → set pendingWireFrom
+  //   mousemove over svg       → mousePos updates (PendingWire re-renders the curve)
+  //   mouseup on [data-pin]    → onWireCreate + clear pending
+  //   mouseup on empty space   → just clear pending (cancel)
+  //   ESC                      → clear pending
+  // part wrapper `g[data-wire-mode]` is replaced by `g[data-pending-from]`
+  // (set when this part holds the in-progress wire's start pin).
 
-  // Map runner pin values to each part's pins via wire topology.
+  // Map runner pin values to each parts's pins via wire topology.
+
+  // Map runner pin values to each parts's pins via wire topology.
   // Wire electrically connects two pins — they share the same voltage/current.
   // Algorithm:
   //  1. Build adjacency list: (partId, pinId) → [connected (partId, pinId)...]
@@ -186,7 +188,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
         setPendingWireFrom(null);
         return;
       }
-      if (e.key.toLowerCase() === 'r' && selectedId && !wireMode) {
+      if (e.key.toLowerCase() === 'r' && selectedId && !pendingWireFrom) {
         e.preventDefault();
         onChange({ type: 'rotate-part', id: selectedId });
         return;
@@ -232,6 +234,16 @@ export function CanvasPanel(props: CanvasPanelProps) {
     }
   };
 
+  // ----- mouseup on empty canvas → cancel wire (decision 20) -----
+  // If the user released the mouse outside any [data-pin], there is no valid
+  // drop target. Part-level mouseup handles the "dropped on a pin" case.
+  const onSvgMouseUp = (e: React.MouseEvent) => {
+    const target = e.target as Element | null;
+    const pinEl = target?.closest('[data-pin]') as Element | null;
+    if (pinEl?.hasAttribute('data-pin')) return; // handled by PartNode
+    if (pendingWireFrom) setPendingWireFrom(null);
+  };
+
   // ----- Move a part by dragging its body -----
   const onPartMouseDown = (e: React.MouseEvent, partId: string) => {
     e.stopPropagation();
@@ -268,6 +280,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         onClick={onSvgClick}
+        onMouseUp={onSvgMouseUp}
         onMouseMove={(e) => {
           const pt = clientToSvg(svgRef.current, e.clientX, e.clientY);
           setMousePos(pt);
@@ -305,19 +318,36 @@ export function CanvasPanel(props: CanvasPanelProps) {
                 part={p}
                 selected={selectedId === p.id}
                 dragging={dragPartId === p.id}
-                wireMode={wireMode || !!pendingWireFrom}
+                wireMode={!!pendingWireFrom}
                 pendingFrom={pendingWireFrom}
                 pinValues={partPins[p.id] ?? {}}
                 onMouseDown={(e) => onPartMouseDown(e, p.id)}
-                onPinClick={(pinId) => {
+                onPinMouseDown={(pinId, e) => {
+                  // Decision 20: click-and-drag wire interaction.
+                  // mousedown on [data-pin] starts the wire (or completes if the
+                  // user clicked a different pin with NO drag). mouseup on a
+                  // different pin while dragging completes the wire.
+                  e.stopPropagation();
                   if (!pendingWireFrom) {
-                    // Step 1: start pending
                     setPendingWireFrom({ partId: p.id, pinId });
-                  } else if (pendingWireFrom.partId === p.id && pendingWireFrom.pinId === pinId) {
-                    // Step 2: same pin → cancel
+                  } else if (
+                    pendingWireFrom.partId !== p.id ||
+                    pendingWireFrom.pinId !== pinId
+                  ) {
+                    onWireCreate?.(pendingWireFrom, { partId: p.id, pinId });
                     setPendingWireFrom(null);
-                  } else {
-                    // Step 3: complete wire
+                  }
+                  // same pin click while pending → no-op (cancel happens via ESC
+                  // or mouseup on empty canvas)
+                }}
+                onPinMouseUp={(pinId, e) => {
+                  e.stopPropagation();
+                  if (
+                    pendingWireFrom &&
+                    (pendingWireFrom.partId !== p.id ||
+                      pendingWireFrom.pinId !== pinId)
+                  ) {
+                    // Drop on a different pin while a wire is in progress.
                     onWireCreate?.(pendingWireFrom, { partId: p.id, pinId });
                     setPendingWireFrom(null);
                   }
@@ -326,11 +356,11 @@ export function CanvasPanel(props: CanvasPanelProps) {
             );
           })}
         </g>
-        {/* Wire-mode pin labels overlay (decision 19). Lives outside PartNode
-         * because pin pads now live INSIDE the part body render; the labels
-         * are decorative / mode-only — pointerEvents none so they don't
-         * intercept the click on the underlying pad. */}
-        {wireMode && (
+        {/* Wire-in-progress pin labels overlay (decision 19). Lives outside
+         * PartNode because pin pads now live INSIDE the part body render;
+         * labels are decorative / mode-only — pointerEvents none so they
+         * don't intercept the click on the underlying pad. */}
+        {pendingWireFrom && (
           <g pointerEvents="none">
             {state.parts.map((p) => {
               const spec = getPartSpec(p.type);
@@ -369,8 +399,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
           onChange({ type: 'remove-part', id: selectedId });
           onSelect?.(null);
         }}
-        wireMode={wireMode}
-        onToggleWireMode={onToggleWireMode}
+        wiring={!!pendingWireFrom}
       />
     </div>
   );
@@ -426,7 +455,8 @@ function PartNode({
   pendingFrom,
   pinValues,
   onMouseDown,
-  onPinClick,
+  onPinMouseDown,
+  onPinMouseUp,
 }: {
   part: CanvasPart;
   selected: boolean;
@@ -435,7 +465,8 @@ function PartNode({
   pendingFrom: { partId: string; pinId: string } | null;
   pinValues: Record<string, number>;
   onMouseDown: (e: React.MouseEvent) => void;
-  onPinClick: (pinId: string) => void;
+  onPinMouseDown: (pinId: string, e: React.MouseEvent) => void;
+  onPinMouseUp: (pinId: string, e: React.MouseEvent) => void;
 }) {
   const spec = getPartSpec(part.type);
   if (!spec) return null;
@@ -444,22 +475,32 @@ function PartNode({
   // canvas layer no longer draws an independent overlay — click / hover /
   // wire all read the SVG visual directly.
   //
-  // The part wrapper carries data attributes so CSS can flip the pad color
-  // for wire-mode + pending highlighting without re-rendering React tree.
+  // Decision 20: wire interaction is click-and-drag, so we listen for
+  // mousedown AND mouseup on the part wrapper. mousedown picks the start
+  // pin (or starts a part drag if the click landed outside a pad);
+  // mouseup picks the target pin or falls through to cancel.
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const pinEl = (e.target as Element | null)?.closest('[data-pin]') as Element | null;
+    if (pinEl?.hasAttribute('data-pin')) {
+      onPinMouseDown(pinEl.getAttribute('data-pin')!, e);
+      return;
+    }
+    onMouseDown(e);
+  };
+  const handleMouseUp = (e: React.MouseEvent) => {
+    const pinEl = (e.target as Element | null)?.closest('[data-pin]') as Element | null;
+    if (pinEl?.hasAttribute('data-pin')) {
+      onPinMouseUp(pinEl.getAttribute('data-pin')!, e);
+    }
+  };
   return (
     <g
       data-testid={`canvas-part-${part.id}`}
       data-part-id={part.id}
       data-wire-mode={wireMode ? 'true' : 'false'}
       data-pending-from={pendingFrom?.partId === part.id ? pendingFrom.pinId : undefined}
-      onMouseDown={onMouseDown}
-      onClick={(e) => {
-        const target = e.target as Element | null;
-        const pinEl = target?.closest('[data-pin]') as Element | null;
-        if (!pinEl || !pinEl.hasAttribute('data-pin')) return;
-        e.stopPropagation();
-        onPinClick(pinEl.getAttribute('data-pin')!);
-      }}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       style={{ cursor: dragging ? 'grabbing' : wireMode ? 'crosshair' : 'grab' }}
     >
       <PartBody spec={spec} part={part} pinValues={pinValues} />
@@ -584,8 +625,7 @@ function CanvasToolbar({
   selectedId,
   onRotate,
   onDelete,
-  wireMode,
-  onToggleWireMode,
+  wiring,
 }: {
   onUndo: () => void;
   onRedo: () => void;
@@ -596,23 +636,11 @@ function CanvasToolbar({
   selectedId: string | null;
   onRotate: () => void;
   onDelete: () => void;
-  wireMode: boolean;
-  onToggleWireMode?: () => void;
+  wiring: boolean;
 }) {
   return (
     <div className="absolute top-2 left-2 right-2 flex items-center gap-1 text-xs pointer-events-none">
       <div className="bg-base-200/90 rounded-md border border-base-300 px-1 py-0.5 flex gap-1 pointer-events-auto">
-        <button
-          onClick={onToggleWireMode}
-          className={`btn btn-ghost btn-xs px-2 gap-1 ${wireMode ? 'text-warning' : ''}`}
-          title="连线模式 (按 ESC 退出)"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 9l8 6 8-6" />
-            <path d="M4 15l8-6 8 6" />
-          </svg>
-          连线
-        </button>
         <button
           onClick={onUndo}
           disabled={!canUndo}
@@ -657,9 +685,9 @@ function CanvasToolbar({
           </button>
         </div>
       )}
-      {wireMode && (
+      {wiring && (
         <div className="ml-auto bg-warning/20 rounded-md border border-warning px-2 py-0.5 pointer-events-auto text-warning text-[10px] font-mono">
-          连线模式 — 点击两个 pin 连接 · ESC 取消
+          连线中 — 拖到目标 pin 松开完成 · ESC 取消
         </div>
       )}
     </div>
