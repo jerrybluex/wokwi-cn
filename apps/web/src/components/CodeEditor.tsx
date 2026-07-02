@@ -95,6 +95,8 @@ export function CodeEditor({
 
     const view = new EditorView({ state, parent: hostRef.current });
     viewRef.current = view;
+    // QA debug: expose on window for Playwright tests
+    (window as any).__cmView = view;
     return () => {
       view.destroy();
       viewRef.current = null;

@@ -60,7 +60,7 @@ function makeServo(): PartSpec {
           'font-size': 9,
         }),
       ]);
-      g.lastElementChild!.textContent = `${Math.round(angleDeg)}°`;
+      (g.querySelector('text') as SVGTextElement)!.textContent = `${Math.round(angleDeg)}°`;
     },
   };
 }

@@ -53,7 +53,7 @@ function makeButton(): PartSpec {
           'font-size': 9,
         }),
       ]);
-      g.lastElementChild!.textContent = pressed ? 'PRESSED' : 'BUTTON';
+      (g.querySelector('text') as SVGTextElement)!.textContent = pressed ? 'PRESSED' : 'BUTTON';
     },
   };
 }

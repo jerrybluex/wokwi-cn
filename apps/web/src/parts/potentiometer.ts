@@ -49,7 +49,7 @@ function makePotentiometer(): PartSpec {
           'font-size': 10,
         }),
       ]);
-      g.lastElementChild!.textContent = `${Math.round(v)}%`;
+      (g.querySelector('text') as SVGTextElement)!.textContent = `${Math.round(v)}%`;
     },
   };
 }

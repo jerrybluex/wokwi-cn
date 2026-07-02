@@ -52,7 +52,7 @@ function makeBuzzer(): PartSpec {
         svg('line', { x1: 0, y1: 32, x2: 12, y2: 32, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 60, y1: 22, x2: 48, y2: 22, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
       ].filter(Boolean) as SVGElement[]);
-      g.lastElementChild!.textContent = buzzing ? 'BZ' : 'BUZZER';
+      (g.querySelector('text') as SVGTextElement)!.textContent = buzzing ? 'BZ' : 'BUZZER';
     },
   };
 }
