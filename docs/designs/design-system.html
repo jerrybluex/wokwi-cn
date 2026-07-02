@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design System · wokwi</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f5f0;
+    --paper:#ffffff;
+    --ink:#14171e;
+    --ink-soft:#3a4256;
+    --muted:#7c7a72;
+    --line:#e9e3d6;
+    --line-soft:#efeadd;
+    --primary:#c97b3f;
+    --primary-hover:#b06a31;
+    --primary-soft:rgba(201,123,63,.08);
+    --accent:#2f6f5e;
+    --accent-soft:rgba(47,111,94,.10);
+    --success:#3f8c6a;
+    --warn:#b06367;
+    --error:#b85252;
+    --info:#5b7fa8;
+    --canvas-bg:#1a1d24;
+    --canvas-grid:#262a33;
+    --canvas-grid-major:#34394a;
+    --canvas-wire:#e07a5f;
+    --canvas-pin:#5a6173;
+    --canvas-pin-active:#ffb300;
+    --canvas-select:#5b9dd9;
+    --canvas-text:#d8dee9;
+    --canvas-board:#1a4a8a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Outfit',sans-serif;font-size:14.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  body{padding:48px 0 96px}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 28px}
+  h1{font-family:'DM Serif Display',serif;font-weight:400;font-size:38px;letter-spacing:-.01em;line-height:1.2;margin:0 0 12px}
+  h2{font-family:'DM Serif Display',serif;font-weight:400;font-size:26px;letter-spacing:-.005em;line-height:1.25;margin:0 0 8px;color:var(--ink)}
+  h3{font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+  h4{font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;margin:0 0 8px;color:var(--ink)}
+  p{margin:0 0 10px}
+  .meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+  .accent-bar{display:inline-block;width:36px;height:3px;background:var(--primary);border-radius:2px;margin-bottom:18px}
+  .hero{padding:24px 0 40px;border-bottom:1px solid var(--line)}
+  .hero p{color:var(--ink-soft);font-size:16px;max-width:680px}
+
+  section{margin-top:64px}
+  .lede{color:var(--ink-soft);max-width:720px;margin-bottom:28px}
+
+  /* ── code / mono ────────────────────────── */
+  code,.mono{font-family:'JetBrains Mono',monospace;font-size:.92em}
+  pre.code{background:var(--ink);color:#e6e8ee;padding:16px 18px;border-radius:10px;overflow-x:auto;font-size:12.5px;line-height:1.65;margin:12px 0}
+  pre.code .k{color:#c97b3f}
+  pre.code .s{color:#9ec0b3}
+  pre.code .c{color:#666e7f;font-style:italic}
+  pre.code .p{color:#9aa3b2}
+  pre.code .v{color:#e6c66c}
+
+  /* ── swatches ──────────────────────────── */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+  .swatch{background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .swatch .chip{height:80px;display:flex;align-items:flex-end;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.85)}
+  .swatch .info{padding:10px 12px;font-size:12px}
+  .swatch .info .name{font-weight:600;color:var(--ink);margin-bottom:2px}
+  .swatch .info .hex{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px}
+
+  /* ── bench / row data ───────────────────── */
+  .bench{display:grid;grid-template-columns:160px 1fr 100px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .bench:last-child{border-bottom:none}
+  .bench-label{font-weight:500;font-size:13px}
+  .bench-track{height:18px;background:var(--line-soft);border-radius:6px;overflow:hidden}
+  .bench-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:10.5px;font-family:'JetBrains Mono',monospace}
+  .bench-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-align:right}
+
+  /* ── component card ────────────────────── */
+  .components{display:grid;gap:18px}
+  .comp{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  .comp .ct{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em;margin-bottom:10px}
+  .comp .showcase{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px;background:var(--bg);border-radius:10px;border:1px solid var(--line-soft);margin-bottom:12px}
+  .comp .notes{font-size:12.5px;color:var(--ink-soft);line-height:1.55}
+
+  /* ── buttons ──────────────────────────── */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid transparent;cursor:pointer;font-family:inherit;line-height:1.2;transition:all .15s}
+  .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .btn-primary:hover{background:var(--primary-hover);border-color:var(--primary-hover)}
+  .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn-ghost:hover{background:var(--bg);border-color:var(--muted)}
+  .btn-success{background:var(--success);color:#fff;border-color:var(--success)}
+  .btn-error{background:transparent;color:var(--error);border-color:transparent}
+  .btn-error:hover{background:rgba(184,82,82,.08)}
+  .btn-sm{padding:5px 10px;font-size:11.5px;border-radius:6px}
+  .btn-xs{padding:3px 8px;font-size:11px;border-radius:5px}
+  .btn-icon{padding:7px;border-radius:8px}
+
+  /* ── badge / alert ──────────────────────── */
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:.02em;background:var(--line);color:var(--ink-soft)}
+  .badge.success{background:var(--accent-soft);color:var(--accent)}
+  .badge.warn{background:rgba(176,99,103,.12);color:var(--warn)}
+  .badge.info{background:rgba(91,127,168,.12);color:var(--info)}
+  .badge.primary{background:var(--primary-soft);color:var(--primary)}
+  .alert{padding:10px 14px;border-radius:8px;font-size:12.5px;border:1px solid;display:flex;align-items:center;gap:8px}
+  .alert.success{background:var(--accent-soft);border-color:rgba(47,111,94,.25);color:var(--accent)}
+  .alert.error{background:rgba(184,82,82,.08);border-color:rgba(184,82,82,.25);color:var(--error)}
+  .alert.info{background:rgba(91,127,168,.08);border-color:rgba(91,127,168,.25);color:var(--info)}
+
+  /* ── input ─────────────────────────────── */
+  .input{padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;background:var(--paper);font-family:inherit;color:var(--ink);outline:none;transition:border-color .15s}
+  .input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+
+  /* ── icons ─────────────────────────────── */
+  .icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+  .ic{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 10px;text-align:center}
+  .ic svg{color:var(--ink-soft);margin-bottom:6px}
+  .ic .nm{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted)}
+
+  /* ── parts gallery ─────────────────────── */
+  .parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+  .part{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .part .ph{height:80px;background:var(--canvas-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;position:relative;overflow:hidden}
+  .part .ph::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--canvas-grid) 1px,transparent 1px),linear-gradient(90deg,var(--canvas-grid) 1px,transparent 1px);background-size:12px 12px;opacity:.6}
+  .part .ph svg{position:relative;z-index:1}
+  .part .pn{font-weight:600;font-size:13px;margin-bottom:2px}
+  .part .pp{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted)}
+
+  /* ── canvas token preview ───────────────── */
+  .canvas-preview{background:var(--canvas-bg);border-radius:14px;padding:24px;position:relative;overflow:hidden;min-height:240px}
+  .canvas-preview::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--canvas-grid) 1px,transparent 1px),linear-gradient(90deg,var(--canvas-grid) 1px,transparent 1px);background-size:20px 20px}
+  .canvas-preview .demo{position:relative;z-index:1}
+  .canvas-token{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--canvas-text);display:flex;gap:14px;flex-wrap:wrap}
+  .canvas-token span{padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.06)}
+
+  /* ── table ─────────────────────────────── */
+  table.t{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:12px}
+  table.t th,table.t td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  table.t th{font-weight:600;color:var(--ink);background:var(--bg);font-size:11.5px;letter-spacing:.02em}
+  table.t td.mono{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted)}
+  table.t .arrow{color:var(--primary);font-family:'JetBrains Mono',monospace}
+
+  /* ── misc ──────────────────────────────── */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.grid-2{grid-template-columns:1fr}}
+  .ft{margin-top:80px;padding-top:24px;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  ul.tight{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--ink-soft);line-height:1.7}
+  ul.tight li{margin-bottom:3px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:4px;background:var(--line);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft)}
+  .pill.ok{background:var(--accent-soft);color:var(--accent)}
+  .pill.no{background:rgba(184,82,82,.12);color:var(--error)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="meta">Design System · D11 · 2026-07-02 · v0.1 草案</div>
+    <span class="accent-bar"></span>
+    <h1>教学产品的视觉语言</h1>
+    <p>这一页是 wokwi UI 的设计基础。daisyUI 当底层(避免造轮子),我们在它上面加一层品牌 token。三个关键词:<b>温度</b>、<b>清晰</b>、<b>统一</b>。</p>
+  </header>
+
+  <!-- 1. 原则 -->
+  <section>
+    <h3>01 — 设计原则</h3>
+    <h2>做这个,不做什么</h2>
+    <p class="lede">教学产品的 UI 跟工具型产品不一样。学生看 5 秒就要知道"下一步干啥",看 30 秒就要"我点这个会出错吗"。下面的原则是从 PRD §2 用户(小李 / 小张,高职学生)倒推出来的。</p>
+    <div class="grid-2">
+      <div class="comp">
+        <h4>要做</h4>
+        <ul class="tight">
+          <li>主按钮永远只有 1 个(主操作)</li>
+          <li>状态色:绿 / 橙 / 红 / 蓝,不要紫色 AI 渐变</li>
+          <li>教学文案:动词 + 对象("把 delay 改成 200")</li>
+          <li>画布配色独立 token 化,跟 daisyUI 主题同源</li>
+          <li>间距用 4 的倍数,跟 daisyUI scale 对齐</li>
+        </ul>
+      </div>
+      <div class="comp">
+        <h4>不做</h4>
+        <ul class="tight">
+          <li>emoji 当 icon(替换 lucide-react)</li>
+          <li>渐变 / 阴影 / 动效堆砌</li>
+          <li>深色模式硬切(画布本身是暗色,UI 是浅色,统一)</li>
+          <li>暗色 / 浅色 / 蓝色三主题切换(MVP 范围外)</li>
+          <li>WCAG AA 全部达标(MVP 不要求,但颜色对比 ≥ 4.5:1)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 配色 -->
+  <section>
+    <h3>02 — 配色</h3>
+    <h2>主色暖橙,辅助深绿</h2>
+    <p class="lede">暖橙 #c97b3f 是教学温度感(不是工具的冷蓝),深绿 #2f6f5e 是"完成 / 正确"的正向反馈。语义色按 daisyUI token 走,只是把 active 状态调一下。</p>
+
+    <h4 style="margin-top:18px">品牌色</h4>
+    <div class="swatches">
+      <div class="swatch">
+        <div class="chip" style="background:var(--primary)">primary · #c97b3f</div>
+        <div class="info"><div class="name">Primary · 暖橙</div><div class="hex">hover #b06a31 / soft rgba(201,123,63,.08)</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:var(--accent)">accent · #2f6f5e</div>
+        <div class="info"><div class="name">Accent · 深绿</div><div class="hex">success / 完成 / soft rgba(47,111,94,.10)</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:var(--warn)">warn · #b06367</div>
+        <div class="info"><div class="name">Warn · 砖红</div><div class="hex">soft rgba(176,99,103,.12)</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:var(--error)">error · #b85252</div>
+        <div class="info"><div class="name">Error · 暗红</div><div class="hex">编译 / 运行时错</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:var(--info)">info · #5b7fa8</div>
+        <div class="info"><div class="name">Info · 灰蓝</div><div class="hex">提示 / shareId</div></div>
+      </div>
+    </div>
+
+    <h4 style="margin-top:24px">中性色 (UI 背景 / 文字 / 描边)</h4>
+    <div class="swatches">
+      <div class="swatch">
+        <div class="chip" style="background:var(--bg)">paper bg · #f7f5f0</div>
+        <div class="info"><div class="name">App background</div><div class="hex">cream,长读友好</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:var(--paper);border:1px solid var(--line)">card · #ffffff</div>
+        <div class="info"><div class="name">Card / Paper</div><div class="hex">white + border #e9e3d6</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:var(--ink)">ink · #14171e</div>
+        <div class="info"><div class="name">Ink (主文字)</div><div class="hex">soft #3a4256 / muted #7c7a72</div></div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background:var(--line)">line · #e9e3d6</div>
+        <div class="info"><div class="name">Divider / Border</div><div class="hex">soft #efeadd</div></div>
+      </div>
+    </div>
+
+    <h4 style="margin-top:24px">daisyUI 映射</h4>
+    <table class="t">
+      <thead><tr><th>daisyUI token</th><th>当前值</th><th>建议</th><th>备注</th></tr></thead>
+      <tbody>
+        <tr><td>primary</td><td class="mono">#570df8</td><td><span class="arrow">→</span> <span class="mono">#c97b3f</span></td><td>暖橙,改 daisyUI theme.primary</td></tr>
+        <tr><td>secondary</td><td class="mono">#f000b8</td><td><span class="arrow">→</span> <span class="mono">#2f6f5e</span></td><td>深绿,success 通道</td></tr>
+        <tr><td>accent</td><td class="mono">#37cdbe</td><td><span class="arrow">→</span> <span class="mono">#5b7fa8</span></td><td>信息蓝</td></tr>
+        <tr><td>base-100</td><td class="mono">#ffffff</td><td><span class="arrow">→</span> <span class="mono">#ffffff</span></td><td>卡片 / paper</td></tr>
+        <tr><td>base-200</td><td class="mono">#f2f2f2</td><td><span class="arrow">→</span> <span class="mono">#fbf8f1</span></td><td>次级背景</td></tr>
+        <tr><td>base-300</td><td class="mono">#e5e6e6</td><td><span class="arrow">→</span> <span class="mono">#e9e3d6</span></td><td>描边</td></tr>
+        <tr><td>base-content</td><td class="mono">#1f2937</td><td><span class="arrow">→</span> <span class="mono">#14171e</span></td><td>主文字</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 3. 字体 -->
+  <section>
+    <h3>03 — 字体</h3>
+    <h2>Outfit 正文 + JetBrains Mono 代码</h2>
+    <p class="lede">Outfit 比 Inter 几何感强一点,适合中文 + 英文混排;JetBrains Mono 是代码 / 元数据专用。MVP 不引入中文 Webfont(走系统 PingFang SC),留作 Phase 2。</p>
+
+    <div class="comp">
+      <h4>字阶</h4>
+      <div style="display:grid;grid-template-columns:60px 1fr 100px;gap:12px;align-items:baseline;padding:6px 0;border-bottom:1px dashed var(--line)">
+        <span class="mono" style="color:var(--muted);font-size:11px">H1</span>
+        <span style="font-family:'DM Serif Display',serif;font-size:34px;line-height:1.15">在浏览器里学单片机</span>
+        <span class="mono" style="color:var(--muted);font-size:10px">34 / 1.2</span>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr 100px;gap:12px;align-items:baseline;padding:6px 0;border-bottom:1px dashed var(--line)">
+        <span class="mono" style="color:var(--muted);font-size:11px">H2</span>
+        <span style="font-family:'DM Serif Display',serif;font-size:24px;line-height:1.25">把 LED 接上,让它闪起来</span>
+        <span class="mono" style="color:var(--muted);font-size:10px">24 / 1.3</span>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr 100px;gap:12px;align-items:baseline;padding:6px 0;border-bottom:1px dashed var(--line)">
+        <span class="mono" style="color:var(--muted);font-size:11px">H3</span>
+        <span style="font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">SECTION LABEL · 上一步 / 下一步</span>
+        <span class="mono" style="color:var(--muted);font-size:10px">13 / UPPER</span>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr 100px;gap:12px;align-items:baseline;padding:6px 0;border-bottom:1px dashed var(--line)">
+        <span class="mono" style="color:var(--muted);font-size:11px">body</span>
+        <span style="font-size:14.5px;line-height:1.6">高职学生在浏览器里学 Arduino,代码一改 LED 就闪。不用下载,不用排队。</span>
+        <span class="mono" style="color:var(--muted);font-size:10px">14.5 / 1.6</span>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr 100px;gap:12px;align-items:baseline;padding:6px 0">
+        <span class="mono" style="color:var(--muted);font-size:11px">mono</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft)">delay(500) · D13 = HIGH · tick 42</span>
+        <span class="mono" style="color:var(--muted);font-size:10px">12 / 1.65</span>
+      </div>
+    </div>
+
+    <h4 style="margin-top:24px">Tailwind 配置</h4>
+    <pre class="code"><span class="c">// apps/web/tailwind.config.js (待加)</span>
+module.exports = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: [<span class="s">'Outfit'</span>, <span class="s">'PingFang SC'</span>, <span class="s">'Microsoft YaHei'</span>, <span class="s">sans-serif</span>],
+        mono: [<span class="s">'JetBrains Mono'</span>, <span class="s">'SF Mono'</span>, <span class="s">monospace</span>],
+        serif: [<span class="s">'DM Serif Display'</span>, <span class="s">serif</span>],
+      },
+    },
+  },
+}</pre>
+  </section>
+
+  <!-- 4. 间距 / 圆角 / 阴影 -->
+  <section>
+    <h3>04 — 间距 / 圆角 / 阴影</h3>
+    <h2>4-8-12-16 节奏</h2>
+    <p class="lede">daisyUI 自带的 scale 太密(MVP 范围够用),这里只列我们实际用到的几档。</p>
+
+    <div class="grid-2">
+      <div class="comp">
+        <h4>Spacing (px)</h4>
+        <div class="bench"><span class="bench-label">xs · 4</span><div class="bench-track"><div class="bench-fill" style="width:8%;background:var(--muted)"></div></div><span class="bench-val">icon gap</span></div>
+        <div class="bench"><span class="bench-label">sm · 8</span><div class="bench-track"><div class="bench-fill" style="width:15%;background:var(--muted)"></div></div><span class="bench-val">button pad-y</span></div>
+        <div class="bench"><span class="bench-label">md · 12</span><div class="bench-track"><div class="bench-fill" style="width:25%;background:var(--muted)"></div></div><span class="bench-val">card pad</span></div>
+        <div class="bench"><span class="bench-label">lg · 16</span><div class="bench-track"><div class="bench-fill" style="width:35%;background:var(--primary)"></div></div><span class="bench-val">section gap</span></div>
+        <div class="bench"><span class="bench-label">xl · 24</span><div class="bench-track"><div class="bench-fill" style="width:55%;background:var(--primary)"></div></div><span class="bench-val">page padding</span></div>
+        <div class="bench"><span class="bench-label">2xl · 40</span><div class="bench-track"><div class="bench-fill" style="width:75%;background:var(--primary)"></div></div><span class="bench-val">hero</span></div>
+      </div>
+      <div class="comp">
+        <h4>Radius &amp; Shadow</h4>
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px">
+          <div style="width:60px;height:60px;background:var(--paper);border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">6</div>
+          <div style="width:60px;height:60px;background:var(--paper);border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">10</div>
+          <div style="width:60px;height:60px;background:var(--paper);border:1px solid var(--line);border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">14</div>
+        </div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px"><b>6</b> = button · input · tag · <b>10</b> = card · alert · <b>14</b> = large card / modal</p>
+        <pre class="code" style="font-size:11.5px">shadow-sm: 0 1px 2px rgba(20,23,30,.04)
+shadow-md: 0 4px 12px -2px rgba(20,23,30,.06)
+shadow-lg: 0 12px 24px -6px rgba(20,23,30,.08)</pre>
+        <p style="font-size:12px;color:var(--muted);margin-top:6px">不要 box-shadow 装饰性大于功能性。教学产品"轻盈" &gt; "立体"。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Icon 系统 -->
+  <section>
+    <h3>05 — Icon 系统</h3>
+    <h2>emoji 全部换 lucide-react</h2>
+    <p class="lede">现在代码里有 9+ 个 emoji(💬📦🔗💾🗑🤖▶■↺🎉),它们既不是装饰也不是图标,只是快捷方式。换 lucide 后跨平台一致、可识别、可本地化。</p>
+
+    <h4 style="margin-top:18px">emoji 替换清单</h4>
+    <table class="t">
+      <thead><tr><th>现状 emoji</th><th>位置</th><th>替换为 lucide</th><th>stroke-width</th></tr></thead>
+      <tbody>
+        <tr><td>📦 Demo</td><td>Editor header</td><td><span class="mono">Package</span></td><td>2</td></tr>
+        <tr><td>🔗 分享 / 连线</td><td>Editor / Canvas</td><td><span class="mono">Link2 / Cable</span></td><td>2</td></tr>
+        <tr><td>💾 保存</td><td>Editor</td><td><span class="mono">Save</span></td><td>2</td></tr>
+        <tr><td>🗑 清空</td><td>Editor</td><td><span class="mono">Trash2</span></td><td>2</td></tr>
+        <tr><td>🤖 AI</td><td>AiButton</td><td><span class="mono">Sparkles</span></td><td>2</td></tr>
+        <tr><td>▶ Run</td><td>Editor</td><td><span class="mono">Play</span></td><td>2.5</td></tr>
+        <tr><td>■ Stop</td><td>Editor</td><td><span class="mono">Square</span></td><td>2</td></tr>
+        <tr><td>↺ 重置</td><td>Editor</td><td><span class="mono">RotateCcw</span></td><td>2</td></tr>
+        <tr><td>🎉 完成</td><td>CoursePlayer</td><td><span class="mono">PartyPopper</span></td><td>2</td></tr>
+        <tr><td>💬 反馈</td><td>App navbar</td><td><span class="mono">MessageSquare</span></td><td>2</td></tr>
+      </tbody>
+    </table>
+
+    <h4 style="margin-top:24px">核心 icon 速览 (lucide)</h4>
+    <div class="icon-grid">
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg><div class="nm">Play</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"/></svg><div class="nm">Square</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg><div class="nm">RotateCcw</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><div class="nm">Save</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg><div class="nm">Trash2</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg><div class="nm">Link2</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.9 6.1.6-4.7 4 1.4 6-4.7-3.5L7.3 19.5l1.4-6-4.7-4 6.1-.6L12 3z"/></svg><div class="nm">Sparkles</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="nm">MessageSquare</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg><div class="nm">ArrowRight</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><div class="nm">Check</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div class="nm">AlertCircle</div></div>
+      <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg><div class="nm">Clipboard</div></div>
+    </div>
+
+    <pre class="code"><span class="c">// apps/web/src/icons.ts (待加)</span>
+<span class="k">import</span> { Play, Square, Save, Trash2, Sparkles, ... } <span class="k">from</span> <span class="s">'lucide-react'</span>;
+
+<span class="k">export const</span> <span class="v">IconRun</span> = () => <span class="p">&lt;</span>Play size={14} strokeWidth={2.5} <span class="p">/&gt;</span>;
+<span class="k">export const</span> <span class="v">IconSave</span> = () => <span class="p">&lt;</span>Save size={14} strokeWidth={2} <span class="p">/&gt;</span>;</pre>
+  </section>
+
+  <!-- 6. 组件模式 -->
+  <section>
+    <h3>06 — 组件模式</h3>
+    <h2>在 daisyUI 上面叠一层品牌</h2>
+    <p class="lede">直接用 daisyUI 的 `btn` / `card` / `input`,通过 Tailwind 配置注入品牌 token。下面是 MVP 用到的关键组件的对照。</p>
+
+    <div class="components">
+      <div class="comp">
+        <div class="ct">BUTTON</div>
+        <div class="showcase">
+          <button class="btn btn-primary">▶ Run · 主操作</button>
+          <button class="btn btn-ghost">重置代码</button>
+          <button class="btn btn-success">完成课程</button>
+          <button class="btn btn-sm btn-primary">▶ Run</button>
+          <button class="btn btn-xs btn-ghost">Demo</button>
+          <button class="btn btn-icon btn-ghost"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button>
+        </div>
+        <p class="notes"><b>规则:</b>每屏只有一个 btn-primary;次按钮用 btn-ghost;危险操作(删除)用 btn-error 或透明带 hover 红。</p>
+      </div>
+
+      <div class="comp">
+        <div class="ct">BADGE</div>
+        <div class="showcase">
+          <span class="badge">已完成</span>
+          <span class="badge success">✓ 已分享</span>
+          <span class="badge warn">P1 · 路上</span>
+          <span class="badge info">未验证</span>
+          <span class="badge primary">现线上</span>
+        </div>
+        <p class="notes"><b>规则:</b>badge 只用来标状态(已完成 / 共享 / 验证),不承载操作入口(那是 button 的事)。</p>
+      </div>
+
+      <div class="comp">
+        <div class="ct">CARD</div>
+        <div class="showcase" style="background:transparent;padding:0;gap:14px">
+          <div style="flex:1;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:220px">
+            <div style="font-weight:600;font-size:14px;margin-bottom:4px">LED 闪烁</div>
+            <div style="font-size:12px;color:var(--ink-soft)">5 步,从打开 IDE 到 LED 闪</div>
+            <div style="margin-top:10px"><button class="btn btn-xs btn-primary">开始课程 →</button></div>
+          </div>
+          <div style="flex:1;background:var(--paper);border:1px dashed var(--line);border-radius:10px;padding:16px;min-width:220px;background:repeating-linear-gradient(135deg,var(--paper) 0 8px,var(--bg) 8px 16px)">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);margin-bottom:4px">P1 · 路上</div>
+            <div style="font-weight:600;font-size:14px;margin-bottom:4px;color:var(--muted)">更多课程</div>
+            <div style="font-size:12px;color:var(--ink-soft)">按钮 / 电位器 / 串口……</div>
+          </div>
+        </div>
+        <p class="notes"><b>规则:</b>白色 card + 10px 圆角 + 1px 描边 + sm 阴影。占位用 dashed + 斜纹。</p>
+      </div>
+
+      <div class="comp">
+        <div class="ct">ALERT</div>
+        <div class="showcase" style="flex-direction:column;align-items:stretch">
+          <div class="alert success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 已保存 14:32 · 云端</div>
+          <div class="alert error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> 编译错误: 'pinMode' was not declared</div>
+          <div class="alert info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> 你的项目还没有保存,先点右上角 💾</div>
+        </div>
+        <p class="notes"><b>规则:</b>alert 必须包含 icon(替代 emoji),文案动词开头。error 红、success 绿、info 蓝,不用 warn 黄当 warning。</p>
+      </div>
+
+      <div class="comp">
+        <div class="ct">INPUT</div>
+        <div class="showcase">
+          <input class="input" placeholder="新项目名" style="width:240px"/>
+          <input class="input" value="Untitled" style="width:240px"/>
+          <input class="input" disabled value="loading…" style="width:240px"/>
+        </div>
+        <p class="notes"><b>规则:</b>focus ring 用 primary-soft(8% alpha),不用 daisyUI 默认的厚 ring。disabled 用 muted 文字。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. 元件库视觉规范 -->
+  <section>
+    <h3>07 — 元件库视觉规范</h3>
+    <h2>8 件统一规则</h2>
+    <p class="lede">现在每个元件自己画 SVG,视觉风格脱节(LED 圆、UNO 长方形、Button 圆按钮)。统一规则:PCB 蓝深色板 + 金属 pin + 白色标签 + 暖橙 #c97b3f 强调(选中态)。</p>
+
+    <div class="parts">
+      <div class="part">
+        <div class="ph">
+          <svg width="120" height="80" viewBox="0 0 120 80">
+            <rect x="0" y="0" width="120" height="80" rx="4" fill="var(--canvas-board)" stroke="#0c2c54" stroke-width="2"/>
+            <rect x="6" y="6" width="108" height="68" rx="2" fill="#0a3a6a"/>
+            <rect x="44" y="28" width="32" height="22" rx="2" fill="#1a1a1a" stroke="#444"/>
+            <text x="60" y="70" text-anchor="middle" fill="#d8e6f3" font-family="JetBrains Mono, monospace" font-size="6">ARDUINO UNO</text>
+          </svg>
+        </div>
+        <div class="pn">Arduino UNO</div>
+        <div class="pp">220×140 · 14 digital + 2 analog</div>
+      </div>
+      <div class="part">
+        <div class="ph">
+          <svg width="50" height="40" viewBox="0 0 50 40">
+            <circle cx="25" cy="20" r="13" fill="#fde047" stroke="#facc15" stroke-width="2"/>
+            <line x1="0" y1="12" x2="14" y2="12" stroke="#888" stroke-width="1.5"/>
+            <line x1="0" y1="28" x2="14" y2="28" stroke="#888" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="pn">LED</div>
+        <div class="pp">60×50 · A/K · 默认红</div>
+      </div>
+      <div class="part">
+        <div class="ph">
+          <svg width="50" height="40" viewBox="0 0 50 40">
+            <rect x="14" y="6" width="22" height="28" rx="2" fill="#262c37" stroke="#3a4250" stroke-width="1.5"/>
+            <circle cx="25" cy="20" r="7" fill="#555"/>
+            <line x1="0" y1="12" x2="14" y2="12" stroke="#888" stroke-width="1.5"/>
+            <line x1="0" y1="28" x2="14" y2="28" stroke="#888" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="pn">Push Button</div>
+        <div class="pp">60×50 · A/B</div>
+      </div>
+      <div class="part">
+        <div class="ph">
+          <svg width="60" height="50" viewBox="0 0 60 50">
+            <circle cx="30" cy="20" r="18" fill="#1a1a1a" stroke="#555" stroke-width="1.5"/>
+            <circle cx="30" cy="20" r="16" fill="#0a0a0a"/>
+            <line x1="30" y1="20" x2="42" y2="10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="0" y1="6" x2="14" y2="6" stroke="#888" stroke-width="1.5"/>
+            <line x1="60" y1="6" x2="46" y2="6" stroke="#888" stroke-width="1.5"/>
+            <line x1="30" y1="50" x2="30" y2="42" stroke="#888" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="pn">Potentiometer</div>
+        <div class="pp">60×80 · A/B/W · wiper 0-100</div>
+      </div>
+      <div class="part">
+        <div class="ph">
+          <svg width="70" height="20" viewBox="0 0 70 20">
+            <rect x="2" y="4" width="66" height="12" rx="3" fill="#d4b896" stroke="#a08465" stroke-width="1"/>
+            <text x="35" y="14" text-anchor="middle" fill="#5a3e22" font-family="JetBrains Mono, monospace" font-size="6">220Ω</text>
+            <line x1="0" y1="10" x2="6" y2="10" stroke="#888" stroke-width="1.5"/>
+            <line x1="70" y1="10" x2="64" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="pn">Resistor</div>
+        <div class="pp">70×20 · A/B · 220Ω 默认</div>
+      </div>
+      <div class="part">
+        <div class="ph">
+          <svg width="50" height="50" viewBox="0 0 50 50">
+            <circle cx="25" cy="20" r="14" fill="#3a4250" stroke="#5a6173" stroke-width="1.5"/>
+            <rect x="13" y="32" width="24" height="14" rx="1" fill="#262c37"/>
+            <line x1="0" y1="10" x2="11" y2="10" stroke="#888" stroke-width="1.5"/>
+            <line x1="0" y1="30" x2="11" y2="30" stroke="#888" stroke-width="1.5"/>
+            <line x1="25" y1="50" x2="25" y2="44" stroke="#888" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="pn">Servo SG90</div>
+        <div class="pp">50×60 · 3-wire (sig/V/G)</div>
+      </div>
+      <div class="part">
+        <div class="ph">
+          <svg width="50" height="40" viewBox="0 0 50 40">
+            <circle cx="25" cy="20" r="14" fill="#1a1a1a" stroke="#5a6173" stroke-width="1.5"/>
+            <circle cx="25" cy="20" r="2" fill="#c97b3f"/>
+            <text x="25" y="38" text-anchor="middle" fill="#d8dee9" font-family="JetBrains Mono, monospace" font-size="5">BUZZER</text>
+            <line x1="0" y1="14" x2="11" y2="14" stroke="#888" stroke-width="1.5"/>
+            <line x1="0" y1="26" x2="11" y2="26" stroke="#888" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="pn">Buzzer</div>
+        <div class="pp">50×40 · +/-</div>
+      </div>
+      <div class="part">
+        <div class="ph">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <circle cx="30" cy="22" r="14" fill="#262c37" stroke="#3a4250" stroke-width="1.5"/>
+            <circle cx="30" cy="22" r="6" fill="#1a1a1a"/>
+            <circle cx="30" cy="22" r="3" fill="#5a6173"/>
+            <rect x="22" y="36" width="16" height="14" rx="2" fill="#262c37"/>
+            <line x1="0" y1="14" x2="16" y2="14" stroke="#888" stroke-width="1.5"/>
+            <line x1="0" y1="30" x2="16" y2="30" stroke="#888" stroke-width="1.5"/>
+            <line x1="30" y1="50" x2="30" y2="60" stroke="#888" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="pn">HC-SR04</div>
+        <div class="pp">60×60 · VCC/TRIG/ECHO/GND</div>
+      </div>
+    </div>
+
+    <h4 style="margin-top:24px">视觉规则 (8 件通用)</h4>
+    <ul class="tight">
+      <li><b>PCB 蓝</b> <span class="mono">#1a4a8a</span> (UNO) / <b>深灰</b> <span class="mono">#262c37</span> (其他元件主体) — 不要纯黑</li>
+      <li><b>Pin 灰</b> <span class="mono">#888</span> 引线 + <span class="mono">#1a2028</span> 圆点 (暗背景) / <span class="mono">#5a6173</span> 圆点 (亮背景)</li>
+      <li><b>标签字</b> JetBrains Mono 9-10px,白色 #d8dee9</li>
+      <li><b>选中态</b> 外框 1.5px primary-soft 虚线 + 内描边 primary 1px</li>
+      <li><b>连线态</b> pin 圆点变 primary #ff5252,wire 跟随线 primary 1.5px dashed</li>
+      <li><b>运行态</b> (LED / Button 等):LED 亮起 #ff5252 主色 + glow,Button 按下 #c97b3f 主色</li>
+    </ul>
+  </section>
+
+  <!-- 8. 画布主题感知 -->
+  <section>
+    <h3>08 — 画布主题感知</h3>
+    <h2>把硬编码色换成 CSS 变量</h2>
+    <p class="lede">CanvasPanel 现在用了 6+ 个硬编码色 (#1a2028 / #ff5252 / #0079d1 / #ffb300),跟 daisyUI 主题脱节。改成 CSS 变量,让画布跟着 UI 主题走(将来加 dark mode 也不破)。</p>
+
+    <div class="canvas-preview">
+      <div class="demo">
+        <svg width="100%" height="200" viewBox="0 0 600 200">
+          <rect x="20" y="40" width="120" height="80" rx="4" fill="var(--canvas-board)" stroke="#0c2c54" stroke-width="2"/>
+          <text x="80" y="86" text-anchor="middle" fill="#fff" font-family="JetBrains Mono, monospace" font-size="10">UNO</text>
+          <circle cx="320" cy="80" r="22" fill="var(--canvas-wire)" opacity="0.85"/>
+          <circle cx="320" cy="80" r="8" fill="var(--canvas-wire)"/>
+          <path d="M 140 80 Q 230 80 295 80" stroke="var(--canvas-wire)" stroke-width="2.5" fill="none"/>
+          <circle cx="180" cy="80" r="5" fill="var(--canvas-pin-active)"/>
+          <circle cx="295" cy="80" r="5" fill="var(--canvas-pin-active)"/>
+          <rect x="380" y="40" width="180" height="120" rx="6" stroke="var(--canvas-select)" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+        </svg>
+      </div>
+      <div class="canvas-token" style="margin-top:18px">
+        <span style="background:var(--canvas-bg)">--canvas-bg · #1a1d24</span>
+        <span style="background:var(--canvas-grid)">--canvas-grid · #262a33</span>
+        <span style="background:var(--canvas-grid-major);color:#000">--canvas-grid-major</span>
+        <span style="background:var(--canvas-wire);color:#000">--canvas-wire · #e07a5f</span>
+        <span style="background:var(--canvas-select);color:#000">--canvas-select · #5b9dd9</span>
+        <span style="background:var(--canvas-pin-active);color:#000">--canvas-pin-active</span>
+      </div>
+    </div>
+
+    <pre class="code"><span class="c">// apps/web/src/index.css (扩展)</span>
+:root {
+  <span class="c">/* UI (daisyUI theme) */</span>
+  --primary: #c97b3f;
+  --bg: #f7f5f0;
+  --paper: #ffffff;
+
+  <span class="c">/* Canvas (独立 token,默认暗色) */</span>
+  --canvas-bg: #1a1d24;
+  --canvas-grid: #262a33;
+  --canvas-grid-major: #34394a;
+  --canvas-wire: #e07a5f;
+  --canvas-pin: #5a6173;
+  --canvas-pin-active: #ffb300;
+  --canvas-select: #5b9dd9;
+  --canvas-text: #d8dee9;
+  --canvas-board: #1a4a8a;
+}
+
+<span class="c">// CanvasPanel.tsx 改 svg fill/stroke 引用 var(--canvas-xxx)</span>
+<span class="c">// 而不是硬编码 #1a2028 / #ff5252</span></pre>
+  </section>
+
+  <!-- 9. 动效 -->
+  <section>
+    <h3>09 — 动效</h3>
+    <h2>教学产品要"轻盈",不要"炫技"</h2>
+    <p class="lede">MVP 阶段只用 3 类动效:状态切换(150ms)、抽屉/抽屉化(200ms)、LED 闪烁(500ms 周期)。其他交给浏览器默认。</p>
+
+    <div class="grid-2">
+      <div class="comp">
+        <h4>过渡时长</h4>
+        <div class="bench"><span class="bench-label">state (hover/focus)</span><div class="bench-track"><div class="bench-fill" style="width:8%;background:var(--info)">150ms</div></div><span class="bench-val">.15s ease</span></div>
+        <div class="bench"><span class="bench-label">drawer (AI / fork)</span><div class="bench-track"><div class="bench-fill" style="width:15%;background:var(--info)">200ms</div></div><span class="bench-val">.2s ease-out</span></div>
+        <div class="bench"><span class="bench-label">LED blink</span><div class="bench-track"><div class="bench-fill" style="width:50%;background:var(--primary)">500ms</div></div><span class="bench-val">sync w/ code</span></div>
+      </div>
+      <div class="comp">
+        <h4>Easing</h4>
+        <pre class="code" style="font-size:11.5px">--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+<span class="c">/* 默认走 ease-out,不用 linear */</span>
+.btn, .card, .alert {
+  transition: all var(--ease-out) 150ms;
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. 落地清单 -->
+  <section>
+    <h3>10 — 落地清单</h3>
+    <h2>从这页到代码,要做哪些事</h2>
+    <p class="lede">这一页是给 UIer 自己 + coder 看的实施依据。下面是按天排的具体改动。</p>
+
+    <table class="t">
+      <thead><tr><th>Day</th><th>改动</th><th>文件</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td>D11</td><td>design system 规范</td><td class="mono">docs/designs/design-system.html</td><td><span class="pill ok">本文</span></td></tr>
+        <tr><td rowspan="3">D12</td><td>Tailwind config 加品牌色 + 字体</td><td class="mono">apps/web/tailwind.config.js</td><td><span class="pill">待做</span></td></tr>
+        <tr><td>首页重做 (1 LED 卡 + P1 占位)</td><td class="mono">apps/web/src/pages/Home.tsx</td><td><span class="pill">待做</span></td></tr>
+        <tr><td>CoursePlayer 任务卡 + check 字段</td><td class="mono">apps/web/src/courses/CoursePlayer.tsx</td><td><span class="pill">待做</span></td></tr>
+        <tr><td rowspan="2">D13</td><td>元件库视觉统一(8 件)</td><td class="mono">apps/web/src/parts/*.ts</td><td><span class="pill">待做</span></td></tr>
+        <tr><td>CanvasPanel 硬编码色 → CSS 变量</td><td class="mono">apps/web/src/canvas/CanvasPanel.tsx + index.css</td><td><span class="pill">待做</span></td></tr>
+        <tr><td rowspan="4">D14</td><td>templates.ts 改 2 模板(button-led → button-read;pwm-dim → pot-dimmer)</td><td class="mono">apps/web/src/projects/templates.ts</td><td><span class="pill">待做</span></td></tr>
+        <tr><td>ProjectsPage 卡片视觉 polish</td><td class="mono">apps/web/src/pages/Projects.tsx</td><td><span class="pill">待做</span></td></tr>
+        <tr><td>ShareView fork 按钮 UI polish</td><td class="mono">apps/web/src/pages/ShareView.tsx</td><td><span class="pill">待做</span></td></tr>
+        <tr><td>反馈 mailto UI polish</td><td class="mono">apps/web/src/App.tsx</td><td><span class="pill">待做</span></td></tr>
+        <tr><td>D15</td><td>内测收尾 + 修反馈</td><td>—</td><td><span class="pill">待做</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer class="ft">
+    <span>wokwi · Design System v0.1 · D11 草案</span>
+    <span>2026-07-02 · UIer</span>
+  </footer>
+
+</div>
+</body>
+</html>

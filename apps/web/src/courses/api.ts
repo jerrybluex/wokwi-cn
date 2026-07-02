@@ -1,6 +1,19 @@
 /**
  * api.ts — fetch wrappers for /api/courses/*.
  */
+
+/**
+ * StepCheck — optional lightweight completion check (PRD-sync §5 决策 8).
+ * The CoursePlayer renders a "任务卡" and runs a tiny lexer (no AST) against
+ * the student's code. `api-used` matches every API name in `value` (comma-
+ * separated, all must appear). `pattern` matches `value` as a regex.
+ */
+export type StepCheck = {
+  kind: 'api-used' | 'pattern';
+  value: string;
+  label?: string;
+};
+
 export type Step = {
   title: string;
   context: string;
@@ -10,6 +23,7 @@ export type Step = {
     wires: Array<{ from: { part: string; pin: string }; to: { part: string; pin: string }; id: string }>;
   };
   stepIndex: number;
+  check?: StepCheck;
 };
 
 export type CourseDetail = {

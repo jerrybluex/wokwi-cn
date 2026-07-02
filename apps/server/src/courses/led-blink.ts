@@ -8,9 +8,20 @@
  *   context      — markdown intro text (left panel)
  *   taskCode     — pre-filled editor code
  *   taskWiring   — pre-filled canvas circuit ( WiringJSON, same shape as fromWiringJSON )
+ *   check?       — optional lightweight check (PRD-sync §5 决策 8): when present, the
+ *                  CoursePlayer renders a "任务卡" and verifies the student's code
+ *                  with a tiny lexer (no AST). `kind: 'api-used'` matches every API
+ *                  name in `value` (comma-separated, all must appear). `kind: 'pattern'`
+ *                  matches `value` as a regex.
  *
  * See PRD §6.5 and devplan §4 Day 9.
  */
+export interface StepCheck {
+  kind: 'api-used' | 'pattern';
+  value: string;
+  label?: string;
+}
+
 export interface Step {
   title: string;
   context: string;
@@ -23,6 +34,7 @@ export interface Step {
       to: { part: string; pin: string };
     }>;
   };
+  check?: StepCheck;
 }
 
 export interface Course {
@@ -144,6 +156,11 @@ void loop() {
         parts: [UNO, RESISTOR, LED],
         wires: WIRES,
       },
+      check: {
+        kind: 'api-used',
+        value: 'digitalWrite',
+        label: '调用 digitalWrite 点亮 LED',
+      },
     },
 
     // ── Step 2: 闪 ──────────────────────────────────────────────────
@@ -197,6 +214,11 @@ void loop() {
         parts: [UNO, RESISTOR, LED],
         wires: WIRES,
       },
+      check: {
+        kind: 'api-used',
+        value: 'digitalWrite,delay',
+        label: '在 loop() 里用 digitalWrite 和 delay',
+      },
     },
 
     // ── Step 3: 调频 ────────────────────────────────────────────────
@@ -240,6 +262,12 @@ void loop() {
       taskWiring: {
         parts: [UNO, RESISTOR, LED],
         wires: WIRES,
+      },
+      check: {
+        kind: 'pattern',
+        // 匹配 delay(10..999) — 默认 1000 不算调过,学生要主动改
+        value: '\\bdelay\\s*\\(\\s*[1-9]\\d{1,2}\\s*\\)',
+        label: '把 delay 改成 10-999 之间的数字',
       },
     },
 
