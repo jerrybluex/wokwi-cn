@@ -165,6 +165,31 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  // ── fork a shared project ──
+  app.post<{ Body: { shareId: string } }>(
+    '/api/projects/fork',
+    { onRequest: [app.authenticate] },
+    async (req, reply) => {
+      const userId = userIdOf(req);
+      if (!userId) return reply.code(401).send({ error: 'unauthenticated' });
+      const { shareId } = req.body as { shareId?: unknown };
+      if (typeof shareId !== 'string' || !shareId) {
+        return reply.code(400).send({ error: 'shareId_required' });
+      }
+      const source = await prisma.project.findUnique({ where: { shareId } });
+      if (!source) return reply.code(404).send({ error: 'source_not_found' });
+      const project = await prisma.project.create({
+        data: {
+          name: `${source.name}（副本）`,
+          code: source.code,
+          wiring: source.wiring,
+          userId,
+        },
+      });
+      return reply.code(201).send({ project });
+    },
+  );
+
   // ── disable share ──
   app.delete<{ Params: { id: string } }>(
     '/api/projects/:id/share',

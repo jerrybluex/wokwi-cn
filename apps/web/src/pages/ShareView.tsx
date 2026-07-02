@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { projectsApi, type Project } from '../projects/api';
 import { CodeEditor } from '../components/CodeEditor';
 import { initHistory, type History } from '../canvas/state';
@@ -7,11 +7,15 @@ import { CanvasPanel } from '../canvas/CanvasPanel';
 import { buildDemoCircuit } from '../canvas/demo';
 import { fromWiringJSON } from '../canvas/wiring';
 import { emptyCanvas } from '../canvas/state';
+import { useAuth } from '../auth/useAuth';
 
 export function ShareViewPage() {
   const { shareId } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [forking, setForking] = useState(false);
   const [history, setHistory] = useState<History>(() => initHistory(buildDemoCircuit()));
 
   useEffect(() => {
@@ -38,6 +42,16 @@ export function ShareViewPage() {
       cancelled = true;
     };
   }, [shareId]);
+
+  const onFork = async () => {
+    if (!shareId || forking) return;
+    setForking(true);
+    const { status, data } = await projectsApi.fork(shareId);
+    setForking(false);
+    if (status === 201 && 'project' in data) {
+      navigate(`/editor?projectId=${data.project.id}`);
+    }
+  };
 
   if (error) {
     return (
@@ -72,6 +86,21 @@ export function ShareViewPage() {
         </div>
         <div className="text-[10px] text-base-content/50 font-mono">
           /p/{project.shareId}
+        </div>
+        <div className="flex-none">
+          {user ? (
+            <button
+              onClick={onFork}
+              disabled={forking}
+              className="btn btn-primary btn-sm"
+            >
+              {forking ? 'Fork 中…' : '⎘ Fork 到我的项目'}
+            </button>
+          ) : (
+            <Link to="/login" className="btn btn-ghost btn-sm">
+              登录后 Fork
+            </Link>
+          )}
         </div>
       </header>
       <div className="flex-1 flex overflow-hidden">

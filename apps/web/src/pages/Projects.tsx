@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { projectsApi, type ProjectSummary } from '../projects/api';
 import { useAuth } from '../auth/useAuth';
+import { TEMPLATES } from '../projects/templates';
 
 function fmtTime(iso: string): string {
   try {
@@ -53,6 +54,23 @@ export function ProjectsPage() {
     refresh();
   };
 
+  const onCreateFromTemplate = async (templateId: string) => {
+    const tpl = TEMPLATES.find((t) => t.id === templateId);
+    if (!tpl) return;
+    setCreating(true);
+    const { status, data } = await projectsApi.create({
+      name: tpl.name,
+      code: tpl.code,
+      wiring: tpl.wiring,
+    });
+    setCreating(false);
+    if (status === 201 && 'project' in data) {
+      navigate(`/editor?projectId=${data.project.id}`);
+    } else {
+      setError('从模板创建失败');
+    }
+  };
+
   if (!user) {
     return (
       <div className="container mx-auto p-8 max-w-2xl text-sm">
@@ -69,6 +87,30 @@ export function ProjectsPage() {
           ← 编辑器
         </Link>
       </div>
+
+      {/* Template picker */}
+      <div className="mb-4">
+        <div className="text-xs text-base-content/60 mb-2 font-bold">从模板新建</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {TEMPLATES.map((tpl) => (
+            <button
+              key={tpl.id}
+              onClick={() => onCreateFromTemplate(tpl.id)}
+              disabled={creating}
+              className="card bg-base-200 border border-base-300 hover:border-primary cursor-pointer text-left"
+            >
+              <div className="card-body p-3">
+                <div className="font-bold text-sm">{tpl.name}</div>
+                <div className="text-[10px] text-base-content/60 leading-snug mt-0.5">
+                  {tpl.description}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="divider text-xs text-base-content/40 my-3">或手动创建</div>
 
       <div className="card bg-base-200 shadow-sm mb-4">
         <div className="card-body p-3 flex-row items-center gap-2">

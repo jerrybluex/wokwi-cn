@@ -78,4 +78,7 @@ export const projectsApi = {
   publicGet(shareId: string) {
     return jsonFetch<{ project: Project }>('GET', `/p/${shareId}`);
   },
+  fork(shareId: string) {
+    return jsonFetch<{ project: Project }>('POST', '/api/projects/fork', { shareId });
+  },
 };
