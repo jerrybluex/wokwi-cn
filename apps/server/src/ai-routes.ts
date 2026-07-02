@@ -97,6 +97,24 @@ const FALLBACK_MESSAGE = `抱歉，AI 助教暂时不可用，请稍后重试。
 - 引脚号和接线对不对？
 - 分号和大括号有没有漏？`;
 
+/** Write an AiCall log row. Fails are warn-only so they never crash the SSE response. */
+async function logAiCall(opts: {
+  userId: string;
+  taskType: AiTaskType;
+  tokensIn: number;
+  tokensOut: number;
+}): Promise<void> {
+  try {
+    await prisma.aiCall.create({ data: opts });
+  } catch (err) {
+    console.warn('[ai:log]', {
+      taskType: opts.taskType,
+      userId: opts.userId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 /**
  * Build the user message from the request body.
  */
@@ -181,6 +199,7 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
         reply.raw.write(sse({ fallback: true, message: FALLBACK_MESSAGE }));
         reply.raw.write(sse({ done: true, tokensIn: 0, tokensOut: 0 }));
         reply.raw.end();
+        await logAiCall({ userId, taskType, tokensIn: 0, tokensOut: 0 });
         return;
       }
 
@@ -215,6 +234,7 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
           reply.raw.write(sse({ fallback: true, message: FALLBACK_MESSAGE }));
           reply.raw.write(sse({ done: true, tokensIn: 0, tokensOut: 0 }));
           reply.raw.end();
+          await logAiCall({ userId, taskType, tokensIn: 0, tokensOut: 0 });
           return;
         }
 
@@ -222,6 +242,7 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
           reply.raw.write(sse({ fallback: true, message: FALLBACK_MESSAGE }));
           reply.raw.write(sse({ done: true, tokensIn: 0, tokensOut: 0 }));
           reply.raw.end();
+          await logAiCall({ userId, taskType, tokensIn: 0, tokensOut: 0 });
           return;
         }
 
@@ -267,10 +288,8 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
         reply.raw.write(sse({ done: true, tokensIn, tokensOut }));
         reply.raw.end();
 
-        // log to DB (fire and forget — don't block the response)
-        prisma.aiCall
-          .create({ data: { userId, taskType, tokensIn, tokensOut } })
-          .catch((e) => app.log.error(e, 'failed to log AiCall'));
+        // log to DB — await so errors are visible; don't let write failures crash the SSE response
+        await logAiCall({ userId, taskType, tokensIn, tokensOut });
 
       } catch (err) {
         app.log.error(err, 'DeepSeek stream error');
