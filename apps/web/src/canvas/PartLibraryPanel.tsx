@@ -17,7 +17,7 @@ export const PART_DRAG_MIME = 'application/x-wokwi-part-type';
 // keep their literal hex because the chip should read as "the part itself".
 // The rest route through CSS tokens so the library follows canvas theme.
 const CHIP_COLORS: Record<string, string> = {
-  'arduino-uno': 'var(--canvas-board-uno)',
+  'arduino-uno': 'var(--canvas-board-uno-pcb)',
   led: '#ff5252',
   button: 'var(--part-lead)',
   potentiometer: 'var(--part-body)',
