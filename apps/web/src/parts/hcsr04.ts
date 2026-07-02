@@ -71,7 +71,6 @@ function makeHcsr04(): PartSpec {
 export const hcsr04: PartSpec = (() => {
   const spec = makeHcsr04();
   let lastTrigHighAt = 0;
-  let lastDistance = 0;
 
   spec.model = ((ctx) => {
     const trig = ctx.digitalRead('TRIG');
@@ -80,13 +79,10 @@ export const hcsr04: PartSpec = (() => {
     if (trig === 1) {
       // Rising edge detected — trigger a new measurement
       lastTrigHighAt = ctx.now;
-      // Simulate a distance: random 10–100 cm for MVP
-      lastDistance = Math.round(10 + Math.random() * 90);
     }
 
-    // ECHO stays HIGH for the duration proportional to distance
-    // (simplified: ECHO=HIGH for ~58µs per cm, but in our ms-resolution world
-    // we treat it as HIGH whenever it was recently triggered)
+    // ECHO stays HIGH briefly after TRIG fires (simulate pulse-width duration).
+    // In a real HC-SR04, pulse width ∝ distance; here we simplify to ~20 ms.
     if (lastTrigHighAt > 0 && ctx.now - lastTrigHighAt < 20) {
       writes.push({ pinId: 'ECHO', value: 1 });
     } else {
