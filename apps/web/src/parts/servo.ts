@@ -69,9 +69,8 @@ export const servo: PartSpec = (() => {
   const spec = makeServo();
   spec.model = ((ctx) => {
     // SIG pin receives PWM 0–255 (from Arduino analogWrite on the signal wire).
-    // Propagate it so the render can read pins['SIG'] directly.
-    const sig = ctx.digitalRead('SIG');
-    // Write it back so BFS propagates the PWM value through the wire graph.
+    // ctx.pins['SIG'] carries the full 0-255 value (not truncated to 0/1).
+    const sig = ctx.pins['SIG'] ?? 0;
     return [{ pinId: 'SIG', value: sig }] as PinWrite[];
   }) as PartModel;
   return spec;

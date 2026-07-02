@@ -176,6 +176,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
     const ctx = {
       now: Date.now(),
       digitalRead: (pinId: string) => digitalRead(part.id, pinId),
+      pins: partPins[part.id] ?? {},
     };
     try {
       const writes = spec.model(ctx) ?? [];

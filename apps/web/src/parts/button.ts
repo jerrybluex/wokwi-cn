@@ -60,16 +60,10 @@ function makeButton(): PartSpec {
 
 export const button: PartSpec = (() => {
   const spec = makeButton();
-  spec.model = ((ctx) => {
-    // Read the canvas-click-driven pin value and propagate it through the graph.
-    // Canvas mousedown → pins['A']=1; mouseup → pins['A']=0.
-    const pressed = ctx.digitalRead('A');
-    const writes: PinWrite[] = [];
-    // The value is already on 'A' from canvas interaction; no additional write needed.
-    // Model's role is to make the pin visible to the BFS propagation pass.
-    // We return an empty array — the pin value is set by the canvas layer.
-    void pressed;
-    return writes;
+  spec.model = ((_ctx) => {
+    // Canvas click handler sets pins['A']=1/0 directly. Model is a no-op —
+    // the pin value is already propagated through the BFS pass. No write needed.
+    return [] as PinWrite[];
   }) as PartModel;
   return spec;
 })();

@@ -60,10 +60,9 @@ function makeBuzzer(): PartSpec {
 export const buzzer: PartSpec = (() => {
   const spec = makeBuzzer();
   spec.model = ((ctx) => {
-    // Read SIG pin and propagate it so the view (which reads pins['SIG'])
-    // reflects the actual driven value. No additional processing needed —
-    // the view already uses state.pins['SIG'] to render buzzing state.
-    const sig = ctx.digitalRead('SIG');
+    // SIG pin value (after BFS propagation). Reads full resolved value
+    // (not truncated to 0/1) so the view reflects the actual driven state.
+    const sig = ctx.pins['SIG'] ?? 0;
     return [{ pinId: 'SIG', value: sig }] as PinWrite[];
   }) as PartModel;
   return spec;

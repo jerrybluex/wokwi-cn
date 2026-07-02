@@ -1,5 +1,5 @@
 import type { PartModel, PartSpec } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * SSD1306 0.96" OLED display — 128×64 I2C OLED.
@@ -27,6 +27,10 @@ function makeOled(): PartSpec {
     ],
     render(g, _state) {
       appendAll(g, [
+        pinPad('vcc', 0, 12),
+        pinPad('gnd', 0, 32),
+        pinPad('scl', 0, 52),
+        pinPad('sda', 0, 66),
         svg('rect', { x: 8, y: 4, width: 74, height: 50, rx: 4, fill: 'var(--part-body)', stroke: 'var(--part-stroke)', 'stroke-width': 1.5 }),
         svg('rect', { x: 16, y: 8, width: 58, height: 36, rx: 2, fill: '#1a1a2e', stroke: '#4a4a6a', 'stroke-width': 1 }),
         ...Array.from({ length: 5 }, (_, i) =>

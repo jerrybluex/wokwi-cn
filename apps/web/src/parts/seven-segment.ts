@@ -1,5 +1,5 @@
 import type { PartModel, PartSpec, PinWrite } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * Common-cathode 7-segment display.
@@ -46,6 +46,15 @@ function makeSevenSegment(): PartSpec {
       const seg = (active: boolean) => (active ? on : off);
 
       appendAll(g, [
+        pinPad('a', 0, 10),
+        pinPad('b', 0, 26),
+        pinPad('c', 0, 42),
+        pinPad('d', 0, 58),
+        pinPad('e', 0, 74),
+        pinPad('f', 0, 90),
+        pinPad('g', 90, 10),
+        pinPad('dp', 90, 26),
+        pinPad('common', 90, 90),
         svg('rect', { x: 8, y: 4, width: 74, height: 96, rx: 4, fill: '#1a1a1a', stroke: 'var(--part-stroke)', 'stroke-width': 1.5 }),
         svg('rect', { x: 22, y: 12, width: 46, height: 6, rx: 1, fill: seg(segs.a) }),
         svg('rect', { x: 66, y: 14, width: 6, height: 18, rx: 1, fill: seg(segs.b) }),

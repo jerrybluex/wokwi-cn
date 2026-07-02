@@ -114,22 +114,25 @@ describe('LED brightness from PWM-style state', () => {
 
 describe('parts with models expose a callable function', () => {
   it('hc-sr04 model returns without errors', () => {
-    const ctx = { now: 0, digitalRead: () => 0 };
+    const ctx = { now: 0, digitalRead: () => 0, pins: {} };
     expect(() => hcsr04.model?.(ctx)).not.toThrow();
   });
 
-  it('servo model returns without errors', () => {
-    const ctx = { now: 0, digitalRead: () => 0 };
-    expect(() => servo.model?.(ctx)).not.toThrow();
+  it('servo model propagates PWM 0-255 through SIG pin (not truncated)', () => {
+    const ctx = { now: 0, digitalRead: () => 0, pins: { SIG: 90 } };
+    const writes = servo.model?.(ctx);
+    expect(writes).toHaveLength(1);
+    expect(writes![0].pinId).toBe('SIG');
+    expect(writes![0].value).toBe(90); // full PWM, not 1
   });
 
   it('buzzer model returns without errors', () => {
-    const ctx = { now: 0, digitalRead: () => 0 };
+    const ctx = { now: 0, digitalRead: () => 0, pins: { SIG: 1 } };
     expect(() => buzzer.model?.(ctx)).not.toThrow();
   });
 
   it('mpu6050 model returns without errors', () => {
-    const ctx = { now: 0, digitalRead: () => 0 };
+    const ctx = { now: 0, digitalRead: () => 0, pins: {} };
     expect(() => mpu6050.model?.(ctx)).not.toThrow();
   });
 });
@@ -145,6 +148,13 @@ describe('OLED (ssd1306)', () => {
     expect(ids).toContain('gnd');
     expect(ids).toContain('scl');
     expect(ids).toContain('sda');
+  });
+
+  it('render produces elements with data-pin attributes', () => {
+    const g = makeSvgGroup();
+    ssd1306.render(g, { pins: {} });
+    const pads = Array.from(g.querySelectorAll('[data-pin]'));
+    expect(pads.length).toBeGreaterThanOrEqual(4);
   });
 });
 
@@ -174,6 +184,13 @@ describe('RGB LED (rgb-led)', () => {
     expect(ids).toContain('common');
     expect(ids).toContain('g');
     expect(ids).toContain('b');
+  });
+
+  it('render produces elements with data-pin attributes (wiring support)', () => {
+    const g = makeSvgGroup();
+    rgbLed.render(g, { pins: { r: 0, g: 0, b: 0, common: 0 } });
+    const pads = Array.from(g.querySelectorAll('[data-pin]'));
+    expect(pads.length).toBeGreaterThanOrEqual(4);
   });
 
   it('renders without throwing at all-zero state', () => {
@@ -211,6 +228,14 @@ describe('7-segment display (seven-segment)', () => {
     expect(ids).toContain('g');
     expect(ids).toContain('dp');
     expect(ids).toContain('common');
+  });
+
+  it('render produces elements with data-pin attributes (wiring support)', () => {
+    const g = makeSvgGroup();
+    const pins = Object.fromEntries(sevenSegment.pins.map((p) => [p.id, 0]));
+    sevenSegment.render(g, { pins });
+    const pads = Array.from(g.querySelectorAll('[data-pin]'));
+    expect(pads.length).toBeGreaterThanOrEqual(9);
   });
 
   it('renders without throwing at all-off state', () => {

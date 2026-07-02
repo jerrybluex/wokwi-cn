@@ -31,8 +31,10 @@ export interface PartRenderState {
 export interface PartContext {
   /** Simulated time, ms since start. */
   now: number;
-  /** Last digitalRead by id. */
+  /** Last digitalRead by id (digital 0/1 only). */
   digitalRead: (pinId: string) => number;
+  /** Full resolved pin values for this part (after BFS propagation), 0..255. */
+  pins: Record<string, number>;
 }
 
 /** A model can request that the runner write a value to a wire. */

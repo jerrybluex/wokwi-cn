@@ -1,5 +1,5 @@
 import type { PartModel, PartSpec, PinWrite } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * Common-cathode RGB LED — 4 pins: R / G / B (anodes) + common (cathode).
@@ -41,6 +41,10 @@ function makeRgbLed(): PartSpec {
         : '#3a3a3a';
 
       const elements: SVGElement[] = [
+        pinPad('r', 0, 10),
+        pinPad('common', 0, 30),
+        pinPad('g', 0, 44),
+        pinPad('b', 0, 58),
         svg('line', { x1: 0, y1: 10, x2: 18, y2: 10, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 0, y1: 30, x2: 18, y2: 30, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 0, y1: 44, x2: 18, y2: 44, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
