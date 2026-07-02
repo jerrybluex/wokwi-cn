@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LED 闪烁课路径 · UI Wireframe · wokwi</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f5f0;
+    --paper:#ffffff;
+    --ink:#14171e;
+    --ink-soft:#3a4256;
+    --muted:#7c7a72;
+    --line:#e9e3d6;
+    --line-soft:#efeadd;
+    --primary:#c97b3f;
+    --primary-soft:rgba(201,123,63,.08);
+    --accent:#2f6f5e;
+    --warn:#b06367;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Outfit',sans-serif;font-size:14.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  body{padding:48px 0 96px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+  h1{font-family:'DM Serif Display',serif;font-weight:400;font-size:38px;letter-spacing:-.01em;line-height:1.2;margin:0 0 12px}
+  h2{font-family:'DM Serif Display',serif;font-weight:400;font-size:26px;letter-spacing:-.005em;line-height:1.25;margin:0 0 8px;color:var(--ink)}
+  h3{font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+  p{margin:0 0 10px}
+  .meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+  .hero{padding:24px 0 40px;border-bottom:1px solid var(--line)}
+  .hero p{color:var(--ink-soft);font-size:16px;max-width:640px}
+  .accent-bar{display:inline-block;width:36px;height:3px;background:var(--primary);border-radius:2px;margin-bottom:18px}
+
+  section{margin-top:64px}
+  .lede{color:var(--ink-soft);max-width:680px;margin-bottom:32px}
+
+  /* ── 问题卡片 ───────────────────────────── */
+  .problems{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .prob{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  .prob .num{font-family:'DM Serif Display',serif;font-size:30px;color:var(--primary);line-height:1;margin-bottom:8px}
+  .prob h4{margin:0 0 8px;font-size:15px;font-weight:600;color:var(--ink)}
+  .prob p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.55}
+  @media(max-width:760px){.problems{grid-template-columns:1fr}}
+
+  /* ── 路径流程 ───────────────────────────── */
+  .path{display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px 18px;position:relative}
+  .step-col{position:relative;padding:0 14px;text-align:left}
+  .step-col+.step-col::before{content:"";position:absolute;left:-4px;top:14px;width:8px;height:8px;border-top:1px solid var(--muted);border-right:1px solid var(--muted);transform:rotate(45deg)}
+  .step-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--primary);margin-bottom:6px}
+  .step-col h5{margin:0 0 6px;font-size:14px;font-weight:600}
+  .step-col p{margin:0;font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+  @media(max-width:820px){.path{grid-template-columns:1fr;gap:18px}.step-col+.step-col::before{display:none}}
+
+  /* ── wireframe frame ───────────────────── */
+  .wf-frame{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:0;overflow:hidden;box-shadow:0 2px 12px rgba(20,23,30,.04)}
+  .wf-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f0ebde;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+  .wf-bar .dot{width:10px;height:10px;border-radius:50%;background:#d6cdb6}
+  .wf-bar .dot.a{background:#d99b7c}.wf-bar .dot.b{background:#c9c2a7}.wf-bar .dot.c{background:#9ec0b3}
+  .wf-bar .name{margin-left:auto}
+  .wf-body{padding:0}
+
+  /* ── mock UI building blocks ───────────── */
+  .mock{font-family:'Outfit',sans-serif;font-size:13px;color:var(--ink)}
+  .mock-bar{display:flex;align-items:center;gap:14px;padding:10px 18px;border-bottom:1px solid var(--line);background:#fbf8f1}
+  .mock-logo{font-family:'DM Serif Display',serif;font-size:16px;color:var(--primary)}
+  .mock-spacer{flex:1}
+  .mock-link{font-size:12px;color:var(--ink-soft)}
+  .mock-link.active{color:var(--ink);font-weight:600}
+
+  .mock-hero{padding:42px 36px 36px}
+  .mock-h1{font-family:'DM Serif Display',serif;font-size:34px;line-height:1.15;color:var(--ink);margin:0 0 10px}
+  .mock-sub{color:var(--ink-soft);font-size:15px;max-width:520px;margin:0 0 22px}
+  .mock-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;font-size:13.5px;font-weight:600;border:none;cursor:pointer;font-family:inherit}
+  .mock-btn.primary{background:var(--primary);color:#fff;box-shadow:0 2px 0 rgba(201,123,63,.3)}
+  .mock-btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .mock-btn .arr{display:inline-block;width:14px;height:14px}
+
+  .mock-row{display:flex;gap:14px;padding:0 36px 36px;flex-wrap:wrap}
+  .mock-card{flex:1;min-width:200px;background:#fbf8f1;border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .mock-card .ct{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:6px;letter-spacing:.05em}
+  .mock-card .ch{font-size:14px;font-weight:600;margin-bottom:4px}
+  .mock-card .cd{font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+
+  /* ── editor mock ──────────────────────── */
+  .mock-split{display:grid;grid-template-columns:1fr 1fr;min-height:420px}
+  .mock-pane{position:relative;border-right:1px solid var(--line)}
+  .mock-pane:last-child{border-right:none}
+  .mock-pane-head{padding:8px 14px;font-size:10.5px;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--line);background:#fbf8f1;display:flex;justify-content:space-between;align-items:center}
+  .mock-code{padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:var(--ink-soft);white-space:pre}
+  .mock-code .kw{color:var(--primary);font-weight:600}
+  .mock-code .fn{color:var(--accent)}
+  .mock-code .cm{color:var(--muted);font-style:italic}
+  .mock-code .num{color:var(--warn)}
+  .mock-led{position:absolute;left:18px;bottom:18px;display:flex;align-items:center;gap:10px}
+  .mock-led-dot{width:16px;height:16px;border-radius:50%;background:#2f6f5e;box-shadow:0 0 8px rgba(47,111,94,.6)}
+  .mock-led-dot.off{background:#1f2937;box-shadow:none}
+  .mock-led-text{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--ink-soft)}
+
+  .mock-canvas{background:#fbf8f1;height:100%;position:relative;padding:14px}
+  .mock-canvas-bg{position:absolute;inset:14px;background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);background-size:20px 20px;opacity:.7;border-radius:8px}
+  .mock-uno{position:absolute;left:40px;top:60px;width:120px;height:80px;background:#2b6cb0;border-radius:6px;box-shadow:0 4px 10px rgba(0,0,0,.08)}
+  .mock-uno::after{content:"UNO";position:absolute;left:8px;top:8px;color:#fff;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700}
+  .mock-uno-pins{position:absolute;right:-4px;top:8px;display:flex;flex-direction:column;gap:3px}
+  .mock-uno-pins span{width:6px;height:6px;border-radius:50%;background:#1a2028;display:block}
+  .mock-led-part{position:absolute;right:80px;top:90px;width:28px;height:28px;border-radius:50%;background:#fde047;border:2px solid #facc15;box-shadow:0 0 14px rgba(253,224,71,.7)}
+  .mock-wire{position:absolute;height:2px;background:var(--warn);border-radius:1px;transform-origin:left center}
+
+  .mock-foot{display:flex;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--line);background:#fbf8f1}
+  .mock-pill{font-size:10.5px;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:6px;background:#e8e2cf;color:var(--ink-soft)}
+  .mock-pill.run{background:rgba(47,111,94,.12);color:var(--accent)}
+  .mock-step{display:flex;align-items:center;gap:6px;padding:10px 18px;border-bottom:1px solid var(--line);background:#fbf8f1}
+  .mock-step .n{width:24px;height:24px;border-radius:50%;background:var(--line);color:var(--ink-soft);font-size:11px;font-family:'JetBrains Mono',monospace;font-weight:600;display:flex;align-items:center;justify-content:center}
+  .mock-step .n.cur{background:var(--primary);color:#fff}
+  .mock-step .n.done{background:var(--accent);color:#fff}
+  .mock-step .n.done::after{content:"✓"}
+
+  /* ── 决策表 ──────────────────────────────── */
+  .decision{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:4px 0;overflow:hidden}
+  .decision-row{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .decision-row .col{padding:18px 22px}
+  .decision-row .col.a{border-right:1px solid var(--line);background:#fbf8f1}
+  .decision-row .col h5{margin:0 0 6px;font-size:14px;font-weight:600}
+  .decision-row .col.a h5{color:var(--accent)}
+  .decision-row .col.b h5{color:var(--warn)}
+  .decision-row .col p{margin:0 0 8px;font-size:13px;color:var(--ink-soft);line-height:1.55}
+  .decision-row .col ul{margin:6px 0 0;padding-left:18px;font-size:12.5px;color:var(--ink-soft)}
+  .decision-row .col li{margin-bottom:4px}
+  .rec{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--primary);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+
+  /* ── 5 步大纲 ──────────────────────────── */
+  .outline{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  .oc{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 16px 18px;position:relative}
+  .oc .n{position:absolute;top:14px;right:14px;font-family:'DM Serif Display',serif;font-size:26px;color:var(--primary);line-height:1}
+  .oc h5{margin:0 0 6px;font-size:13.5px;font-weight:600;max-width:75%}
+  .oc .goal{font-size:11.5px;color:var(--ink-soft);margin-bottom:10px;line-height:1.5}
+  .oc .act{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);padding-top:10px;border-top:1px dashed var(--line)}
+  .oc .act b{color:var(--accent);font-weight:600}
+  @media(max-width:920px){.outline{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:520px){.outline{grid-template-columns:1fr}}
+
+  /* ── 状态条 ──────────────────────────── */
+  .status-strip{display:flex;flex-wrap:wrap;gap:14px;padding:14px 18px;background:#fbf8f1;border-bottom:1px solid var(--line)}
+  .status-strip .item{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+  .status-strip .item .lbl{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px}
+
+  /* ── 完成态 ─────────────────────────── */
+  .complete{background:linear-gradient(160deg,#fbf8f1 0%,#f0e9d6 100%);padding:48px 36px;text-align:center}
+  .complete .badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);padding:4px 10px;background:rgba(47,111,94,.12);border-radius:6px;margin-bottom:14px}
+  .complete h2{font-family:'DM Serif Display',serif;font-size:30px;margin:0 0 8px}
+  .complete p{color:var(--ink-soft);margin:0 auto 22px;max-width:480px}
+  .complete .ctas{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+  /* ── 决策表的小开关 ───────────────── */
+  .toggle{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:rgba(47,111,94,.12);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);margin-bottom:12px}
+  .toggle.warn{background:rgba(176,99,103,.12);color:var(--warn)}
+  .toggle::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+
+  /* ── footer ─────────────────────── */
+  .ft{margin-top:80px;padding-top:24px;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  /* svg icons */
+  .icon{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="meta">UI Wireframe · D11 · 2026-07-02</div>
+    <span class="accent-bar"></span>
+    <h1>LED 闪烁课<br>从首页到跑通的体验路径</h1>
+    <p>把北极星指标(<b>完成首课率 &gt; 60%</b>)的瓶颈画出来:高职学生第一次进来 → 走完 5 步 → 看到 LED 闪。这个页面聚焦路径上的 3 个关键决策点,不是完整的视觉稿。</p>
+  </header>
+
+  <!-- 现状问题 -->
+  <section>
+    <h3>01 — 现状问题</h3>
+    <h2>首课路径上三个会让学生走丢的坑</h2>
+    <p class="lede">PRD v2 §6.5 / §14 已经把"5 步走完 LED 课"定成验收硬指标,但当前实现里这三个点会让"走完"变成"走半路就关"。</p>
+    <div class="problems">
+      <div class="prob">
+        <div class="num">01</div>
+        <h4>编辑器锁死</h4>
+        <p>CoursePlayer 里 CodeEditor <code>disabled={true}</code>,学生只能看不能改。PRD §6.5 写的是 "taskCode 预填",意思是"先填一个,你照着改/调试",不是"锁死只能看"。</p>
+      </div>
+      <div class="prob">
+        <div class="num">02</div>
+        <h4>首屏没有引导</h4>
+        <p>现在 Editor 默认代码是 "D5 Demo blink D13",但首课 LED 闪烁的入口藏在哪?首页没看过,但 PRD §14 的"未登录裸跑已实现"这条没人推到首页。0 引导 = 0 转化。</p>
+      </div>
+      <div class="prob">
+        <div class="num">03</div>
+        <h4>画布硬编码色</h4>
+        <p>CanvasPanel 用了 #1a2028 网格 / #ff5252 红线 / #0079d1 蓝框,跟 daisyUI 主题没关系。切暗色/亮色主题时画布不会跟着变,主题分裂。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 路径 -->
+  <section>
+    <h3>02 — 用户路径</h3>
+    <h2>从打开浏览器到第 5 步 LED 闪</h2>
+    <p class="lede">每一站都是流失点。下面这条路径上 UI 投入的优先级 = 路径上对应页面的优先级。</p>
+    <div class="path">
+      <div class="step-col">
+        <div class="step-num">S0</div>
+        <h5>进入产品</h5>
+        <p>浏览器打开 → 首页。未登录裸跑可看,登录后保存。</p>
+      </div>
+      <div class="step-col">
+        <div class="step-num">S1</div>
+        <h5>开始首课</h5>
+        <p>首页大按钮"从 LED 课开始",无脑点击就进入课程。</p>
+      </div>
+      <div class="step-col">
+        <div class="step-num">S2</div>
+        <h5>Step 1 看懂</h5>
+        <p>左侧 markdown 讲 LED 是什么,右侧预填代码+画布,跟着做。</p>
+      </div>
+      <div class="step-col">
+        <div class="step-num">S3</div>
+        <h5>Step 5 跑通</h5>
+        <p>点 Run → 画布上 LED 亮/灭 → 学生第一次有"我做到了"的体感。</p>
+      </div>
+      <div class="step-col">
+        <div class="step-num">S4</div>
+        <h5>完成态</h5>
+        <p>庆祝 → 引导保存/分享/做下一课。把"完课"变成"留资"。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 首页 redesign -->
+  <section>
+    <h3>03 — 首页改稿</h3>
+    <h2>突出"开始首课",而不是"打开编辑器"</h2>
+    <p class="lede">现在的 Editor 是空白编辑器 + Demo 按钮,学生不知道该干啥。首页应该给一个明确的"从这里开始"路径,而不是工具栏集合。</p>
+
+    <div class="wf-frame">
+      <div class="wf-bar">
+        <span class="dot a"></span><span class="dot b"></span><span class="dot c"></span>
+        <span class="name">/ · HomePage (改稿)</span>
+      </div>
+      <div class="wf-body mock">
+        <div class="mock-bar">
+          <span class="mock-logo">wokwi</span>
+          <span class="mock-link active">课程</span>
+          <span class="mock-link">编辑器</span>
+          <span class="mock-link">项目</span>
+          <span class="mock-spacer"></span>
+          <span class="mock-link">登录</span>
+          <span class="mock-link" style="color:var(--primary);font-weight:600">注册</span>
+        </div>
+        <div class="mock-hero">
+          <h1 class="mock-h1">在浏览器里学单片机<br>不用硬件,不用排队。</h1>
+          <p class="mock-sub">5 步走完 LED 闪烁,写出你的第一行 Arduino 代码,看见它真的亮起来。</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="mock-btn primary">
+              <svg class="arr" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              从 LED 课开始 · 5 分钟
+            </button>
+            <button class="mock-btn ghost">
+              <svg class="arr" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7L13 2.4a2 2 0 0 0-2 0l-7 3.9A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 3.9a2 2 0 0 0 2 0l7-3.9A2 2 0 0 0 21 16z"/></svg>
+              直接打开编辑器
+            </button>
+          </div>
+        </div>
+        <div class="mock-row">
+          <div class="mock-card">
+            <div class="ct">第 1 课</div>
+            <div class="ch">LED 闪烁</div>
+            <div class="cd">5 步。从打开 IDE 到 LED 一闪一闪。15 分钟。</div>
+          </div>
+          <div class="mock-card" style="opacity:.55">
+            <div class="ct">第 2 课</div>
+            <div class="ch">按钮控制</div>
+            <div class="cd">敬请期待。MVP 后扩展。</div>
+          </div>
+          <div class="mock-card" style="opacity:.55">
+            <div class="ct">第 3 课</div>
+            <div class="ch">电位器调亮度</div>
+            <div class="cd">敬请期待。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:14px;font-size:12.5px;color:var(--muted)">设计取舍:主按钮直接进 LED 课而不是编辑器。"直接打开编辑器"作为次按钮,给已经有目标的学生用。第 2、3 课占位灰显,不空着但也不抢戏。</p>
+  </section>
+
+  <!-- 课程 step -->
+  <section>
+    <h3>04 — 课程 step 改稿</h3>
+    <h2>把"看代码"变成"跟代码"</h2>
+    <p class="lede">课程播放器的核心矛盾:学生该不该自己写?下面是两种走法,推荐 A。</p>
+
+    <div class="decision">
+      <div class="decision-row">
+        <div class="col a">
+          <div class="toggle">推荐</div>
+          <h5>A · 代码可改,任务驱动</h5>
+          <p>编辑器可写,左上角贴"任务卡"(例:"把 delay 改成 200")。学生写对了,任务卡变绿,解锁下一步。</p>
+          <ul>
+            <li>写代码 = 主动学习,留存高</li>
+            <li>失败能本地重试,省 AI 配额</li>
+            <li>任务卡是 P1 hint 字段的天然落点</li>
+            <li>需要课程 step schema 加 check 字段(目前是 title/context/taskCode/taskWiring 4 字段)</li>
+          </ul>
+        </div>
+        <div class="col b">
+          <div class="toggle warn">不推荐</div>
+          <h5>B · 代码只读,Run 就行</h5>
+          <p>保持 disabled。学生在 step 5 点 Run 看 LED 闪就算"完成"。</p>
+          <ul>
+            <li>实现简单,不改 schema</li>
+            <li>但学生没"自己写"的参与感,完课率上不去</li>
+            <li>北极星指标 <b>完成首课率 > 60%</b> 大概率达不到</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px"></div>
+    <div class="wf-frame">
+      <div class="wf-bar">
+        <span class="dot a"></span><span class="dot b"></span><span class="dot c"></span>
+        <span class="name">/courses/led-blink · Step 3 (改稿)</span>
+      </div>
+      <div class="wf-body mock">
+        <div class="mock-bar">
+          <span class="mock-logo">wokwi</span>
+          <span class="mock-link">← 首页</span>
+          <span class="mock-spacer"></span>
+          <span class="mock-link">第 3 / 5 步</span>
+        </div>
+        <div class="mock-step">
+          <span class="n done"></span>
+          <span class="n done"></span>
+          <span class="n cur">3</span>
+          <span class="n">4</span>
+          <span class="n">5</span>
+        </div>
+        <div class="mock-split">
+          <div class="mock-pane">
+            <div class="mock-pane-head"><span>任务卡 · 第 3 步</span><span style="color:var(--accent)">✓ 通过</span></div>
+            <div style="padding:18px 22px">
+              <h4 style="margin:0 0 6px;font-size:16px">让 LED 闪得更快一点</h4>
+              <p style="margin:0 0 14px;color:var(--ink-soft);font-size:13px">现在 delay 是 500 毫秒。把 delay 的两个数字都改成 200,让 LED 闪得快一倍。</p>
+              <div style="background:rgba(47,111,94,.08);border:1px solid rgba(47,111,94,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);display:flex;align-items:center;gap:8px">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+                已检测到 200 ms,继续
+              </div>
+            </div>
+            <div class="mock-pane-head" style="border-top:1px solid var(--line)"><span>代码 · 可编辑</span><span style="color:var(--muted)">▶ Run</span></div>
+            <div class="mock-code"><span class="kw">void</span> <span class="fn">setup</span>() {
+  <span class="fn">pinMode</span>(<span class="num">13</span>, <span class="kw">OUTPUT</span>);
+}
+
+<span class="kw">void</span> <span class="fn">loop</span>() {
+  <span class="fn">digitalWrite</span>(<span class="num">13</span>, <span class="kw">HIGH</span>);
+  <span class="fn">delay</span>(<span class="num">200</span>);     <span class="cm">// ← 改成 200</span>
+  <span class="fn">digitalWrite</span>(<span class="num">13</span>, <span class="kw">LOW</span>);
+  <span class="fn">delay</span>(<span class="num">200</span>);     <span class="cm">// ← 改成 200</span>
+}</div>
+            <div class="mock-foot">
+              <span class="mock-pill run">▶ 运行中</span>
+              <span class="mock-pill">D13 = HIGH</span>
+              <span class="mock-pill">tick 42</span>
+            </div>
+          </div>
+          <div class="mock-pane">
+            <div class="mock-pane-head"><span>电路</span><span>2 件 / 2 线</span></div>
+            <div class="mock-canvas">
+              <div class="mock-canvas-bg"></div>
+              <div class="mock-uno">
+                <div class="mock-uno-pins">
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </div>
+              <div class="mock-led-part"></div>
+              <div class="mock-wire" style="left:160px;top:100px;width:90px;transform:rotate(-15deg)"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-foot">
+          <button class="mock-btn ghost">◀ 上一步</button>
+          <span style="flex:1"></span>
+          <button class="mock-btn primary">下一步 ▶</button>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:14px;font-size:12.5px;color:var(--muted)">设计取舍:任务卡替代 step title,把"读"变成"做"。代码可写但 taskCode 仍是预填的起点,不是空白。Run 状态条从顶部移到代码区底部,跟 Run 按钮同侧,操作距离短。</p>
+  </section>
+
+  <!-- 5 步大纲 -->
+  <section>
+    <h3>05 — 5 步内容大纲</h3>
+    <h2>从看懂到跑通,每步一个动作</h2>
+    <p class="lede">课程文案你(项目主理人)来写,UI 这边要配合的是"每步只问学生做一件事"。下面是 UI 视角的 5 步节奏建议。</p>
+    <div class="outline">
+      <div class="oc">
+        <span class="n">1</span>
+        <h5>认识 LED</h5>
+        <div class="goal">看懂电路符号,知道哪条腿长是正极。</div>
+        <div class="act"><b>动作:</b> 只读。看图,不动手。</div>
+      </div>
+      <div class="oc">
+        <span class="n">2</span>
+        <h5>让 LED 亮</h5>
+        <div class="goal">补全 setup() 里的 pinMode。</div>
+        <div class="act"><b>动作:</b> 改一行代码,Run 看到 LED 亮。</div>
+      </div>
+      <div class="oc">
+        <span class="n">3</span>
+        <h5>让 LED 闪</h5>
+        <div class="goal">补全 loop(),加 delay。</div>
+        <div class="act"><b>动作:</b> 改 delay 数值,Run 看到闪。</div>
+      </div>
+      <div class="oc">
+        <span class="n">4</span>
+        <h5>调速度</h5>
+        <div class="goal">理解 delay 是节奏。</div>
+        <div class="act"><b>动作:</b> 把 1000 改 100,看加速。</div>
+      </div>
+      <div class="oc">
+        <span class="n">5</span>
+        <h5>完成 + 留资</h5>
+        <div class="goal">看到完整闪烁,引导保存/分享。</div>
+        <div class="act"><b>动作:</b> 点 Run 完整跑通,完课态。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 完成态 -->
+  <section>
+    <h3>06 — 完成态</h3>
+    <h2>完课那一刻,留住学生</h2>
+    <p class="lede">完课 = 第一次有"我能行"的体感。这一刻的转化率最高,必须接住。</p>
+
+    <div class="wf-frame">
+      <div class="wf-bar">
+        <span class="dot a"></span><span class="dot b"></span><span class="dot c"></span>
+        <span class="name">/courses/led-blink · 完成态 (改稿)</span>
+      </div>
+      <div class="wf-body mock">
+        <div class="complete">
+          <span class="badge">首课完成</span>
+          <h2>你的第一行 Arduino 代码<br>已经让 LED 闪起来了。</h2>
+          <p>把项目保存到云端,关掉浏览器也能找回来。或者发个链接给同学,让他看看你的电路。</p>
+          <div class="ctas">
+            <button class="mock-btn primary">
+              <svg class="arr" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z M17 21v-8H7v8 M7 3v5h8"/></svg>
+              保存到云端
+            </button>
+            <button class="mock-btn ghost">
+              <svg class="arr" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8 M16 6l-4-4-4 4 M12 2v13"/></svg>
+              分享给同学
+            </button>
+          </div>
+          <p style="margin-top:24px;font-size:12.5px;color:var(--muted)">下一步:按钮控制 · 敬请期待</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 下一步 -->
+  <section>
+    <h3>07 — 下一步</h3>
+    <h2>等你点头,我接下来这么干</h2>
+    <p class="lede">看完上面 6 节,如果方向对得上,接下来 5 天(D11-D15)我按这个节奏推。</p>
+    <ul style="padding-left:18px;color:var(--ink-soft);line-height:1.9;font-size:13.5px">
+      <li><b>D11 今天</b> — 这份 wireframe 你看完给反馈;同步开始画 design system(配色/字体/icon/组件)</li>
+      <li><b>D12</b> — 首页落地 + CoursePlayer 任务卡 + 代码可写(走推荐方案 A)</li>
+      <li><b>D13</b> — 元件库视觉统一(8 件) + 画布硬编码色 → 主题感知</li>
+      <li><b>D14</b> — PRD-sync §6 的 UI 部分:模板卡(选 LED/按钮/电位器 3 个)/ fork 按钮 / 反馈按钮</li>
+      <li><b>D15</b> — 内测收尾 + 修反馈。轻量回归测试。</li>
+    </ul>
+    <p style="margin-top:16px;font-size:12.5px;color:var(--muted)">UI 范围外:Sentry 接入 / PRD 文档回写 / ADR 回写 / 后端 API。这些给 orchestrator 派给其他 reins。</p>
+  </section>
+
+  <footer class="ft">
+    <span>wokwi · LED 闪烁课 wireframe · D11</span>
+    <span>2026-07-02 · UIer</span>
+  </footer>
+
+</div>
+</body>
+</html>
