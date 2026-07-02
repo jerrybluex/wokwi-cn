@@ -62,7 +62,10 @@ export class ArduinoRunner {
     };
 
     const digitalWrite = (pin: number, value: number | boolean): void => {
-      emit(pin, value ? 1 : 0, 'digital');
+      const v = value ? 1 : 0;
+      if (pinState[pin] === v) return; // no-op: value unchanged
+      pinState[pin] = v;
+      emit(pin, v, 'digital');
     };
 
     // Track last written value per pin so digitalRead can reflect analogWrite/digitalWrite.
@@ -70,10 +73,15 @@ export class ArduinoRunner {
     const digitalRead = (pin: number): number => pinState[pin] ?? 0;
     const analogRead = (_pin: number): number => 0;
 
-    const analogWrite = (pin: number, value: number): void => {
-      const v = Math.max(0, Math.min(255, value | 0));
-      pinState[pin] = v;
-      emit(pin, v, 'analog');
+    const analogWrite = async (_pin: number, _value: number): Promise<void> => {
+      const v = Math.max(0, Math.min(255, _value | 0));
+      if (pinState[_pin] !== v) {
+        pinState[_pin] = v;
+        emit(_pin, v, 'analog');
+      }
+      // Always yield so the loop() body yields (preprocessor adds await before delay).
+      // Without this, analogWrite is fire-and-forget and delays never fire.
+      await delay(1);
     };
 
     const delay = (ms: number): Promise<void> =>

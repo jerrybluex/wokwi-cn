@@ -217,7 +217,12 @@ export function EditorPage() {
 
     const runner = new ArduinoRunner();
     runnerRef.current = runner;
+    (window as any).__runner = runner;
+    let lastPinUpdate = 0;
     runner.onPin((ev) => {
+      const now = Date.now();
+      if (now - lastPinUpdate < 50) return; // throttle to 20fps
+      lastPinUpdate = now;
       setPins((prev) => ({ ...prev, [ev.pin]: ev.value }));
       setTick((t) => t + 1);
     });

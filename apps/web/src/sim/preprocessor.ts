@@ -28,6 +28,8 @@ export function preprocessArduino(src: string): string {
 
   // 4. delay() → await delay() (so callers don't have to write await)
   code = code.replace(/(^|[^a-zA-Z_])delay\s*\(/g, '$1await delay(');
+  // analogWrite() → await analogWrite() (yield to event loop on every PWM write)
+  code = code.replace(/(^|[^a-zA-Z_])analogWrite\s*\(/g, '$1await analogWrite(');
 
   // 5. Serial.print/println — works as long as Serial provides print/println
 
