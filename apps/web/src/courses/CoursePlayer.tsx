@@ -118,7 +118,6 @@ export function CoursePlayer({ steps, progress }: Props) {
   // ── canvas state from step wiring ──────────────────────────────
   const history = useMemo(
     () => initHistory(fromWiringJSON(step.taskWiring)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [step.stepIndex],
   );
   const [canvasHistory, setCanvasHistory] = useState<History>(history);
@@ -136,7 +135,6 @@ export function CoursePlayer({ steps, progress }: Props) {
     setSelectedWireId(null);
     setWireMode(false);
     setCode(step.taskCode);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history, step.taskCode]);
 
   // ── live check ────────────────────────────────────────────────

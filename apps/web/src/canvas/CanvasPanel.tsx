@@ -429,8 +429,8 @@ function PartNode({
               cx={pos.x}
               cy={pos.y}
               r={radius}
-              fill={isPending ? '#ffb300' : wireMode ? '#ff5252' : '#1a2028'}
-              stroke={wireMode || isPending ? '#fff' : '#888'}
+              fill={isPending ? 'var(--canvas-pin-active)' : wireMode ? 'var(--canvas-wire)' : 'var(--canvas-grid-major)'}
+              stroke={wireMode || isPending ? 'var(--canvas-text)' : 'var(--canvas-pin)'}
               strokeWidth={1}
               style={{ cursor: wireMode ? 'crosshair' : 'default' }}
               onClick={(e) => {
@@ -517,7 +517,7 @@ function WireLine({
       <path
         d={path}
         fill="none"
-        stroke={selected ? '#ffb300' : wire.color ?? '#ff5252'}
+        stroke={selected ? 'var(--canvas-pin-active)' : wire.color ?? 'var(--canvas-wire)'}
         strokeWidth={selected ? 3 : 2}
       />
     </g>

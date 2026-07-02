@@ -13,15 +13,18 @@ import { listPartTypes } from '../parts/registry';
 
 export const PART_DRAG_MIME = 'application/x-wokwi-part-type';
 
+// Color chip for each part tile. Brand-coded parts (LED/servo/resistor)
+// keep their literal hex because the chip should read as "the part itself".
+// The rest route through CSS tokens so the library follows canvas theme.
 const CHIP_COLORS: Record<string, string> = {
-  'arduino-uno': '#0079d1',
+  'arduino-uno': 'var(--canvas-board)',
   led: '#ff5252',
-  button: '#888',
-  potentiometer: '#1c2530',
+  button: 'var(--part-lead)',
+  potentiometer: 'var(--part-body)',
   resistor: '#d2b48c',
-  hcsr04: '#1c2530',
+  hcsr04: 'var(--part-body)',
   servo: '#f1c40f',
-  buzzer: '#3a3a3a',
+  buzzer: 'var(--part-off)',
 };
 
 export function PartLibraryPanel() {
@@ -47,7 +50,7 @@ export function PartLibraryPanel() {
             >
               <span
                 className="inline-block w-3 h-3 rounded-sm shrink-0"
-                style={{ background: CHIP_COLORS[spec.type] ?? '#888' }}
+                style={{ background: CHIP_COLORS[spec.type] ?? 'var(--part-lead)' }}
                 aria-hidden="true"
               />
               <span className="text-[11px] font-mono leading-tight truncate">

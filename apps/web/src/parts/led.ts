@@ -25,8 +25,8 @@ function makeLed(): PartSpec {
       const lit = brightness > 0;
 
       appendAll(g, [
-        svg('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: '#888', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: '#888', 'stroke-width': 1.5 }),
+        svg('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
+        svg('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         lit && brightness > 0.6
           ? svg('circle', {
               cx: 30,
@@ -48,7 +48,7 @@ function makeLed(): PartSpec {
           x: 30,
           y: 50,
           'text-anchor': 'middle',
-          fill: '#d8dee9',
+          fill: 'var(--canvas-text)',
           'font-family': 'JetBrains Mono, monospace',
           'font-size': 9,
         }),

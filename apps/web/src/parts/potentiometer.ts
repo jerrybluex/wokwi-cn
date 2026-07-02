@@ -28,18 +28,18 @@ function makePotentiometer(): PartSpec {
       const y2 = 30 - Math.cos(rad) * 16;
 
       appendAll(g, [
-        svg('circle', { cx: 30, cy: 30, r: 24, fill: '#1a1a1a', stroke: '#555', 'stroke-width': 1.5 }),
-        svg('circle', { cx: 30, cy: 30, r: 22, fill: '#0a0a0a' }),
+        svg('circle', { cx: 30, cy: 30, r: 24, fill: 'var(--part-body-deep)', stroke: 'var(--part-stroke-soft)', 'stroke-width': 1.5 }),
+        svg('circle', { cx: 30, cy: 30, r: 22, fill: 'var(--part-body-pit)' }),
         svg('circle', { cx: 30, cy: 6, r: 1.5, fill: '#777' }),
-        svg('line', { x1: 30, y1: 30, x2: x2, y2: y2, stroke: '#fff', 'stroke-width': 3, 'stroke-linecap': 'round' }),
-        svg('circle', { cx: 30, cy: 30, r: 3, fill: '#888' }),
-        svg('line', { x1: 0, y1: 18, x2: 18, y2: 18, stroke: '#888', 'stroke-width': 1.5 }),
-        svg('line', { x1: 60, y1: 18, x2: 42, y2: 18, stroke: '#888', 'stroke-width': 1.5 }),
+        svg('line', { x1: 30, y1: 30, x2: x2, y2: y2, stroke: 'var(--canvas-text)', 'stroke-width': 3, 'stroke-linecap': 'round' }),
+        svg('circle', { cx: 30, cy: 30, r: 3, fill: 'var(--part-lead)' }),
+        svg('line', { x1: 0, y1: 18, x2: 18, y2: 18, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
+        svg('line', { x1: 60, y1: 18, x2: 42, y2: 18, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('text', {
           x: 30,
           y: 70,
           'text-anchor': 'middle',
-          fill: '#d8dee9',
+          fill: 'var(--canvas-text)',
           'font-family': 'JetBrains Mono, monospace',
           'font-size': 10,
         }),

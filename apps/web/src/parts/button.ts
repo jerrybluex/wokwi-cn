@@ -22,19 +22,19 @@ function makeButton(): PartSpec {
       // state.pins['A'] could be 1 if model reports pressed — for now we
       // assume canvas-side pressed flag will be on state later.
       const pressed = state.pins['A'] === 1;
-      const capClass = pressed ? '#ff5252' : '#555';
+      const capClass = pressed ? '#ff5252' : 'var(--part-stroke-soft)';
 
       appendAll(g, [
-        svg('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: '#888', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: '#888', 'stroke-width': 1.5 }),
+        svg('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
+        svg('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('rect', {
           x: 16,
           y: 8,
           width: 32,
           height: 34,
           rx: 3,
-          fill: '#262c37',
-          stroke: '#3a4250',
+          fill: 'var(--part-body)',
+          stroke: 'var(--part-stroke)',
           'stroke-width': 1.5,
         }),
         svg('circle', { cx: 32, cy: 25, r: 9, fill: capClass }),
@@ -42,7 +42,7 @@ function makeButton(): PartSpec {
           x: 32,
           y: 50,
           'text-anchor': 'middle',
-          fill: '#d8dee9',
+          fill: 'var(--canvas-text)',
           'font-family': 'JetBrains Mono, monospace',
           'font-size': 9,
         }),

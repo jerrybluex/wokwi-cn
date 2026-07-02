@@ -81,7 +81,10 @@ export function CodeEditor({
           '&': { height, fontSize: '13px' },
           '.cm-scroller': { fontFamily: 'JetBrains Mono, Menlo, monospace' },
           '.cm-content': { padding: '8px 0' },
-          '.cm-gutters': { background: '#0d1117', borderRight: '1px solid #1c2128' },
+          '.cm-gutters': {
+            background: 'var(--canvas-bg)',
+            borderRight: '1px solid var(--canvas-grid-major)',
+          },
         }),
         editableCompartment.of(EditorState.readOnly.of(disabled)),
         EditorView.updateListener.of((u) => {

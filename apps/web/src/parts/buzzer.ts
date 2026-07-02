@@ -25,7 +25,7 @@ function makeBuzzer(): PartSpec {
       const sig = state.pins['SIG'] ?? 0;
       const buzzing = sig >= 1;
       appendAll(g, [
-        svg('circle', { cx: 30, cy: 28, r: 18, fill: '#1a1a1a', stroke: '#444', 'stroke-width': 1.5 }),
+        svg('circle', { cx: 30, cy: 28, r: 18, fill: 'var(--part-body-deep)', stroke: 'var(--part-chip-edge)', 'stroke-width': 1.5 }),
         buzzing
           ? svg('circle', { cx: 30, cy: 28, r: 22, fill: '#f39c12', 'fill-opacity': 0.45 })
           : null,
@@ -40,13 +40,13 @@ function makeBuzzer(): PartSpec {
           x: 30,
           y: 50,
           'text-anchor': 'middle',
-          fill: '#d8dee9',
+          fill: 'var(--canvas-text)',
           'font-family': 'JetBrains Mono, monospace',
           'font-size': 9,
         }),
-        svg('line', { x1: 0, y1: 12, x2: 12, y2: 12, stroke: '#888', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 32, x2: 12, y2: 32, stroke: '#888', 'stroke-width': 1.5 }),
-        svg('line', { x1: 60, y1: 22, x2: 48, y2: 22, stroke: '#888', 'stroke-width': 1.5 }),
+        svg('line', { x1: 0, y1: 12, x2: 12, y2: 12, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
+        svg('line', { x1: 0, y1: 32, x2: 12, y2: 32, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
+        svg('line', { x1: 60, y1: 22, x2: 48, y2: 22, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
       ].filter(Boolean) as SVGElement[]);
       g.lastElementChild!.textContent = buzzing ? 'BZ' : 'BUZZER';
     },

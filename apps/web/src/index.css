@@ -3,8 +3,56 @@
 @tailwind utilities;
 
 :root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  /* Brand tokens — mirror tailwind.config.js extend.colors */
+  font-family:
+    'Outfit',
+    'PingFang SC',
+    'Microsoft YaHei',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-feature-settings:
+    'cv02' 1,
+    'cv03' 1,
+    'cv04' 1,
+    'cv11' 1;
+
+  /* UI surface tokens */
+  --ui-cream: #f7f5f0;
+  --ui-paper: #ffffff;
+  --ui-ink: #14171e;
+  --ui-ink-soft: #3a4256;
+  --ui-muted: #7c7a72;
+  --ui-line: #e9e3d6;
+  --ui-line-soft: #efeadd;
+
+  /* Canvas tokens — used by CanvasPanel.tsx + parts/*.ts SVG (D13) */
+  --canvas-bg: #1a1d24;
+  --canvas-grid: #262a33;
+  --canvas-grid-major: #34394a;
+  --canvas-wire: #e07a5f;
+  --canvas-pin: #5a6173;
+  --canvas-pin-active: #ffb300;
+  --canvas-select: #5b9dd9;
+  --canvas-text: #d8dee9;
+  --canvas-board: #1a4a8a;
+  --canvas-board-deep: #0a3a6a;
+  --canvas-board-edge: #0c2c54;
+
+  /* Part body tones (暗色画布上的 PCB / 金属 / 标签) */
+  --part-body: #262c37;
+  --part-body-deep: #1a1a1a;
+  --part-body-pit: #0a0a0a;
+  --part-lead: #888;
+  --part-stroke: #3a4250;
+  --part-stroke-soft: #555;
+  --part-off: #3a3a3a;
+  --part-chip: #1a1a1a;
+  --part-chip-edge: #444;
+  --part-jack: #222;
+  --part-chip-pin: #ddd;
 }
 
 html,
@@ -17,5 +65,11 @@ body,
 
 code,
 pre {
-  font-family: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+  font-family:
+    'JetBrains Mono',
+    'SF Mono',
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
 }

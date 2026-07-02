@@ -34,14 +34,14 @@ function makeArduinoUno(): PartSpec {
         g,
         [
           // PCB
-          svg('rect', { x: 0, y: 0, width: 220, height: 140, rx: 4, fill: '#1a4a8a', stroke: '#0c2c54', 'stroke-width': 2 }),
-          svg('rect', { x: 12, y: 12, width: 196, height: 116, rx: 2, fill: '#0a3a6a' }),
+          svg('rect', { x: 0, y: 0, width: 220, height: 140, rx: 4, fill: 'var(--canvas-board)', stroke: 'var(--canvas-board-edge)', 'stroke-width': 2 }),
+          svg('rect', { x: 12, y: 12, width: 196, height: 116, rx: 2, fill: 'var(--canvas-board-deep)' }),
           // USB connector
           svg('rect', { x: -14, y: 30, width: 14, height: 24, rx: 2, fill: '#888', stroke: '#444' }),
           // Power jack
           svg('rect', { x: 200, y: -8, width: 14, height: 8, rx: 2, fill: '#222' }),
           // ATmega chip
-          svg('rect', { x: 80, y: 50, width: 60, height: 40, rx: 2, fill: '#1a1a1a', stroke: '#444' }),
+          svg('rect', { x: 80, y: 50, width: 60, height: 40, rx: 2, fill: 'var(--part-body-deep)', stroke: '#444' }),
           // Pin header strip (visual only)
           ...DIGITAL_PINS.map((i) =>
             svg('rect', {
@@ -49,7 +49,7 @@ function makeArduinoUno(): PartSpec {
               y: 27 + i * 8,
               width: 14,
               height: 4,
-              fill: '#ddd',
+              fill: 'var(--part-chip-pin)',
             }),
           ),
           // Board label
@@ -57,7 +57,7 @@ function makeArduinoUno(): PartSpec {
             x: 110,
             y: 124,
             'text-anchor': 'middle',
-            fill: '#d8e6f3',
+            fill: 'var(--canvas-text)',
             'font-family': 'JetBrains Mono, monospace',
             'font-size': 9,
           }),

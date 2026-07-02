@@ -17,8 +17,8 @@ function makeResistor(): PartSpec {
     ],
     render(g, _state) {
       appendAll(g, [
-        svg('line', { x1: 0, y1: 20, x2: 30, y2: 20, stroke: '#888', 'stroke-width': 1.5 }),
-        svg('line', { x1: 70, y1: 20, x2: 100, y2: 20, stroke: '#888', 'stroke-width': 1.5 }),
+        svg('line', { x1: 0, y1: 20, x2: 30, y2: 20, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
+        svg('line', { x1: 70, y1: 20, x2: 100, y2: 20, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('rect', { x: 30, y: 8, width: 40, height: 24, rx: 4, fill: '#d2b48c', stroke: '#8b6f3e', 'stroke-width': 1 }),
         svg('rect', { x: 38, y: 8, width: 3, height: 24, fill: '#8b6f3e' }),
         svg('rect', { x: 45, y: 8, width: 3, height: 24, fill: '#c0392b' }),
@@ -28,7 +28,7 @@ function makeResistor(): PartSpec {
           x: 50,
           y: 38,
           'text-anchor': 'middle',
-          fill: '#d8dee9',
+          fill: 'var(--canvas-text)',
           'font-family': 'JetBrains Mono, monospace',
           'font-size': 9,
         }),
