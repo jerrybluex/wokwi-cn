@@ -277,6 +277,11 @@ export function CanvasPanel(props: CanvasPanelProps) {
         ref={svgRef}
         width="100%"
         height="100%"
+        // xMidYMin meet (default) center-anchors the viewBox; switch to
+        // xMinYMin meet so the SVG element sticks to the container's top
+        // edge when the container is taller than the viewBox aspect — no
+        // "white space on top" when the canvas column is wider than tall.
+        preserveAspectRatio="xMinYMin meet"
         viewBox={`0 0 ${width / zoom} ${height / zoom}`}
         className="block select-none"
         onDragOver={onDragOver}
