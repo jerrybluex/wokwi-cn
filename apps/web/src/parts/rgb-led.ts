@@ -1,4 +1,4 @@
-import type { PartSpec } from './types';
+import type { PartModel, PartSpec, PinWrite } from './types';
 import { svg, appendAll } from './svg';
 
 /**
@@ -8,6 +8,9 @@ import { svg, appendAll } from './svg';
  *   Pin 'common' — shared cathode (ground)
  *   Pin 'g' — green anode
  *   Pin 'b' — blue anode
+ *
+ * Model: propagates each channel's PWM value through the wire graph so
+ * the render can read pins['r'/'g'/'b'] directly.
  */
 function makeRgbLed(): PartSpec {
   return {
@@ -104,4 +107,18 @@ function makeRgbLed(): PartSpec {
   };
 }
 
-export const rgbLed = makeRgbLed();
+export const rgbLed: PartSpec = (() => {
+  const spec = makeRgbLed();
+  spec.model = ((ctx) => {
+    // Propagate each channel PWM value through the wire graph.
+    const r = ctx.digitalRead('r');
+    const g = ctx.digitalRead('g');
+    const b = ctx.digitalRead('b');
+    return [
+      { pinId: 'r', value: r },
+      { pinId: 'g', value: g },
+      { pinId: 'b', value: b },
+    ] as PinWrite[];
+  }) as PartModel;
+  return spec;
+})();
