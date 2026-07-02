@@ -16,6 +16,10 @@ import { resistor } from './resistor';
 import { hcsr04 } from './hcsr04';
 import { servo } from './servo';
 import { buzzer } from './buzzer';
+import { ssd1306 } from './oled';
+import { mpu6050 } from './mpu6050';
+import { rgbLed } from './rgb-led';
+import { sevenSegment } from './seven-segment';
 
 const REGISTRY: Record<string, PartSpec> = {};
 
@@ -44,4 +48,8 @@ export function listPartTypes(): PartSpec[] {
   hcsr04,
   servo,
   buzzer,
+  ssd1306,
+  mpu6050,
+  sevenSegment,
+  rgbLed,
 ].forEach(registerPart);

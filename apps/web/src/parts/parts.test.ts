@@ -9,6 +9,10 @@ import { resistor } from './resistor';
 import { hcsr04 } from './hcsr04';
 import { servo } from './servo';
 import { buzzer } from './buzzer';
+import { ssd1306 } from './oled';
+import { mpu6050 } from './mpu6050';
+import { rgbLed } from './rgb-led';
+import { sevenSegment } from './seven-segment';
 
 const SPECS: PartSpec[] = [
   arduinoUno,
@@ -19,6 +23,10 @@ const SPECS: PartSpec[] = [
   hcsr04,
   servo,
   buzzer,
+  ssd1306,
+  mpu6050,
+  sevenSegment,
+  rgbLed,
 ];
 
 function makeSvgGroup(): SVGGElement {
@@ -39,7 +47,7 @@ describe('part registry', () => {
     expect(uniq.size).toBe(ids.length);
   });
 
-  it('covers the 8 D3 parts (UNO + 7 standard)', () => {
+  it('covers the 12 parts (UNO + 11 standard)', () => {
     const required = [
       'arduino-uno',
       'led',
@@ -49,6 +57,10 @@ describe('part registry', () => {
       'hcsr04',
       'servo',
       'buzzer',
+      'ssd1306',
+      'mpu6050',
+      'seven-segment',
+      'rgb-led',
     ];
     const list = listPartTypes();
     for (const type of required) {
@@ -114,5 +126,102 @@ describe('parts with models expose a callable function', () => {
   it('buzzer model returns without errors', () => {
     const ctx = { now: 0, digitalRead: () => 0 };
     expect(() => buzzer.model?.(ctx)).not.toThrow();
+  });
+
+  it('mpu6050 model returns without errors', () => {
+    const ctx = { now: 0, digitalRead: () => 0 };
+    expect(() => mpu6050.model?.(ctx)).not.toThrow();
+  });
+});
+
+describe('OLED (ssd1306)', () => {
+  it('has exactly 4 pins', () => {
+    expect(ssd1306.pins.length).toBe(4);
+  });
+
+  it('pin IDs are vcc/gnd/scl/sda', () => {
+    const ids = ssd1306.pins.map((p) => p.id);
+    expect(ids).toContain('vcc');
+    expect(ids).toContain('gnd');
+    expect(ids).toContain('scl');
+    expect(ids).toContain('sda');
+  });
+});
+
+describe('MPU-6050 (mpu6050)', () => {
+  it('has exactly 5 pins', () => {
+    expect(mpu6050.pins.length).toBe(5);
+  });
+
+  it('pin IDs include vcc/gnd/scl/sda/int', () => {
+    const ids = mpu6050.pins.map((p) => p.id);
+    expect(ids).toContain('vcc');
+    expect(ids).toContain('gnd');
+    expect(ids).toContain('scl');
+    expect(ids).toContain('sda');
+    expect(ids).toContain('int');
+  });
+});
+
+describe('RGB LED (rgb-led)', () => {
+  it('has exactly 4 pins', () => {
+    expect(rgbLed.pins.length).toBe(4);
+  });
+
+  it('pin IDs are r/common/g/b', () => {
+    const ids = rgbLed.pins.map((p) => p.id);
+    expect(ids).toContain('r');
+    expect(ids).toContain('common');
+    expect(ids).toContain('g');
+    expect(ids).toContain('b');
+  });
+
+  it('renders without throwing at all-zero state', () => {
+    const g = makeSvgGroup();
+    expect(() => rgbLed.render(g, { pins: { r: 0, g: 0, b: 0, common: 0 } })).not.toThrow();
+  });
+
+  it('renders without throwing at full-bright state', () => {
+    const g = makeSvgGroup();
+    expect(() => rgbLed.render(g, { pins: { r: 255, g: 255, b: 255, common: 0 } })).not.toThrow();
+  });
+
+  it('shows RGB label when off', () => {
+    const g = makeSvgGroup();
+    rgbLed.render(g, { pins: { r: 0, g: 0, b: 0, common: 0 } });
+    const texts = Array.from(g.querySelectorAll('text'));
+    const combined = texts.map((t) => t.textContent ?? '').join(' ');
+    expect(combined).toContain('RGB');
+  });
+});
+
+describe('7-segment display (seven-segment)', () => {
+  it('has exactly 9 pins', () => {
+    expect(sevenSegment.pins.length).toBe(9);
+  });
+
+  it('pin IDs include a-g, dp, common', () => {
+    const ids = sevenSegment.pins.map((p) => p.id);
+    expect(ids).toContain('a');
+    expect(ids).toContain('b');
+    expect(ids).toContain('c');
+    expect(ids).toContain('d');
+    expect(ids).toContain('e');
+    expect(ids).toContain('f');
+    expect(ids).toContain('g');
+    expect(ids).toContain('dp');
+    expect(ids).toContain('common');
+  });
+
+  it('renders without throwing at all-off state', () => {
+    const g = makeSvgGroup();
+    const pins = Object.fromEntries(sevenSegment.pins.map((p) => [p.id, 0]));
+    expect(() => sevenSegment.render(g, { pins })).not.toThrow();
+  });
+
+  it('renders without throwing at all-on state', () => {
+    const g = makeSvgGroup();
+    const pins = Object.fromEntries(sevenSegment.pins.map((p) => [p.id, 1]));
+    expect(() => sevenSegment.render(g, { pins })).not.toThrow();
   });
 });
