@@ -43,18 +43,18 @@ describe('TEMPLATES', () => {
     expect(types).toContain('led');
   });
 
-  it('button LED template contains UNO + button + resistor + LED', () => {
-    const t = getTemplate('button-led')!;
+  it('button read template contains UNO + button only', () => {
+    const t = getTemplate('button-read')!;
     const state = fromWiringJSON(JSON.parse(t.wiring));
     const types = state.parts.map((p) => p.type);
     expect(types).toContain('arduino-uno');
     expect(types).toContain('button');
-    expect(types).toContain('resistor');
-    expect(types).toContain('led');
+    expect(types).not.toContain('resistor');
+    expect(types).not.toContain('led');
   });
 
-  it('PWM dimmer template uses D9 for LED control', () => {
-    const t = getTemplate('pwm-dim')!;
+  it('pot dimmer template uses D9 for LED control', () => {
+    const t = getTemplate('pot-dimmer')!;
     const state = fromWiringJSON(JSON.parse(t.wiring));
     // Find the wire from UNO to resistor
     const uno = state.parts.find((p) => p.type === 'arduino-uno')!;
