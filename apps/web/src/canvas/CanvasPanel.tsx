@@ -38,6 +38,8 @@ export interface CanvasPanelProps {
   pins?: Record<number, number>;
   width?: number;
   height?: number;
+  /** Visual zoom — viewBox shrinks by 1/zoom, parts render larger. Default 1. */
+  zoom?: number;
 }
 
 export function CanvasPanel(props: CanvasPanelProps) {
@@ -55,6 +57,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
     pins = {},
     width = 800,
     height = 500,
+    zoom = 1,
   } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -274,7 +277,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
         ref={svgRef}
         width="100%"
         height="100%"
-        viewBox={`0 0 ${width} ${height}`}
+        viewBox={`0 0 ${width / zoom} ${height / zoom}`}
         className="block select-none"
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}

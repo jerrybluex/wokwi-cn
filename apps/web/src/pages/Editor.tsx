@@ -365,7 +365,7 @@ export function EditorPage() {
       )}
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-[34%] min-w-[260px] max-w-[420px] border-r border-base-300 flex flex-col bg-base-100">
+        <div className="w-1/2 border-r border-base-300 flex flex-col bg-base-100">
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between">
             <span>sketch.ino</span>
             <div className="flex gap-1.5">
@@ -491,6 +491,7 @@ export function EditorPage() {
             onSelectWire={setSelectedWireId}
             onWireCreate={onWireCreate}
             pins={pins}
+            zoom={1.3}
           />
         </div>
       </div>
