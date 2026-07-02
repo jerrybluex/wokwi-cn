@@ -179,6 +179,22 @@ function makeArduinoUno(): PartSpec {
       //   底部 cy=144 connector:
       //     POWER  cx<160 (视觉 POWER header) → IOREF..VIN (前 7 个)
       //     ANALOG cx>=160 (视觉 ANALOG header) → A0..A5 (6 个)
+      //
+      // 决策 20 follow-up:Fritzing visual pad r=1.61 实物 1.34 px,鼠标几乎点不到。
+      // 给每个视觉 pad 旁加一个 transparent r=8 hit area,扩大点击区但保持视觉。
+      // Hit area 跟 visual pad 共享 data-pin,event.target.closest('[data-pin]') 都能识别。
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      const HIT_R = 8; // canvas 视觉 ~6.4 px,Wokwi 编辑器 hit 区
+      const addHitArea = (padEl: SVGCircleElement, pinId: string) => {
+        const hit = document.createElementNS(SVG_NS, 'circle') as SVGCircleElement;
+        hit.setAttribute('cx', padEl.getAttribute('cx') ?? '0');
+        hit.setAttribute('cy', padEl.getAttribute('cy') ?? '0');
+        hit.setAttribute('r', String(HIT_R));
+        hit.setAttribute('fill', 'transparent');
+        hit.setAttribute('class', 'pin-pad-hit');
+        hit.setAttribute('data-pin', pinId);
+        padEl.parentNode?.insertBefore(hit, padEl.nextSibling);
+      };
       const pcbRoot = pcbSvg; // 已 append 进 g
       const pinEls = Array.from(pcbRoot.querySelectorAll('[id^="connector"][id$="pin"]')) as SVGCircleElement[];
       const digitalEls = pinEls
@@ -189,20 +205,27 @@ function makeArduinoUno(): PartSpec {
         .sort((a, b) => Number(a.getAttribute('cx')) - Number(b.getAttribute('cx')));
       const powerEls = bottomEls.filter((el) => Number(el.getAttribute('cx')) < 160);
       const analogEls = bottomEls.filter((el) => Number(el.getAttribute('cx')) >= 160);
-      // Digital: D13..D0, fill data-pin
+      // Digital: D13..D0
       digitalEls.slice(0, 14).forEach((el, i) => {
-        el.setAttribute('data-pin', `D${13 - i}`);
+        const pinId = `D${13 - i}`;
+        el.setAttribute('data-pin', pinId);
         el.classList.add('pin-pad');
+        addHitArea(el, pinId);
       });
-      // Power: POWER_PINS 顺序 (IOREF → VIN), 匹配视觉 pad
+      // Power: POWER_PINS 顺序 (IOREF → VIN)
       POWER_PINS.forEach((p, i) => {
-        powerEls[i]?.setAttribute('data-pin', p.id);
-        powerEls[i]?.classList.add('pin-pad');
+        const el = powerEls[i];
+        if (!el) return;
+        el.setAttribute('data-pin', p.id);
+        el.classList.add('pin-pad');
+        addHitArea(el, p.id);
       });
       // Analog: A0..A5
       analogEls.forEach((el, i) => {
-        el.setAttribute('data-pin', `A${i}`);
+        const pinId = `A${i}`;
+        el.setAttribute('data-pin', pinId);
         el.classList.add('pin-pad');
+        addHitArea(el, pinId);
       });
     },
   };

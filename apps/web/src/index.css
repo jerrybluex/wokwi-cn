@@ -93,11 +93,25 @@ pre {
   stroke: var(--canvas-text);
   stroke-width: 1;
 }
+/* Hit-area overlay (decision 20 follow-up): Fritzing visual pads are r=1.61
+ * (≈1.3 px on screen) — too small to hit reliably. Every pad gets a sibling
+ * `pin-pad-hit` circle (r=8, fill transparent) sharing the same `data-pin`,
+ * so canvas click / hover find it. */
+.pin-pad-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+.pin-pad-hit:hover {
+  fill: rgba(255, 179, 0, 0.12);
+}
 /* Wire mode (canvas data-wire-mode on the part wrapper) repaints pads
  * orange so users see they're clickable for routing. */
 g[data-wire-mode='true'] .pin-pad {
   fill: var(--canvas-wire);
   stroke: var(--canvas-text);
   stroke-width: 1;
+  cursor: crosshair;
+}
+g[data-wire-mode='true'] .pin-pad-hit {
   cursor: crosshair;
 }
