@@ -89,21 +89,27 @@ const POWER_PINS: { id: string; label: string }[] = [
  * 简化:用 pcb silkscreen 标号 + pad 位置定义 pin 物理坐标,然后 scale to 170x133。
  */
 
-// DIGITAL 14 pad (顶部,PCB 视觉 cy=7.2,从左到右 D13-D0)
-// 真位置来自 PCB SVG line 571-587 (10 connector pad cx 53-118) + D0/D1 cx 172.985/180.185
-// 注:D0/D1 实际在 connector91pin/connector0pad cy=144 不是 7.2,标号 0/1 是 POWER ANALOG 之间的 N/C?
-// 实际 silkscreen 标号 "0" "1" "TX0" "RX0" 在 cx 174.7393 181.9385 (line 533-537),这部分是数字 header 第二段
-// 让我直接 hardcode 14 pin 位置基于 silkscreen 标号 cx(从左到右 D13 → D0):
-const DIGITAL_PAD_CX_PCB = [53.463, 60.664, 67.864, 75.064, 82.264, 89.464, 96.664, 103.864, 111.065, 118.263, 125.485, 132.685, 172.985, 180.185];
+// DIGITAL 14 pad (顶部,来自 Fritzing breadboard viewPad connector0-68 真实 pad 中心)
+// connector60-51 在左段 D13-D4 (cx 71-136),connector68-65 在右段 D3-D0 (cx 147-169)
+const DIGITAL_PAD_CX_PCB = [
+  71.251, 78.452, 85.652, 92.852, 100.052, 107.252, // D13 D12 D11 D10 D9 D8
+  114.452, 121.652, 128.852, 136.051, // D7 D6 D5 D4
+  147.573, 154.772, // D3 D2
+  161.972, 169.172, // D1 D0
+];
 const DIGITAL_PAD_CY_PCB = 7.2;
 
-// POWER 8 pad (底部,PCB 视觉 cy=144,从左到右 IOREF RESET 3V3 5V GND GND VIN + 1 spare)
-const POWER_PAD_CX_PCB = [86.584, 93.784, 100.985, 108.185, 115.384, 122.583, 129.784, 144.185];
+// POWER 8 pad (底部,connector91-90 = 7 power + 1 spare,从左到右 IOREF → VIN)
+const POWER_PAD_CX_PCB = [
+  97.172, 104.372, 111.573, 118.772, 125.972, 133.172, 140.372, // IOREF RESET 3V3 5V GND GND VIN
+  147.573, // N/C spare
+];
 const POWER_PAD_CY_PCB = 144;
 
-// ANALOG 5 pad (底部,PCB 视觉 cy=144,从左到右 A0-A4?+ 1 spare)
-// 真位置来自 PCB SVG line 566-570 + 597 (cx 151.384 158.583 165.786 172.985 180.185)
-const ANALOG_PAD_CX_PCB = [151.384, 158.583, 165.786, 172.985, 180.185, 144.185]; // 6 pin (5 pad cy 144 + 1 spare)
+// ANALOG 6 pad (底部,connector0-5 = A0-A5 从左到右)
+const ANALOG_PAD_CX_PCB = [
+  161.972, 169.172, 176.372, 183.573, 190.772, 197.972, // A0 A1 A2 A3 A4 A5
+];
 const ANALOG_PAD_CY_PCB = 144;
 
 function makeArduinoUno(): PartSpec {
