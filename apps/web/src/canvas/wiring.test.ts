@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { toWiringJSON, fromWiringJSON, wiresTouching, pinPosition } from './wiring';
 import type { CanvasState } from './state';
+import { getPartSpec } from '../parts/registry';
 
 const sample: CanvasState = {
   parts: [
@@ -75,10 +76,15 @@ describe('pinPosition', () => {
     const part = { id: 'u', type: 'arduino-uno', x: 0, y: 0, rotation: 90 as const };
     const p0 = pinPosition({ ...part, rotation: 0 }, '5V')!;
     const p90 = pinPosition(part, '5V')!;
-    // UNO center is (110, 70). After a 90° CW rotation around center:
-    //   p90.x - 110 = -(p0.y - 70)
-    //   p90.y - 70 =   p0.x - 110
-    expect(p90.x - 110).toBeCloseTo(-(p0.y - 70));
-    expect(p90.y - 70).toBeCloseTo(p0.x - 110);
+    // Center is derived from the actual spec so this stays in sync if UNO's
+    // width/height changes (e.g. D15+ 1:1 还原扩 height 140 → 180).
+    const spec = getPartSpec('arduino-uno')!;
+    const cx = spec.width / 2;
+    const cy = spec.height / 2;
+    // After a 90° CW rotation around center:
+    //   p90.x - cx = -(p0.y - cy)
+    //   p90.y - cy =   p0.x - cx
+    expect(p90.x - cx).toBeCloseTo(-(p0.y - cy));
+    expect(p90.y - cy).toBeCloseTo(p0.x - cx);
   });
 });
