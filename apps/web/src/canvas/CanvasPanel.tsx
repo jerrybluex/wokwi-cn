@@ -165,6 +165,37 @@ export function CanvasPanel(props: CanvasPanelProps) {
     partPins[part.id] = partMap;
   }
 
+  // ── Run part models (they may write to their own pins) ─────────────────
+  // digitalRead reads the current resolved pin value (after BFS propagation).
+  const digitalRead = (partId: string, pinId: string): number =>
+    pinValue.get(`${partId}:${pinId}`) ?? 0;
+
+  for (const part of state.parts) {
+    const spec = getPartSpec(part.type);
+    if (!spec?.model) continue;
+    const ctx = {
+      now: Date.now(),
+      digitalRead: (pinId: string) => digitalRead(part.id, pinId),
+    };
+    try {
+      const writes = spec.model(ctx) ?? [];
+      for (const w of writes) {
+        pinValue.set(`${part.id}:${w.pinId}`, w.value);
+      }
+    } catch {
+      // model errors are non-fatal in MVP
+    }
+  }
+
+  // Rebuild partPins with model-updated values
+  for (const part of state.parts) {
+    const partMap: Record<string, number> = {};
+    for (const pin of getPartSpec(part.type)?.pins ?? []) {
+      partMap[pin.id] = pinValue.get(`${part.id}:${pin.id}`) ?? 0;
+    }
+    partPins[part.id] = partMap;
+  }
+
   // ----- Keyboard shortcuts: Delete, R, Ctrl+Z, Ctrl+Shift+Z, ESC -----
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

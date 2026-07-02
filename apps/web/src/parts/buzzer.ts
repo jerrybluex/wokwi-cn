@@ -7,7 +7,8 @@ import { svg, appendAll, pinPad } from './svg';
  *   Pin 'GND' — ground
  *   Pin 'SIG' — drive HIGH to buzz
  *
- * MVP: visual only — no actual sound. Model marks the visual state (lit when SIG=1).
+ * Model: reads SIG pin. When SIG=1 the view shows buzzing state (glow).
+ * The model propagates the SIG value so other parts can read it.
  */
 function makeBuzzer(): PartSpec {
   return {
@@ -58,8 +59,12 @@ function makeBuzzer(): PartSpec {
 
 export const buzzer: PartSpec = (() => {
   const spec = makeBuzzer();
-  spec.model = (() => () => {
-    return [] as PinWrite[];
-  })() as PartModel;
+  spec.model = ((ctx) => {
+    // Read SIG pin and propagate it so the view (which reads pins['SIG'])
+    // reflects the actual driven value. No additional processing needed —
+    // the view already uses state.pins['SIG'] to render buzzing state.
+    const sig = ctx.digitalRead('SIG');
+    return [{ pinId: 'SIG', value: sig }] as PinWrite[];
+  }) as PartModel;
   return spec;
 })();

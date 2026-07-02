@@ -1,12 +1,14 @@
-import type { PartSpec } from './types';
+import type { PartModel, PartSpec } from './types';
 import { svg, appendAll, pinPad } from './svg';
 
 /**
  * Potentiometer — three-pin variable resistor.
  *   Pin 'A' = one end
  *   Pin 'B' = other end
- *   Pin 'W' = wiper (variable output)
- * Canvas gives `pins.W` a 0..100 value via state; render shows the dial angle.
+ *   Pin 'W' = wiper (variable output, 0–1023)
+ *
+ * Canvas drag sets pins.W to 0–100 (UI dial position).
+ * Model reads that value and writes it back as 0–1023 (Arduino analogRead range).
  */
 function makePotentiometer(): PartSpec {
   return {
@@ -20,7 +22,7 @@ function makePotentiometer(): PartSpec {
       { id: 'W', x: 30, y: 80, label: 'W' },
     ],
     render(g, state) {
-      const raw = state.pins['W'] ?? 50; // canvas 默认给 0..100
+      const raw = state.pins['W'] ?? 50; // canvas gives 0..100
       const v = Math.max(0, Math.min(100, raw));
       const angle = -135 + (v / 100) * 270;
       const rad = (angle * Math.PI) / 180;
@@ -52,4 +54,14 @@ function makePotentiometer(): PartSpec {
   };
 }
 
-export const potentiometer = makePotentiometer();
+export const potentiometer: PartSpec = (() => {
+  const spec = makePotentiometer();
+  spec.model = ((ctx) => {
+    // Canvas drag writes pins.W as 0–100 (UI position).
+    // Model maps it to 0–1023 for Arduino analogRead.
+    const dial = ctx.digitalRead('W'); // 0–100 from canvas
+    const raw = Math.round((dial / 100) * 1023);
+    return [{ pinId: 'W', value: Math.max(0, Math.min(1023, raw)) }];
+  }) as PartModel;
+  return spec;
+})();

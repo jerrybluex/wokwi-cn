@@ -6,11 +6,11 @@ import { svg, appendAll, pinPad } from './svg';
  *   Pin 'VCC' — power
  *   Pin 'GND' — ground
  *   Pin 'TRIG' — pulse HIGH ≥ 10µs to trigger a measurement
- *   Pin 'ECHO' — output pulse width proportional to distance
+ *   Pin 'ECHO' — output pulse width proportional to distance (0–400 cm)
  *
- * Stub model for MVP: no real-time echo simulation. Returns no PinWrites —
- * users can still observe the digitalRead('ECHO') value via test pins if
- * they hard-wire it. Real range logic lands in Phase 3.
+ * Model: when TRIG goes HIGH, simulate a distance measurement and drive
+ * ECHO HIGH for the corresponding pulse width. Distance is randomised
+ * 10–100 cm in this MVP (real ranging lands in Phase 3).
  */
 function makeHcsr04(): PartSpec {
   return {
@@ -26,12 +26,10 @@ function makeHcsr04(): PartSpec {
     ],
     render(g, _state) {
       appendAll(g, [
-        // Visual pin pads
         pinPad('VCC', 0, 12),
         pinPad('GND', 0, 32),
         pinPad('TRIG', 90, 12),
         pinPad('ECHO', 90, 32),
-        // PCB outline
         svg('rect', {
           x: 8,
           y: 4,
@@ -42,10 +40,8 @@ function makeHcsr04(): PartSpec {
           stroke: 'var(--part-stroke)',
           'stroke-width': 1.5,
         }),
-        // Two cylindrical transducers (silver cylinders on top)
         svg('circle', { cx: 26, cy: 18, r: 5, fill: '#9aa5b1', stroke: 'var(--part-stroke-soft)', 'stroke-width': 1 }),
         svg('circle', { cx: 64, cy: 18, r: 5, fill: '#9aa5b1', stroke: 'var(--part-stroke-soft)', 'stroke-width': 1 }),
-        // Label
         svg('text', {
           x: 45,
           y: 38,
@@ -54,7 +50,6 @@ function makeHcsr04(): PartSpec {
           'font-family': 'JetBrains Mono, monospace',
           'font-size': 9,
         }),
-        // Pin wires
         svg('line', { x1: 0, y1: 12, x2: 8, y2: 12, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 0, y1: 32, x2: 8, y2: 32, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 90, y1: 12, x2: 82, y2: 12, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
@@ -75,14 +70,32 @@ function makeHcsr04(): PartSpec {
 
 export const hcsr04: PartSpec = (() => {
   const spec = makeHcsr04();
-  // Real-time model lands in Phase 3; D3 stub returns nothing.
-  spec.model = (() => {
-    let _lastTrigRise = 0;
-    return (_ctx) => {
-      // No-op until canvas wires ECHO pin; reserved for future logic.
-      const writes: PinWrite[] = [];
-      return writes;
-    };
-  })() as PartModel;
+  let lastTrigHighAt = 0;
+  let lastDistance = 0;
+
+  spec.model = ((ctx) => {
+    const trig = ctx.digitalRead('TRIG');
+    const writes: PinWrite[] = [];
+
+    if (trig === 1) {
+      // Rising edge detected — trigger a new measurement
+      lastTrigHighAt = ctx.now;
+      // Simulate a distance: random 10–100 cm for MVP
+      lastDistance = Math.round(10 + Math.random() * 90);
+    }
+
+    // ECHO stays HIGH for the duration proportional to distance
+    // (simplified: ECHO=HIGH for ~58µs per cm, but in our ms-resolution world
+    // we treat it as HIGH whenever it was recently triggered)
+    if (lastTrigHighAt > 0 && ctx.now - lastTrigHighAt < 20) {
+      writes.push({ pinId: 'ECHO', value: 1 });
+    } else {
+      writes.push({ pinId: 'ECHO', value: 0 });
+      lastTrigHighAt = 0;
+    }
+
+    return writes;
+  }) as PartModel;
+
   return spec;
 })();

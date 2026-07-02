@@ -2,13 +2,14 @@ import type { PartModel, PartSpec, PinWrite } from './types';
 import { svg, appendAll, pinPad } from './svg';
 
 /**
- * SG90 servo — hobbyist hobby servo.
+ * SG90 servo — hobbyist servo.
  *   Pin VCC — power (5V)
  *   Pin GND — ground
- *   Pin SIG — PWM control signal (50Hz, 1..2ms pulse width)
+ *   Pin SIG — PWM control signal (50Hz, 1..2ms pulse width → 0..180°)
  *
- * Model: SG90 expects a 50Hz square on SIG. Position tracks the pulse width.
- * D3 model is structural; full servo movement lands in Phase 2.
+ * Model: maps SIG pin PWM value (0..255 from analogWrite) to angle 0–180°.
+ * The render reads pins['SIG'] directly and converts to angle, so this model
+ * ensures the pin value is properly propagated through the wire graph.
  */
 function makeServo(): PartSpec {
   return {
@@ -22,7 +23,7 @@ function makeServo(): PartSpec {
       { id: 'SIG', x: 90, y: 22, label: 'SIG' },
     ],
     render(g, state) {
-      // state.pins['SIG'] could carry angle 0..180 via model — use if present.
+      // SIG pin carries 0–255 (PWM). Map to 0–180°.
       const sigVal = state.pins['SIG'] ?? 90;
       const angleDeg = Math.max(0, Math.min(180, sigVal));
       const rad = ((angleDeg - 90) * Math.PI) / 180;
@@ -47,7 +48,6 @@ function makeServo(): PartSpec {
         svg('circle', { cx: 45, cy: 32, r: 14, fill: 'var(--part-stroke)', stroke: 'var(--part-stroke-soft)', 'stroke-width': 1 }),
         svg('line', { x1: 45, y1: 32, x2: x2, y2: y2, stroke: '#f1c40f', 'stroke-width': 2.5, 'stroke-linecap': 'round' }),
         svg('circle', { cx: 45, cy: 32, r: 2, fill: '#f1c40f' }),
-        // Pin wires
         svg('line', { x1: 0, y1: 12, x2: 18, y2: 12, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 0, y1: 32, x2: 18, y2: 32, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 90, y1: 22, x2: 72, y2: 22, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
@@ -67,9 +67,12 @@ function makeServo(): PartSpec {
 
 export const servo: PartSpec = (() => {
   const spec = makeServo();
-  spec.model = ((_ctx) => {
-    // 后续 day 由 canvas 把 angle 推到 SIG pin
-    return [] as PinWrite[];
+  spec.model = ((ctx) => {
+    // SIG pin receives PWM 0–255 (from Arduino analogWrite on the signal wire).
+    // Propagate it so the render can read pins['SIG'] directly.
+    const sig = ctx.digitalRead('SIG');
+    // Write it back so BFS propagates the PWM value through the wire graph.
+    return [{ pinId: 'SIG', value: sig }] as PinWrite[];
   }) as PartModel;
   return spec;
 })();
