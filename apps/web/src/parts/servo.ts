@@ -1,5 +1,5 @@
 import type { PartModel, PartSpec, PinWrite } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * SG90 servo — hobbyist hobby servo.
@@ -31,6 +31,9 @@ function makeServo(): PartSpec {
       const y2 = 32 + Math.sin(rad) * armLen;
 
       appendAll(g, [
+        pinPad('VCC', 0, 12),
+        pinPad('GND', 0, 32),
+        pinPad('SIG', 90, 22),
         svg('rect', {
           x: 18,
           y: 8,

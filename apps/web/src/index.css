@@ -75,3 +75,29 @@ pre {
     Consolas,
     monospace;
 }
+
+/* Pin pads (Wokwi style: small dark dots, also serve as hit area).
+ * Architecturally, every pad lives INSIDE its part's render() output and
+ * carries `data-pin="${PinDef.id}"` so the canvas can wire / click / hover
+ * without an independent position overlay.
+ */
+.pin-pad {
+  fill: #1e1e1e;
+  stroke: #3a3f4b;
+  stroke-width: 0.5;
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+.pin-pad:hover {
+  fill: var(--canvas-pin-active);
+  stroke: var(--canvas-text);
+  stroke-width: 1;
+}
+/* Wire mode (canvas data-wire-mode on the part wrapper) repaints pads
+ * orange so users see they're clickable for routing. */
+g[data-wire-mode='true'] .pin-pad {
+  fill: var(--canvas-wire);
+  stroke: var(--canvas-text);
+  stroke-width: 1;
+  cursor: crosshair;
+}

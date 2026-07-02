@@ -1,5 +1,5 @@
 import type { PartSpec } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * LED — simple two-pin device. Pin 'A' is anode (positive), 'K' is cathode.
@@ -25,6 +25,9 @@ function makeLed(): PartSpec {
       const lit = brightness > 0;
 
       appendAll(g, [
+        // Visual pin pads — hover/click hit area + Wokwi-style dark dots
+        pinPad('A', 0, 14),
+        pinPad('K', 0, 36),
         svg('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         lit && brightness > 0.6

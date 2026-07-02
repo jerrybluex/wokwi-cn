@@ -125,15 +125,17 @@ describe('<CanvasPanel />', () => {
     expect(wire.querySelectorAll('path')).toHaveLength(2);
   });
 
-  it('renders pins for every part', () => {
+  it('renders pin pads for every part (decision 19: data-pin attribute)', () => {
     const state: CanvasState = {
       parts: [{ id: 'l1', type: 'led', x: 0, y: 0, rotation: 0 }],
       wires: [],
     };
     const { utils } = setup(state);
-    // led has 2 pins: A and K
-    expect(utils.getByTestId('pin-l1-A')).toBeTruthy();
-    expect(utils.getByTestId('pin-l1-K')).toBeTruthy();
+    // led has 2 pins: A and K — pads live inside the part render now,
+    // discoverable via [data-pin="…"] attribute (no test-id needed).
+    const l1 = utils.getByTestId('canvas-part-l1');
+    expect(l1.querySelector('[data-pin="A"]')).toBeTruthy();
+    expect(l1.querySelector('[data-pin="K"]')).toBeTruthy();
   });
 
   it('wire mode shows pin labels above each pin', () => {
@@ -160,10 +162,9 @@ describe('<CanvasPanel />', () => {
         onWireCreate={() => {}}
       />,
     );
-    // pin labels are <text> elements inside the pin <g> in wire mode
-    const pin = utils.getByTestId('pin-l1-A');
-    const text = pin.parentElement?.querySelector('text');
-    expect(text?.textContent).toBe('A');
+    // wire-mode label overlay is its own <g> sibling — find the <text> with 'A'
+    const text = Array.from(utils.container.querySelectorAll('text')).find((t) => t.textContent === 'A');
+    expect(text).toBeTruthy();
   });
 });
 

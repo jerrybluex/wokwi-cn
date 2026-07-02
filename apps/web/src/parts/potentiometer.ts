@@ -1,5 +1,5 @@
 import type { PartSpec } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * Potentiometer — three-pin variable resistor.
@@ -28,6 +28,9 @@ function makePotentiometer(): PartSpec {
       const y2 = 30 - Math.cos(rad) * 16;
 
       appendAll(g, [
+        pinPad('A', 0, 18),
+        pinPad('B', 60, 18),
+        pinPad('W', 30, 80),
         svg('circle', { cx: 30, cy: 30, r: 24, fill: 'var(--part-body-deep)', stroke: 'var(--part-stroke-soft)', 'stroke-width': 1.5 }),
         svg('circle', { cx: 30, cy: 30, r: 22, fill: 'var(--part-body-pit)' }),
         svg('circle', { cx: 30, cy: 6, r: 1.5, fill: '#777' }),

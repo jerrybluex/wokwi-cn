@@ -89,12 +89,13 @@ const POWER_PINS: { id: string; label: string }[] = [
  * 简化:用 pcb silkscreen 标号 + pad 位置定义 pin 物理坐标,然后 scale to 170x133。
  */
 
-// DIGITAL 14 pad (顶部,实物 UNO R3 数字 header segmentation 6+6+2)
-// connector60-55 左段 D13-D8 (cx 71-107) + connector54-51 + 68-67 中段 D7-D2 (cx 114-154) + connector66-65 单独 D1-D0 (cx 161-169)
+// DIGITAL 14 pad (顶部,来自 Fritzing breadboard viewPad connector0-68 真实 pad 中心)
+// connector60-51 在左段 D13-D4 (cx 71-136),connector68-65 在右段 D3-D0 (cx 147-169)
 const DIGITAL_PAD_CX_PCB = [
-  71.251, 78.452, 85.652, 92.852, 100.052, 107.252, // D13 D12 D11 D10 D9 D8 (左段 6)
-  114.452, 121.652, 128.852, 136.051, 147.573, 154.772, // D7 D6 D5 D4 D3 D2 (中段 6)
-  161.972, 169.172, // D1 D0 (单独 2)
+  71.251, 78.452, 85.652, 92.852, 100.052, 107.252, // D13 D12 D11 D10 D9 D8
+  114.452, 121.652, 128.852, 136.051, // D7 D6 D5 D4
+  147.573, 154.772, // D3 D2
+  161.972, 169.172, // D1 D0
 ];
 const DIGITAL_PAD_CY_PCB = 7.2;
 
@@ -171,6 +172,38 @@ function makeArduinoUno(): PartSpec {
       );
 
       appendAll(g, children);
+
+      // 架构改造(决策 19):Fritzing connector pad = 视觉 + 点击 / hover / wire 起点。
+      // 把 spec.pins 顺序映射到 PCB SVG 内的 connector pin elements。
+      //   顶部 cy=7.2 connector,按 cx 升序 → D13 D12 ... D0 (前 14 个)
+      //   底部 cy=144 connector:
+      //     POWER  cx<160 (视觉 POWER header) → IOREF..VIN (前 7 个)
+      //     ANALOG cx>=160 (视觉 ANALOG header) → A0..A5 (6 个)
+      const pcbRoot = pcbSvg; // 已 append 进 g
+      const pinEls = Array.from(pcbRoot.querySelectorAll('[id^="connector"][id$="pin"]')) as SVGCircleElement[];
+      const digitalEls = pinEls
+        .filter((el) => Number(el.getAttribute('cy')) === DIGITAL_PAD_CY_PCB)
+        .sort((a, b) => Number(a.getAttribute('cx')) - Number(b.getAttribute('cx')));
+      const bottomEls = pinEls
+        .filter((el) => Number(el.getAttribute('cy')) === POWER_PAD_CY_PCB)
+        .sort((a, b) => Number(a.getAttribute('cx')) - Number(b.getAttribute('cx')));
+      const powerEls = bottomEls.filter((el) => Number(el.getAttribute('cx')) < 160);
+      const analogEls = bottomEls.filter((el) => Number(el.getAttribute('cx')) >= 160);
+      // Digital: D13..D0, fill data-pin
+      digitalEls.slice(0, 14).forEach((el, i) => {
+        el.setAttribute('data-pin', `D${13 - i}`);
+        el.classList.add('pin-pad');
+      });
+      // Power: POWER_PINS 顺序 (IOREF → VIN), 匹配视觉 pad
+      POWER_PINS.forEach((p, i) => {
+        powerEls[i]?.setAttribute('data-pin', p.id);
+        powerEls[i]?.classList.add('pin-pad');
+      });
+      // Analog: A0..A5
+      analogEls.forEach((el, i) => {
+        el.setAttribute('data-pin', `A${i}`);
+        el.classList.add('pin-pad');
+      });
     },
   };
 }

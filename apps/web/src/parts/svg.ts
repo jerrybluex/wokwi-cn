@@ -23,3 +23,19 @@ export function appendAll(parent: SVGElement, children: SVGElement[]): SVGElemen
   for (const c of children) parent.appendChild(c);
   return parent;
 }
+
+/**
+ * Visual pin pad (Wokwi style: small dark dot, also serves as hit area).
+ * The element carries `data-pin="${id}"` so the canvas can locate it without
+ * a parallel lookup table. Fill / cursor styles live in `.pin-pad` CSS —
+ * `[data-wire-mode="true"]` toggles the wire-mode color via CSS too.
+ */
+export function pinPad(id: string, x: number, y: number, r = 2.5): SVGCircleElement {
+  return svg('circle', {
+    cx: x,
+    cy: y,
+    r,
+    class: 'pin-pad',
+    'data-pin': id,
+  }) as SVGCircleElement;
+}

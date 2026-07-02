@@ -55,7 +55,9 @@ export interface PartSpec {
   defaultPinValues?: Record<string, number>;
   /**
    * Render into <g>. Caller MUST set `transform="translate(x,y)"` BEFORE calling.
-   * Pin circles / hit areas are NOT rendered here — that's the canvas's job.
+   * Visual pin pads (Wokwi-style dots) are rendered here — every pad element
+   * MUST carry `data-pin="${PinDef.id}"` so the canvas can locate it for
+   * click / hover / wire. (See `pinPad()` helper in ./svg).
    */
   render(g: SVGGElement, state: PartRenderState): void;
   /** Optional simulation logic. */

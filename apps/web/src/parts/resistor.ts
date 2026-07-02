@@ -1,5 +1,5 @@
 import type { PartSpec } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * Resistor (220Ω default visual). Two passive pins. No model — purely passive.
@@ -17,6 +17,9 @@ function makeResistor(): PartSpec {
     ],
     render(g, _state) {
       appendAll(g, [
+        // Visual pin pads (canvas click / wire hit area)
+        pinPad('A', 0, 20),
+        pinPad('B', 100, 20),
         svg('line', { x1: 0, y1: 20, x2: 30, y2: 20, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 70, y1: 20, x2: 100, y2: 20, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('rect', { x: 30, y: 8, width: 40, height: 24, rx: 4, fill: '#d2b48c', stroke: '#8b6f3e', 'stroke-width': 1 }),

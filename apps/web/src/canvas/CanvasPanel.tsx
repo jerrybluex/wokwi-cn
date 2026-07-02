@@ -296,32 +296,51 @@ export function CanvasPanel(props: CanvasPanelProps) {
           />
         )}
         <g>
-          {state.parts.map((p) => (
-            <PartNode
-              key={p.id}
-              part={p}
-              selected={selectedId === p.id}
-              dragging={dragPartId === p.id}
-              wireMode={wireMode || !!pendingWireFrom}
-              pendingFrom={pendingWireFrom}
-              pinValues={partPins[p.id] ?? {}}
-              onMouseDown={(e) => onPartMouseDown(e, p.id)}
-              onPinClick={(pinId) => {
-                if (!pendingWireFrom) {
-                  // Step 1: start pending
-                  setPendingWireFrom({ partId: p.id, pinId });
-                } else if (pendingWireFrom.partId === p.id && pendingWireFrom.pinId === pinId) {
-                  // Step 2: same pin → cancel
-                  setPendingWireFrom(null);
-                } else {
-                  // Step 3: complete wire
-                  onWireCreate?.(pendingWireFrom, { partId: p.id, pinId });
-                  setPendingWireFrom(null);
-                }
-              }}
-            />
-          ))}
+          {state.parts.map((p) => {
+            const spec = getPartSpec(p.type);
+            if (!spec) return null;
+            return (
+              <PartNode
+                key={p.id}
+                part={p}
+                selected={selectedId === p.id}
+                dragging={dragPartId === p.id}
+                wireMode={wireMode || !!pendingWireFrom}
+                pendingFrom={pendingWireFrom}
+                pinValues={partPins[p.id] ?? {}}
+                onMouseDown={(e) => onPartMouseDown(e, p.id)}
+                onPinClick={(pinId) => {
+                  if (!pendingWireFrom) {
+                    // Step 1: start pending
+                    setPendingWireFrom({ partId: p.id, pinId });
+                  } else if (pendingWireFrom.partId === p.id && pendingWireFrom.pinId === pinId) {
+                    // Step 2: same pin → cancel
+                    setPendingWireFrom(null);
+                  } else {
+                    // Step 3: complete wire
+                    onWireCreate?.(pendingWireFrom, { partId: p.id, pinId });
+                    setPendingWireFrom(null);
+                  }
+                }}
+              />
+            );
+          })}
         </g>
+        {/* Wire-mode pin labels overlay (decision 19). Lives outside PartNode
+         * because pin pads now live INSIDE the part body render; the labels
+         * are decorative / mode-only — pointerEvents none so they don't
+         * intercept the click on the underlying pad. */}
+        {wireMode && (
+          <g pointerEvents="none">
+            {state.parts.map((p) => {
+              const spec = getPartSpec(p.type);
+              if (!spec) return null;
+              return (
+                <PartWireLabels key={p.id} part={p} spec={spec} />
+              );
+            })}
+          </g>
+        )}
         {dragOver && (
           <rect
             x={0}
@@ -358,6 +377,30 @@ export function CanvasPanel(props: CanvasPanelProps) {
 }
 
 // ---- Sub-components ---------------------------------------------------------
+
+function PartWireLabels({ part, spec }: { part: CanvasPart; spec: PartSpec }) {
+  return (
+    <>
+      {spec.pins.map((pin) => {
+        const pos = pinPosition(part, pin.id);
+        if (!pos) return null;
+        return (
+          <text
+            key={pin.id}
+            x={pos.x}
+            y={pos.y - 8}
+            textAnchor="middle"
+            fontFamily="JetBrains Mono, monospace"
+            fontSize={9}
+            fill="#ff8585"
+          >
+            {pin.label ?? pin.id}
+          </text>
+        );
+      })}
+    </>
+  );
+}
 
 function GridBackground({ width, height }: { width: number; height: number }) {
   const step = 20;
@@ -396,10 +439,27 @@ function PartNode({
 }) {
   const spec = getPartSpec(part.type);
   if (!spec) return null;
+  // Architecture (decision 19): every part renders its OWN visual pin pads
+  // (circles carrying `data-pin="${PinDef.id}"`) inside spec.render(). The
+  // canvas layer no longer draws an independent overlay — click / hover /
+  // wire all read the SVG visual directly.
+  //
+  // The part wrapper carries data attributes so CSS can flip the pad color
+  // for wire-mode + pending highlighting without re-rendering React tree.
   return (
     <g
       data-testid={`canvas-part-${part.id}`}
+      data-part-id={part.id}
+      data-wire-mode={wireMode ? 'true' : 'false'}
+      data-pending-from={pendingFrom?.partId === part.id ? pendingFrom.pinId : undefined}
       onMouseDown={onMouseDown}
+      onClick={(e) => {
+        const target = e.target as Element | null;
+        const pinEl = target?.closest('[data-pin]') as Element | null;
+        if (!pinEl || !pinEl.hasAttribute('data-pin')) return;
+        e.stopPropagation();
+        onPinClick(pinEl.getAttribute('data-pin')!);
+      }}
       style={{ cursor: dragging ? 'grabbing' : wireMode ? 'crosshair' : 'grab' }}
     >
       <PartBody spec={spec} part={part} pinValues={pinValues} />
@@ -416,45 +476,6 @@ function PartNode({
           pointerEvents="none"
         />
       )}
-      {/* Pin dots — always rendered so wire mode is discoverable */}
-      {spec.pins.map((pin) => {
-        const pos = pinPosition(part, pin.id);
-        if (!pos) return null;
-        const isPending = pendingFrom?.partId === part.id && pendingFrom.pinId === pin.id;
-        // Wokwi-style pin markers: small dark dots (r=2.5), wire mode slightly larger (r=4).
-        const radius = wireMode ? 4 : 2.5;
-        return (
-          <g key={pin.id}>
-            <circle
-              data-testid={`pin-${part.id}-${pin.id}`}
-              cx={pos.x}
-              cy={pos.y}
-              r={radius}
-              fill={isPending ? 'var(--canvas-pin-active)' : wireMode ? 'var(--canvas-wire)' : '#1e1e1e'}
-              stroke={wireMode || isPending ? 'var(--canvas-text)' : '#3a3f4b'}
-              strokeWidth={wireMode || isPending ? 1 : 0.5}
-              style={{ cursor: wireMode ? 'crosshair' : 'default' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onPinClick(pin.id);
-              }}
-            />
-            {wireMode && (
-              <text
-                x={pos.x}
-                y={pos.y - 10}
-                textAnchor="middle"
-                fontFamily="JetBrains Mono, monospace"
-                fontSize={9}
-                fill="#ff8585"
-                pointerEvents="none"
-              >
-                {pin.id}
-              </text>
-            )}
-          </g>
-        );
-      })}
     </g>
   );
 }

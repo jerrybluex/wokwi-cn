@@ -1,5 +1,5 @@
 import type { PartSpec } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * Push button — momentary contact, no internal state.
@@ -25,6 +25,8 @@ function makeButton(): PartSpec {
       const capClass = pressed ? '#ff5252' : 'var(--part-stroke-soft)';
 
       appendAll(g, [
+        pinPad('A', 0, 14),
+        pinPad('B', 0, 36),
         svg('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('rect', {

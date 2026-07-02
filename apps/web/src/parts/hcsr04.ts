@@ -1,5 +1,5 @@
 import type { PartModel, PartSpec, PinWrite } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * HC-SR04 ultrasonic distance sensor.
@@ -26,6 +26,11 @@ function makeHcsr04(): PartSpec {
     ],
     render(g, _state) {
       appendAll(g, [
+        // Visual pin pads
+        pinPad('VCC', 0, 12),
+        pinPad('GND', 0, 32),
+        pinPad('TRIG', 90, 12),
+        pinPad('ECHO', 90, 32),
         // PCB outline
         svg('rect', {
           x: 8,

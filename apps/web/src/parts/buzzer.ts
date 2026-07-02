@@ -1,5 +1,5 @@
 import type { PartModel, PartSpec, PinWrite } from './types';
-import { svg, appendAll } from './svg';
+import { svg, appendAll, pinPad } from './svg';
 
 /**
  * Active buzzer — emits sound when SIG is HIGH.
@@ -25,6 +25,9 @@ function makeBuzzer(): PartSpec {
       const sig = state.pins['SIG'] ?? 0;
       const buzzing = sig >= 1;
       appendAll(g, [
+        pinPad('VCC', 0, 12),
+        pinPad('GND', 0, 32),
+        pinPad('SIG', 60, 22),
         svg('circle', { cx: 30, cy: 28, r: 18, fill: 'var(--part-body-deep)', stroke: 'var(--part-chip-edge)', 'stroke-width': 1.5 }),
         buzzing
           ? svg('circle', { cx: 30, cy: 28, r: 22, fill: '#f39c12', 'fill-opacity': 0.45 })
