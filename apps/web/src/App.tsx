@@ -75,10 +75,24 @@ export function App() {
           )}
           <button
             onClick={feedbackMailto}
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm gap-1.5"
             title="发送反馈"
+            aria-label="发送反馈"
           >
-            💬 反馈
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            反馈
           </button>
         </div>
       </header>

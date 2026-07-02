@@ -92,13 +92,42 @@ export function ShareViewPage() {
             <button
               onClick={onFork}
               disabled={forking}
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm gap-1.5"
             >
-              {forking ? 'Fork 中…' : '⎘ Fork 到我的项目'}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              {forking ? '复制中…' : '复制到我的项目'}
             </button>
           ) : (
-            <Link to="/login" className="btn btn-ghost btn-sm">
-              登录后 Fork
+            <Link to="/login" className="btn btn-primary btn-sm gap-1.5">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              登录后复制
             </Link>
           )}
         </div>

@@ -46,37 +46,40 @@ const blinkState: CanvasState = {
   ],
 };
 
-// ── Template 2: Button Controlled LED ───────────────────────────────────────
-const buttonState: CanvasState = {
+// ── Template 2: Button Read Pin (replaces coder's "按钮控制 LED") ──────────
+// 教 digitalRead 基础:按钮按下读 D2 引脚,通过串口监视器输出
+// 比 "按钮控制 LED" 更聚焦,LED 那部分已经在 LED 课学过
+const buttonReadState: CanvasState = {
   parts: [
     { id: 'u1', type: 'arduino-uno', x: 40, y: 60, rotation: 0 },
-    { id: 'b1', type: 'button', x: 280, y: 80, rotation: 0 },
-    { id: 'r1', type: 'resistor', x: 420, y: 110, rotation: 0 },
-    { id: 'l1', type: 'led', x: 580, y: 90, rotation: 0 },
+    { id: 'b1', type: 'button', x: 320, y: 90, rotation: 0 },
   ],
   wires: [
-    // Button: D2 → button.A, button.B → GND
+    // 按钮: D2 → button.A, button.B → GND
     { id: 'w1', from: { partId: 'u1', pinId: 'D2' }, to: { partId: 'b1', pinId: 'A' } },
     { id: 'w2', from: { partId: 'b1', pinId: 'B' }, to: { partId: 'u1', pinId: 'GND' } },
-    // LED: D13 → 220Ω → LED.A, LED.K → GND
-    { id: 'w3', from: { partId: 'u1', pinId: 'D13' }, to: { partId: 'r1', pinId: 'A' } },
-    { id: 'w4', from: { partId: 'r1', pinId: 'B' }, to: { partId: 'l1', pinId: 'A' } },
-    { id: 'w5', from: { partId: 'l1', pinId: 'K' }, to: { partId: 'u1', pinId: 'GND' } },
   ],
 };
 
-// ── Template 3: PWM Dimming ─────────────────────────────────────────────────
-const pwmState: CanvasState = {
+// ── Template 3: Potentiometer Dimmer (replaces coder's "PWM 调光") ─────────
+// 教 analogRead + analogWrite: 用电位器读 0-1023 映射到 LED PWM 0-255
+// 比 "PWM 调光"(纯代码无元件)更"实物感",符合高职教学定位
+const potState: CanvasState = {
   parts: [
     { id: 'u1', type: 'arduino-uno', x: 40, y: 60, rotation: 0 },
-    { id: 'r1', type: 'resistor', x: 320, y: 110, rotation: 0 },
-    { id: 'l1', type: 'led', x: 480, y: 90, rotation: 0 },
+    { id: 'p1', type: 'potentiometer', x: 280, y: 90, rotation: 0 },
+    { id: 'r1', type: 'resistor', x: 460, y: 110, rotation: 0 },
+    { id: 'l1', type: 'led', x: 580, y: 90, rotation: 0 },
   ],
   wires: [
-    // PWM on D9 (supports analogWrite)
-    { id: 'w1', from: { partId: 'u1', pinId: 'D9' }, to: { partId: 'r1', pinId: 'A' } },
-    { id: 'w2', from: { partId: 'r1', pinId: 'B' }, to: { partId: 'l1', pinId: 'A' } },
-    { id: 'w3', from: { partId: 'l1', pinId: 'K' }, to: { partId: 'u1', pinId: 'GND' } },
+    // 电位器: A 接 5V, B 接 GND, W 接 A0(读)
+    { id: 'w1', from: { partId: 'u1', pinId: '5V' }, to: { partId: 'p1', pinId: 'A' } },
+    { id: 'w2', from: { partId: 'u1', pinId: 'GND' }, to: { partId: 'p1', pinId: 'B' } },
+    { id: 'w3', from: { partId: 'u1', pinId: 'A0' }, to: { partId: 'p1', pinId: 'W' } },
+    // LED: D9 → 220Ω → LED.A, LED.K → GND (D9 是 PWM 引脚)
+    { id: 'w4', from: { partId: 'u1', pinId: 'D9' }, to: { partId: 'r1', pinId: 'A' } },
+    { id: 'w5', from: { partId: 'r1', pinId: 'B' }, to: { partId: 'l1', pinId: 'A' } },
+    { id: 'w6', from: { partId: 'l1', pinId: 'K' }, to: { partId: 'u1', pinId: 'GND' } },
   ],
 };
 
@@ -86,7 +89,7 @@ export const TEMPLATES: ProjectTemplate[] = [
   makeTemplate(
     'led-blink',
     'LED 闪烁',
-    'UNO + 220Ω + LED，接 D13。按下 Run 按钮后 LED 会闪烁。',
+    'UNO + 220Ω + LED,接 D13。按下 Run 按钮后 LED 会闪烁。',
     blinkState,
     `void setup() {
   pinMode(13, OUTPUT);
@@ -102,42 +105,37 @@ void loop() {
   ),
 
   makeTemplate(
-    'button-led',
-    '按钮控制 LED',
-    '按钮读 D2，LED 接 D13。按下按钮 LED 亮，松开熄灭。',
-    buttonState,
+    'button-read',
+    '按钮读引脚',
+    '按钮接 D2(GND 下拉)。点 Run 后打开串口监视器(9600),按下按钮会看到状态变化。',
+    buttonReadState,
     `void setup() {
-  pinMode(2, INPUT_PULLUP);  // 内置上拉电阻
-  pinMode(13, OUTPUT);
+  Serial.begin(9600);          // 启动串口,波特率 9600
+  pinMode(2, INPUT_PULLUP);   // D2 上拉,默认 HIGH,按下变 LOW
 }
 
 void loop() {
-  int val = digitalRead(2);   // 按钮按下为 LOW
-  digitalWrite(13, val == LOW ? HIGH : LOW);
+  int val = digitalRead(2);   // 读 D2: HIGH = 松开, LOW = 按下
+  Serial.println(val);        // 通过串口监视器看到状态
+  delay(100);                 // 100 ms 间隔,避免刷屏
 }
 `,
   ),
 
   makeTemplate(
-    'pwm-dim',
-    'PWM 调光',
-    'LED 接 D9（PWM 引脚），用 analogWrite 渐变调光。',
-    pwmState,
+    'pot-dimmer',
+    '电位器调亮度',
+    '电位器接 A0(读)+ 5V/GND(供电),LED 接 D9(PWM)。转电位器,LED 跟着亮/暗。',
+    potState,
     `void setup() {
-  // D9 支持 PWM，无需 pinMode
+  pinMode(9, OUTPUT);   // D9 是 PWM 引脚
 }
 
 void loop() {
-  // 渐亮
-  for (int b = 0; b <= 255; b += 5) {
-    analogWrite(9, b);
-    delay(20);
-  }
-  // 渐暗
-  for (int b = 255; b >= 0; b -= 5) {
-    analogWrite(9, b);
-    delay(20);
-  }
+  int val = analogRead(A0);     // 读电位器: 0..1023
+  int bright = val / 4;         // 映射到 PWM 范围: 0..255
+  analogWrite(9, bright);       // 设置 LED 亮度
+  delay(10);
 }
 `,
   ),

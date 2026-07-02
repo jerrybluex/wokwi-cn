@@ -89,21 +89,41 @@ export function ProjectsPage() {
       </div>
 
       {/* Template picker */}
-      <div className="mb-4">
-        <div className="text-xs text-base-content/60 mb-2 font-bold">从模板新建</div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="mb-5">
+        <h3 className="font-sans font-semibold text-xs uppercase tracking-wider text-muted mb-3">
+          从模板新建
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {TEMPLATES.map((tpl) => (
             <button
               key={tpl.id}
               onClick={() => onCreateFromTemplate(tpl.id)}
               disabled={creating}
-              className="card bg-base-200 border border-base-300 hover:border-primary cursor-pointer text-left"
+              className="group block bg-paper border border-line rounded-card p-4 text-left hover:border-primary hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:hover:translate-y-0"
             >
-              <div className="card-body p-3">
-                <div className="font-bold text-sm">{tpl.name}</div>
-                <div className="text-[10px] text-base-content/60 leading-snug mt-0.5">
-                  {tpl.description}
+              <div className="flex items-start justify-between mb-2">
+                <div className="text-[10px] font-mono text-muted uppercase tracking-wider">
+                  Template
                 </div>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-muted group-hover:text-primary group-hover:translate-x-0.5 transition-all"
+                  aria-hidden="true"
+                >
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </div>
+              <div className="font-semibold text-sm text-ink mb-1">{tpl.name}</div>
+              <div className="text-[11px] text-ink-soft leading-relaxed">
+                {tpl.description}
               </div>
             </button>
           ))}
