@@ -11,13 +11,79 @@
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { createHash } from 'node:crypto';
 import { prisma } from './db.js';
-import type { ProjectState, AiSuggestion } from '@wokwi/shared';
+import type { AiSuggestion } from '@wokwi/shared';
 import {
   AiTaskType,
   WOKWI_AI_DAILY_LIMIT,
 } from '@wokwi/shared';
+
+/**
+ * Context-aware chat system prompt — personality + structured output rules.
+ * Exported for testing. Used by buildContextSystemPrompt() which appends the
+ * state summary at runtime.
+ */
+export const CHAT_CONTEXT_SYSTEM_PROMPT = [
+  '你是"单片机小助手"，一位有耐心的单片机教师。',
+  '',
+  '学生发来的是一段 Arduino 代码和接线信息。你可以结合这些上下文给出更准确的帮助。',
+  '',
+  '回答风格：',
+  '1. 先说学生代码"大概在干什么"（一句话）',
+  '2. 按顺序解释关键语句（每条一行）',
+  '3. 如果有接线或元件相关问题，结合 wiring 上下文指出可能的问题',
+  '4. 用学生能理解的比喻，不用术语堆砌',
+  '5. 如果学生提到某个元件（如 LED/舵机/超声波），可以结合 wiring 判断是否接线正确',
+  '',
+  '**重要**：只给方向和解释，不直接给完整代码答案。',
+  '',
+  '【必填】在回答末尾，请用以下结构化格式输出建议（至少 1 条）：',
+  '',
+  '## 💡 建议',
+  '请根据学生代码和接线，从以下类型中选择适用的建议，每条一行：',
+  '',
+  '- [type: code]    [target: loop/setup/具体行]         [描述]',
+  '- [type: wiring]  [target: 元件名或parts:0/wires:1]  [描述]',
+  '- [type: part]    [target: 元件名]                   [描述]',
+  '',
+  'type 说明：',
+  '  code   — 代码逻辑问题（语法错误、逻辑错误、缺失调用等）',
+  '  wiring — 接线错误（pin 类型不匹配、连接缺失、电源/地错误等）',
+  '  part   — 元件使用问题（参数不对、初始化缺失等）',
+  '',
+  '## 提示',
+  '  引导学生下一步思考的简短提示（1-2 句，口语化）',
+].join('\n');
+
+/**
+ * Build a readable state summary from the project snapshot.
+ * Exported so basePrompt.test.ts can test it in isolation.
+ */
+export function buildStateSummary(
+  state: { code: string; errors: string[]; wirings: unknown[]; parts: { id: string; type: string; x: number; y: number }[] },
+): string {
+  const partsList = state.parts.length
+    ? state.parts.map((p) => `  - ${p.type} (id=${p.id}, pos=(${p.x},${p.y}))`).join('\n')
+    : '  (无元件)';
+
+  const wiringsList = state.wirings.length
+    ? state.wirings.map((w: unknown) => {
+        const ww = w as { from?: { part: string; pin: string }; to?: { part: string; pin: string } };
+        return `  - ${ww.from?.part}:${ww.from?.pin} ↔ ${ww.to?.part}:${ww.to?.pin}`;
+      }).join('\n')
+    : '  (无导线)';
+
+  return [
+    '## 当前项目状态',
+    `代码长度: ${state.code.length} 字符`,
+    state.errors.length
+      ? `编译错误: ${state.errors.length} 个\n${state.errors.map((e) => `  ! ${e}`).join('\n')}`
+      : '编译错误: 无',
+    `元件列表:\n${partsList}`,
+    `导线连接:\n${wiringsList}`,
+    state.code ? `\n## 当前代码\n\`\`\`cpp\n${state.code.slice(0, 1200)}\n${state.code.length > 1200 ? '...(已截断)' : ''}\n\`\`\`` : '',
+  ].join('\n');
+}
 
 const chatBodySchema = z.object({
   taskType: z.enum(['explain', 'error', 'hint']),
@@ -322,58 +388,15 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
   });
 
   /**
-   * Build a readable state summary from the project snapshot.
-   * Used as part of the system prompt so the AI knows what the student is
-   * working on before answering.
-   */
-  function buildStateSummary(state: z.infer<typeof chatContextBodySchema>['projectState']): string {
-    const partsList = state.parts.length
-      ? state.parts.map((p) => `  - ${p.type} (id=${p.id}, pos=(${p.x},${p.y}))`).join('\n')
-      : '  (无元件)';
-
-    const wiringsList = state.wirings.length
-      ? state.wirings.map((w: unknown) => {
-          const ww = w as { from?: { part: string; pin: string }; to?: { part: string; pin: string } };
-          return `  - ${ww.from?.part}:${ww.from?.pin} ↔ ${ww.to?.part}:${ww.to?.pin}`;
-        }).join('\n')
-      : '  (无导线)';
-
-    return [
-      '## 当前项目状态',
-      `代码长度: ${state.code.length} 字符`,
-      state.errors.length
-        ? `编译错误: ${state.errors.length} 个\n${state.errors.map((e) => `  ! ${e}`).join('\n')}`
-        : '编译错误: 无',
-      `元件列表:\n${partsList}`,
-      `导线连接:\n${wiringsList}`,
-      state.code ? `\n## 当前代码\n\`\`\`cpp\n${state.code.slice(0, 1200)}\n${state.code.length > 1200 ? '...(已截断)' : ''}\n\`\`\`` : '',
-    ].join('\n');
-  }
-
-  /**
    * System prompt for the context-aware chat endpoint.
-   * Base: same personality as the existing explain/error/hint prompts.
-   * Extra: injects the project state summary at the top of each user message.
+   * Uses the exported CHAT_CONTEXT_SYSTEM_PROMPT constant (which forces structured
+   * output) and appends the project state summary.
    */
-  function buildContextSystemPrompt(state: z.infer<typeof chatContextBodySchema>['projectState']): string {
+  function buildContextSystemPrompt(
+    state: z.infer<typeof chatContextBodySchema>['projectState'],
+  ): string {
     const summary = buildStateSummary(state);
-    return [
-      `你是"单片机小助手"，一位有耐心的单片机教师。`,
-      '',
-      '学生发来的是一段 Arduino 代码和接线信息。你可以结合这些上下文给出更准确的帮助。',
-      '',
-      '回答风格：',
-      '1. 先说学生代码"大概在干什么"（一句话）',
-      '2. 按顺序解释关键语句（每条一行）',
-      '3. 如果有接线或元件相关问题，结合 wiring 上下文指出可能的问题',
-      '4. 用学生能理解的比喻，不用术语堆砌',
-      '5. 如果学生提到某个元件（如 LED/舵机/超声波），可以结合 wiring 判断是否接线正确',
-      '',
-      '**重要**：只给方向和解释，不直接给完整代码答案。',
-      '',
-      '当前项目上下文：',
-      summary,
-    ].join('\n');
+    return `${CHAT_CONTEXT_SYSTEM_PROMPT}\n\n当前项目上下文：\n${summary}`;
   }
 
   /**
