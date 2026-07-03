@@ -68,7 +68,6 @@ export function EditorPage() {
   // toggle button. CanvasPanel owns its own in-progress wire state now.
   const [loadError, setLoadError] = useState<string | null>(null);
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
-  const [aiTaskType, setAiTaskType] = useState<'explain' | 'error' | 'hint'>('explain');
   const [aiRemaining, setAiRemaining] = useState<number>(20);
 
   // ── AI remaining quota ──
@@ -76,6 +75,24 @@ export function EditorPage() {
     import('../ai/api').then(({ aiApi: api }) => {
       api.getRemaining().then((r) => setAiRemaining(r.remaining)).catch(() => {});
     });
+  }, []);
+
+  // ── AI drawer Cmd+I / Ctrl+I shortcut (决策 24 v1) ──
+  // 按下切换抽屉开/关(代码 textarea / input 焦点时也生效,避免抢画布焦点)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const cmd = e.metaKey || e.ctrlKey;
+      if (cmd && e.key.toLowerCase() === 'i') {
+        // 不在 textarea / input 内抢焦点 (除非 AI drawer 内部的 textarea)
+        const target = e.target as HTMLElement | null;
+        const inCodeEditor = target?.closest('.cm-editor');
+        if (inCodeEditor) return; // 让 CodeMirror 自己处理 Ctrl+I (indent)
+        e.preventDefault();
+        setAiDrawerOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   // ── Load project when projectId changes ──
@@ -131,7 +148,7 @@ export function EditorPage() {
       from: { partId: string; pinId: string },
       to: { partId: string; pinId: string },
     ) => {
-      // Plan A wiring validation — reject incompatible pin types
+      // Wiring validation — reject incompatible pin types
       const check = validateWireConnection(
         from.partId,
         from.pinId,
@@ -146,7 +163,9 @@ export function EditorPage() {
       const wire = { id: genId('wire'), from, to };
       setHistory((h) => applyChange(h, { type: 'add-wire', wire }));
     },
-    [], // history.current.parts is stable (add-part only, no wire mutations)
+    [history],
+    // history is a ref; history.current.parts is always current when the callback
+    // runs (history ref is stable; only the .current object changes on each render)
   );
 
   const onLoadDemo = () => {
@@ -368,10 +387,9 @@ export function EditorPage() {
             code={code}
             compileError={status === 'error' ? message : null}
             remaining={aiRemaining}
-            onOpen={(type) => {
-              setAiTaskType(type);
-              setAiDrawerOpen(true);
-            }}
+              onOpen={() => {
+                setAiDrawerOpen(true);
+              }}
           />
         </div>
       </header>
@@ -475,10 +493,12 @@ export function EditorPage() {
       </div>
       <AiDrawer
         open={aiDrawerOpen}
-        taskType={aiTaskType}
+        onClose={() => setAiDrawerOpen(false)}
         code={code}
         compileError={status === 'error' ? message : null}
-        onClose={() => setAiDrawerOpen(false)}
+        wires={history.current.wires}
+        parts={history.current.parts}
+        projectName={projectName}
         initialRemaining={aiRemaining}
       />
     </div>
