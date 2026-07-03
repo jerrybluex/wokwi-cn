@@ -11,7 +11,9 @@
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { createHash } from 'node:crypto';
 import { prisma } from './db.js';
+import type { ProjectState, AiSuggestion } from '@wokwi/shared';
 import {
   AiTaskType,
   WOKWI_AI_DAILY_LIMIT,
@@ -25,7 +27,7 @@ const chatBodySchema = z.object({
 });
 
 /** System prompts per task type — see docs/ai-tutor-prompts.md */
-export const SYSTEM_PROMPTS: Record<AiTaskType, string> = {
+export const SYSTEM_PROMPTS: Record<Exclude<AiTaskType, 'chat'>, string> = {
   explain: `你是"单片机小助手"，一位有耐心的单片机教师。
 
 当学生发送一段 Arduino 代码时：
@@ -299,6 +301,191 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
         reply.raw.write(sse({ fallback: true, message: FALLBACK_MESSAGE }));
         reply.raw.write(sse({ done: true, tokensIn: 0, tokensOut: 0 }));
         reply.raw.end();
+      }
+    },
+  );
+
+  // ── POST /api/ai/chat-context — context-aware AI chat (决策 24 v1) ──
+  const chatContextBodySchema = z.object({
+    studentMessage: z.string().min(1).max(2000),
+    projectState: z.object({
+      code: z.string(),
+      errors: z.array(z.string()),
+      wirings: z.array(z.unknown()),
+      parts: z.array(z.object({
+        id: z.string(),
+        type: z.string(),
+        x: z.number(),
+        y: z.number(),
+      })),
+    }),
+  });
+
+  /**
+   * Build a readable state summary from the project snapshot.
+   * Used as part of the system prompt so the AI knows what the student is
+   * working on before answering.
+   */
+  function buildStateSummary(state: z.infer<typeof chatContextBodySchema>['projectState']): string {
+    const partsList = state.parts.length
+      ? state.parts.map((p) => `  - ${p.type} (id=${p.id}, pos=(${p.x},${p.y}))`).join('\n')
+      : '  (无元件)';
+
+    const wiringsList = state.wirings.length
+      ? state.wirings.map((w: unknown) => {
+          const ww = w as { from?: { part: string; pin: string }; to?: { part: string; pin: string } };
+          return `  - ${ww.from?.part}:${ww.from?.pin} ↔ ${ww.to?.part}:${ww.to?.pin}`;
+        }).join('\n')
+      : '  (无导线)';
+
+    return [
+      '## 当前项目状态',
+      `代码长度: ${state.code.length} 字符`,
+      state.errors.length
+        ? `编译错误: ${state.errors.length} 个\n${state.errors.map((e) => `  ! ${e}`).join('\n')}`
+        : '编译错误: 无',
+      `元件列表:\n${partsList}`,
+      `导线连接:\n${wiringsList}`,
+      state.code ? `\n## 当前代码\n\`\`\`cpp\n${state.code.slice(0, 1200)}\n${state.code.length > 1200 ? '...(已截断)' : ''}\n\`\`\`` : '',
+    ].join('\n');
+  }
+
+  /**
+   * System prompt for the context-aware chat endpoint.
+   * Base: same personality as the existing explain/error/hint prompts.
+   * Extra: injects the project state summary at the top of each user message.
+   */
+  function buildContextSystemPrompt(state: z.infer<typeof chatContextBodySchema>['projectState']): string {
+    const summary = buildStateSummary(state);
+    return [
+      `你是"单片机小助手"，一位有耐心的单片机教师。`,
+      '',
+      '学生发来的是一段 Arduino 代码和接线信息。你可以结合这些上下文给出更准确的帮助。',
+      '',
+      '回答风格：',
+      '1. 先说学生代码"大概在干什么"（一句话）',
+      '2. 按顺序解释关键语句（每条一行）',
+      '3. 如果有接线或元件相关问题，结合 wiring 上下文指出可能的问题',
+      '4. 用学生能理解的比喻，不用术语堆砌',
+      '5. 如果学生提到某个元件（如 LED/舵机/超声波），可以结合 wiring 判断是否接线正确',
+      '',
+      '**重要**：只给方向和解释，不直接给完整代码答案。',
+      '',
+      '当前项目上下文：',
+      summary,
+    ].join('\n');
+  }
+
+  /**
+   * Parse suggestions from the raw model response.
+   * v1: looks for markdown-ish hint blocks. In a later phase this could be
+   * a structured JSON output mode from the model.
+   */
+  function parseSuggestions(raw: string): AiSuggestion[] {
+    const suggestions: AiSuggestion[] = [];
+    // Match blocks like "## 建议" or "### 提示" followed by lines
+    const lines = raw.split('\n');
+    let inSection = false;
+    let currentTarget = '';
+    for (const line of lines) {
+      const sectionMatch = line.match(/^#{1,3}\s*(建议|提示|hint|suggestion)/i);
+      if (sectionMatch) { inSection = true; continue; }
+      const targetMatch = line.match(/^(?:针对|目标|元件|target)[:：]?\s*(\S+)/i);
+      if (targetMatch) { currentTarget = targetMatch[1]; continue; }
+      if (inSection && line.trim() && !line.startsWith('#')) {
+        suggestions.push({
+          type: 'hint',
+          target: currentTarget || 'general',
+          payload: line.trim().replace(/^[-*•]\s*/, ''),
+        });
+      }
+    }
+    // Deduplicate
+    return suggestions.slice(0, 5);
+  }
+
+  app.post(
+    '/api/ai/chat-context',
+    { onRequest: [app.authenticate] },
+    async (req, reply) => {
+      const userId = (req.user as { sub: string } | undefined)?.sub;
+      if (!userId) return reply.code(401).send({ error: 'unauthenticated' });
+
+      const parsed = chatContextBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return reply.code(400).send({ error: 'invalid_input', details: parsed.error.format() });
+      }
+      const { studentMessage, projectState } = parsed.data;
+
+      // ── rate limit ──
+      const limit = await checkRateLimit(userId);
+      if (!limit.allowed) {
+        return reply.code(429).send({
+          error: 'rate_limit_exceeded',
+          remaining: 0,
+          resetsAt: limit.resetsAt,
+        });
+      }
+
+      const apiKey = process.env.DEEPSEEK_API_KEY;
+      if (!apiKey) {
+        await logAiCall({ userId, taskType: 'chat', tokensIn: 0, tokensOut: 0 });
+        return reply.send({
+          answer: 'AI 助教暂时不可用（未配置 API Key）。请在服务器环境变量中设置 DEEPSEEK_API_KEY。',
+          suggestions: [],
+        });
+      }
+
+      const systemPrompt = buildContextSystemPrompt(projectState);
+      const userContent = studentMessage;
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30_000);
+
+        const response = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: process.env.DEEPSEEK_MODEL ?? 'deepseek-chat',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userContent },
+            ],
+            max_tokens: Number(process.env.DEEPSEEK_MAX_TOKENS ?? 600),
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          app.log.error({ status: response.status }, 'DeepSeek API error (chat-context)');
+          await logAiCall({ userId, taskType: 'chat', tokensIn: 0, tokensOut: 0 });
+          return reply.code(502).send({ error: 'ai_service_error' });
+        }
+
+        const data = await response.json() as {
+          choices?: Array<{ message?: { content?: string } }>;
+          usage?: { prompt_tokens?: number; completion_tokens?: number };
+        };
+
+        const rawReply = data.choices?.[0]?.message?.content ?? '';
+        const tokensIn = data.usage?.prompt_tokens ?? 0;
+        const tokensOut = data.usage?.completion_tokens ?? 0;
+
+        const suggestions = parseSuggestions(rawReply);
+
+        await logAiCall({ userId, taskType: 'chat', tokensIn, tokensOut });
+
+        return reply.send({ answer: rawReply, suggestions });
+
+      } catch (err) {
+        app.log.error(err, 'DeepSeek chat-context error');
+        await logAiCall({ userId, taskType: 'chat', tokensIn: 0, tokensOut: 0 });
+        return reply.code(502).send({ error: 'ai_service_error' });
       }
     },
   );
