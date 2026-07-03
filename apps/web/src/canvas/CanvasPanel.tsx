@@ -317,7 +317,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
         viewBox={`0 0 ${width / zoom} ${height / zoom}`}
         className="block select-none"
         onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
+        onDragLeave={onDragOver}
         onDrop={onDrop}
         onClick={onSvgClick}
         onMouseUp={onSvgMouseUp}
@@ -334,7 +334,9 @@ export function CanvasPanel(props: CanvasPanelProps) {
          *   OVER them so the wire is never occluded by a board / chip body.
          *   PendingWire is the last layer (in-progress routing sits on top
          *   of every committed wire too). */}
-        <g>
+        {/* pointer-events:auto 让 part / wire 可点击；pointer-events:none
+         *  让 canvas SVG 本身不拦截点击，让装饰元素透传给 pad */}
+        <g className="pointer-events-auto">
           {state.parts.map((p) => {
             const spec = getPartSpec(p.type);
             if (!spec) return null;
@@ -382,7 +384,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
             );
           })}
         </g>
-        <g>
+        <g className="pointer-events-auto">
           {state.wires.map((w) => (
             <WireLine
               key={w.id}
@@ -394,11 +396,13 @@ export function CanvasPanel(props: CanvasPanelProps) {
           ))}
         </g>
         {pendingWireFrom && (
-          <PendingWire
-            pendingFrom={pendingWireFrom}
-            mousePos={mousePos}
-            state={state}
-          />
+          <g className="pointer-events-auto">
+            <PendingWire
+              pendingFrom={pendingWireFrom}
+              mousePos={mousePos}
+              state={state}
+            />
+          </g>
         )}
         {/* Wire-in-progress pin labels overlay (decision 19). Lives outside
          * PartNode because pin pads now live INSIDE the part body render;
@@ -593,7 +597,7 @@ function GridBackground({ width, height }: { width: number; height: number }) {
       <line key={`h${y}`} x1={0} y1={y} x2={width} y2={y} stroke="#1a2028" strokeWidth={y % 100 === 0 ? 0.7 : 0.3} />,
     );
   }
-  return <g aria-hidden="true">{lines}</g>;
+  return <g aria-hidden="true" pointerEvents="none">{lines}</g>;
 }
 
 function PartNode({

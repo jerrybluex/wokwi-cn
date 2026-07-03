@@ -194,10 +194,19 @@ function makeArduinoUno(): PartSpec {
         hit.setAttribute('r', String(HIT_R));
         hit.setAttribute('fill', 'transparent');
         hit.setAttribute('class', 'pin-pad-hit');
-        hit.setAttribute('data-pin', pinId);
+        // 不设 data-pin：hit area 只扩大视觉点击区，事件透传给底下的 pad 圆形
+        hit.setAttribute('pointer-events', 'none');
         padEl.parentNode?.insertBefore(hit, padEl.nextSibling);
       };
       const pcbRoot = pcbSvg; // 已 append 进 g
+
+      // Fritzing PCB SVG 包含大量透明丝印图形(rect/circle/line 等)，
+      // 它们默认 pointer-events:auto，会遮盖 pad 点击区。
+      // 只保留带 data-pin 的元素可点击，其余全禁。
+      pcbRoot.querySelectorAll('rect, line, path, text, polyline, polygon').forEach((el) => {
+        if (!el.hasAttribute('data-pin')) el.setAttribute('pointer-events', 'none');
+      });
+
       const pinEls = Array.from(pcbRoot.querySelectorAll('[id^="connector"][id$="pin"]')) as SVGCircleElement[];
       const digitalEls = pinEls
         .filter((el) => Number(el.getAttribute('cy')) === DIGITAL_PAD_CY_PCB)
