@@ -1,5 +1,5 @@
 /**
- * AiDrawer — AI 助教右侧抽屉 (决策 24 v1 重设计)
+ * AiDrawer — AI 助教右侧抽屉 (决策 24 v1 收尾)
  *
  * 主理人 20:18 P0 反馈: 学生没有输入地方,无法主动问问题。
  * 重设计后:
@@ -7,13 +7,24 @@
  *   - chat history (multi-turn user/AI 气泡滚动)
  *   - 底部 textarea + 发送按钮 (Enter 发送, Shift+Enter 换行)
  *   - Cmd+I / Ctrl+I 快捷键在 Editor.tsx 触发开关
+ *   - 联调 server POST /api/ai/chat-context (coder d0148a7 提交)
+ *     request:  { studentMessage, projectState: { code, errors, wirings, parts } }
+ *     response: { answer, suggestions: AiSuggestion[] }
+ *     errors:   401 / 429 (rate_limit) / 502 (ai_service_error) / dev no-key fallback
  *
  * v1 范围: 只读, 给建议 (不动连线, 不改代码)
- * 保留现有 AiDrawer API (open/onClose/initialRemaining), 新增 state props (code/state/errorMessage)。
  */
 import { useEffect, useRef, useState } from 'react';
-import { useAiChat, type AiStatus } from './useAiChat';
 import { aiApi } from './api';
+
+/** Mirror of @wokwi/shared AiSuggestion (本地复制,避免 shared build chain 依赖) */
+type AiSuggestion = {
+  type: 'hint' | 'code' | 'wiring';
+  /** Which entity the suggestion targets, e.g. 'led', 'servo', 'loop'. */
+  target: string;
+  /** Suggestion payload — content depends on type. */
+  payload: string;
+};
 
 type StateTab = 'code' | 'errors' | 'wirings' | 'parts';
 
@@ -22,6 +33,12 @@ type Message = {
   role: 'user' | 'ai';
   text: string;
   ts: number;
+  /** AI message only — 决策 24 v1 server parses suggestions from answer */
+  suggestions?: AiSuggestion[];
+  /** True while the request is in flight (for placeholder / spinner) */
+  pending?: boolean;
+  /** True if the AI message ended in an error (rate_limit / network / service) */
+  error?: 'rate_limit' | 'service' | 'network' | 'no_key';
 };
 
 type WireForDisplay = {
@@ -60,21 +77,71 @@ const STATE_TABS: Array<{ id: StateTab; label: string }> = [
   { id: 'parts', label: '元件' },
 ];
 
-function StatusLine({ status, remaining }: { status: AiStatus; remaining: number }) {
-  switch (status) {
-    case 'idle':
-      return <span className="text-[10px] text-base-content/50">空闲 · 输入问题开始对话</span>;
-    case 'streaming':
-      return <span className="text-[10px] text-primary animate-pulse">思考中…</span>;
-    case 'done':
-      return <span className="text-[10px] text-success">✓ 回答完毕 · 今日剩余 {remaining} 次</span>;
-    case 'error':
-      return <span className="text-[10px] text-error">出错了,请检查网络后重试</span>;
-    case 'rate_limited':
-      return <span className="text-[10px] text-warning">今日次数已用完,明天再来吧</span>;
-    case 'fallback':
-      return <span className="text-[10px] text-warning">AI 暂时不可用,请稍后重试</span>;
+/** Hit /api/ai/chat-context (决策 24 v1 server endpoint, coder d0148a7).
+ * Returns: { answer, suggestions } on success;
+ *          throws on 429 (rate_limit) / 502 (ai_service_error) / network. */
+async function askChatContext(opts: {
+  studentMessage: string;
+  projectState: {
+    code: string;
+    errors: string[];
+    wirings: unknown[];
+    parts: PartForDisplay[];
+  };
+  signal: AbortSignal;
+}): Promise<{ answer: string; suggestions: AiSuggestion[] }> {
+  const res = await fetch('/api/ai/chat-context', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      studentMessage: opts.studentMessage,
+      projectState: opts.projectState,
+    }),
+    signal: opts.signal,
+  });
+  if (res.status === 429) {
+    const e: Error & { kind?: 'rate_limit' } = new Error('今日 AI 次数已用完');
+    e.kind = 'rate_limit';
+    throw e;
   }
+  if (res.status === 502) {
+    const e: Error & { kind?: 'service' } = new Error('AI 服务暂时不可用');
+    e.kind = 'service';
+    throw e;
+  }
+  if (!res.ok) {
+    const e: Error & { kind?: 'service' } = new Error(`请求失败 (${res.status})`);
+    e.kind = 'service';
+    throw e;
+  }
+  const data = (await res.json()) as { answer: string; suggestions: AiSuggestion[] };
+  return data;
+}
+
+/** Suggestion card — type-specific 颜色 (决策 24 v1 视觉规范) */
+function SuggestionCard({ s }: { s: AiSuggestion }) {
+  const colorClass =
+    s.type === 'wiring'
+      ? 'border-warning/40 bg-warning/10 text-warning-content'
+      : s.type === 'code'
+        ? 'border-info/40 bg-info/10 text-info-content'
+        : 'border-base-300 bg-base-200 text-base-content';
+  const typeLabel = s.type === 'wiring' ? '连线' : s.type === 'code' ? '代码' : '提示';
+  return (
+    <div
+      className={`mt-1.5 rounded-md border ${colorClass} px-2 py-1.5 text-[11px] leading-snug`}
+      data-testid={`ai-suggestion-${s.type}`}
+    >
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-[9px] uppercase tracking-wide font-bold opacity-70">
+          {typeLabel}
+        </span>
+        <span className="text-[10px] font-mono opacity-80">→ {s.target}</span>
+      </div>
+      <div className="whitespace-pre-wrap break-words">{s.payload}</div>
+    </div>
+  );
 }
 
 export function AiDrawer({
@@ -91,9 +158,10 @@ export function AiDrawer({
   const [remaining, setRemaining] = useState<number>(initialRemaining ?? 20);
   const [history, setHistory] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const { send, reset, text, status, isRateLimited } = useAiChat();
+  const [isAsking, setIsAsking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // refresh remaining count when drawer opens
   useEffect(() => {
@@ -117,69 +185,107 @@ export function AiDrawer({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  // 抽屉关闭时重置 chat (避免下次打开看到上次的对话)
+  // 抽屉关闭时取消未完成请求 + 清空 chat
   const handleClose = () => {
-    reset();
+    abortRef.current?.abort();
+    setIsAsking(false);
     setHistory([]);
     setInput('');
     onClose();
   };
 
-  // 流式响应到达时,自动滚动到底部
+  // 流式 / 加载时滚动跟随
   useEffect(() => {
-    if (status === 'streaming' && scrollRef.current) {
+    if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [text, status]);
+  }, [history]);
 
-  // 当流式响应完成,把完整回答追加到历史
-  useEffect(() => {
-    if (status === 'done' && text) {
-      setHistory((h) => [
-        ...h,
-        { id: `ai-${Date.now()}`, role: 'ai', text, ts: Date.now() },
-      ]);
-      reset();
-    }
-    if (status === 'fallback' && text) {
-      setHistory((h) => [
-        ...h,
-        { id: `ai-fb-${Date.now()}`, role: 'ai', text, ts: Date.now() },
-      ]);
-      reset();
-    }
-  }, [status, text, reset]);
-
-  // 发送消息:学生问题 + 当前 state (代码/报错/连线/元件)
-  const handleSend = () => {
+  /** 决策 24 v1: 调用 /api/ai/chat-context (server d0148a7) */
+  const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed) return;
-    if (status === 'streaming') return;
+    if (isAsking) return;
     if (remaining <= 0) return;
 
-    // 追加学生消息
-    setHistory((h) => [
-      ...h,
-      { id: `user-${Date.now()}`, role: 'user', text: trimmed, ts: Date.now() },
-    ]);
+    const userMsg: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      text: trimmed,
+      ts: Date.now(),
+    };
+    const aiPendingMsg: Message = {
+      id: `ai-${Date.now()}`,
+      role: 'ai',
+      text: '',
+      ts: Date.now(),
+      pending: true,
+    };
+    setHistory((h) => [...h, userMsg, aiPendingMsg]);
     setInput('');
+    setIsAsking(true);
 
-    // 触发 AI 请求 (useAiChat 处理 SSE 流)
-    // 决策 24 v1:AI 读取当前 state 作为 context (由 coder / server 拼 prompt)
-    // UIer 范围内:把 state 放进 payload,具体 prompt 模板由 coder 控制
-    void send({
-      taskType: 'hint' as const, // 当前 useAiChat API 还需要 taskType;v1 阶段 hint = 自由对话
-      question: trimmed,
-      code: tab === 'code' || tab === 'errors' ? code : undefined,
-      errorMessage: tab === 'errors' ? compileError ?? undefined : undefined,
-    });
+    // abort any in-flight
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const errorsArr = compileError ? [compileError] : [];
+      const result = await askChatContext({
+        studentMessage: trimmed,
+        projectState: {
+          code,
+          errors: errorsArr,
+          wirings: wires as unknown[],
+          parts,
+        },
+        signal: controller.signal,
+      });
+      // replace the pending AI message with real answer
+      setHistory((h) =>
+        h.map((m) =>
+          m.id === aiPendingMsg.id
+            ? { ...m, text: result.answer, suggestions: result.suggestions, pending: false }
+            : m,
+        ),
+      );
+      // refresh remaining
+      aiApi
+        .getRemaining()
+        .then((r) => setRemaining(r.remaining))
+        .catch(() => {});
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return;
+      const e = err as Error & { kind?: 'rate_limit' | 'service' };
+      const errorKind =
+        e.kind === 'rate_limit'
+          ? 'rate_limit'
+          : e.kind === 'service'
+            ? 'service'
+            : 'network';
+      setHistory((h) =>
+        h.map((m) =>
+          m.id === aiPendingMsg.id
+            ? {
+                ...m,
+                text: errorMessageText(errorKind),
+                pending: false,
+                error: errorKind,
+              }
+            : m,
+        ),
+      );
+    } finally {
+      setIsAsking(false);
+    }
   };
 
   // Textarea: Enter 发送, Shift+Enter 换行
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   };
 
@@ -196,8 +302,7 @@ export function AiDrawer({
 
       {/* Drawer
        * 决策 PM: 让 drawer 在所有常见视口都 in-viewport (w-[min(...)] + h-[min(...)])
-       * 决策 24 v1: 抽屉宽度 = 画布右 1/3 左右 (w-[min(28rem,calc(100vw-1rem))])
-       */}
+       * 决策 24 v1: 抽屉宽度 = 画布右 1/3 左右 (w-[min(28rem,calc(100vw-1rem))]) */}
       <div
         role="dialog"
         aria-modal="true"
@@ -270,11 +375,12 @@ export function AiDrawer({
 
         {/* Chat history (multi-turn) — 滚动 */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-          {history.length === 0 && status !== 'streaming' && (
+          {history.length === 0 && !isAsking && (
             <div className="text-center text-xs text-base-content/50 py-8">
               <div className="mb-2 text-2xl">💬</div>
               <p>跟 AI 聊聊你的项目</p>
               <p className="mt-1 text-[10px]">例如:我的 LED 不亮怎么办?</p>
+              <p className="mt-1 text-[10px] opacity-70">AI 会读你的代码 / 报错 / 连线 / 元件</p>
             </div>
           )}
 
@@ -285,42 +391,58 @@ export function AiDrawer({
               className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               data-testid={`ai-msg-${m.role}`}
             >
-              <div
-                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                  m.role === 'user'
-                    ? 'bg-primary text-primary-content'
-                    : 'bg-base-200 text-base-content'
-                }`}
-              >
-                {m.text}
+              <div className="max-w-[88%] min-w-0">
+                <div
+                  className={`rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                    m.role === 'user'
+                      ? 'bg-primary text-primary-content'
+                      : m.error
+                        ? 'bg-error/10 border border-error/40 text-error-content'
+                        : 'bg-base-200 text-base-content'
+                  }`}
+                >
+                  {m.pending ? (
+                    <span className="inline-flex items-center gap-1.5 text-base-content/60">
+                      <span className="loading loading-spinner loading-xs" />
+                      思考中…
+                    </span>
+                  ) : (
+                    m.text
+                  )}
+                </div>
+                {/* AI 消息下方:suggestion 卡片 (v1 简单 list) */}
+                {m.role === 'ai' && !m.pending && m.suggestions && m.suggestions.length > 0 && (
+                  <div className="mt-1.5 space-y-1" data-testid="ai-suggestions">
+                    <div className="text-[10px] text-base-content/50 px-1">
+                      💡 {m.suggestions.length} 条建议
+                    </div>
+                    {m.suggestions.map((s, idx) => (
+                      <SuggestionCard key={idx} s={s} />
+                    ))}
+                  </div>
+                )}
+                {m.role === 'ai' && !m.pending && m.error && (
+                  <div className="text-[10px] text-base-content/50 px-1 mt-1">
+                    {m.error === 'rate_limit' && '配额已用完,明天再来'}
+                    {m.error === 'service' && 'AI 服务暂时不可用'}
+                    {m.error === 'network' && '网络异常'}
+                  </div>
+                )}
               </div>
             </div>
           ))}
-
-          {/* 流式响应占位 (useAiChat 的 text 不是 ai message 的一部分) */}
-          {status === 'streaming' && (
-            <div className="flex justify-start" data-testid="ai-msg-streaming">
-              <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-base-200 text-base-content">
-                {text || '思考中…'}
-                <span className="inline-block w-2 h-4 bg-primary/50 animate-pulse ml-0.5 align-middle" />
-              </div>
-            </div>
-          )}
-
-          {/* 错误占位 */}
-          {(status === 'error' || status === 'rate_limited' || status === 'fallback') && !text && (
-            <div className={`text-[10px] text-center ${status === 'error' ? 'text-error' : status === 'fallback' ? 'text-warning' : 'text-warning'}`}>
-              {status === 'error' && '出错了,请检查网络后重试'}
-              {status === 'rate_limited' && '今日次数已用完,明天再来吧'}
-              {status === 'fallback' && 'AI 暂时不可用,请稍后重试'}
-            </div>
-          )}
         </div>
 
         {/* Status bar */}
         <div className="px-4 py-1.5 border-t border-base-200 flex items-center justify-between">
-          <StatusLine status={status} remaining={remaining} />
-          {isRateLimited && (
+          <span className="text-[10px] text-base-content/50">
+            {isAsking ? (
+              <span className="text-primary animate-pulse">AI 正在读你的项目…</span>
+            ) : (
+              <>空闲 · 今日剩余 {remaining} 次</>
+            )}
+          </span>
+          {remaining <= 0 && (
             <span className="text-[10px] text-warning">明天重置</span>
           )}
         </div>
@@ -334,7 +456,7 @@ export function AiDrawer({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="输入问题…(Enter 发送,Shift+Enter 换行)"
-              disabled={status === 'streaming' || remaining <= 0 || isRateLimited}
+              disabled={isAsking || remaining <= 0}
               className="textarea textarea-bordered textarea-sm flex-1 resize-none min-h-12 max-h-32 leading-snug text-sm"
               rows={2}
               data-testid="ai-input"
@@ -342,13 +464,13 @@ export function AiDrawer({
             />
             <button
               type="button"
-              onClick={handleSend}
-              disabled={!input.trim() || status === 'streaming' || remaining <= 0 || isRateLimited}
+              onClick={() => void handleSend()}
+              disabled={!input.trim() || isAsking || remaining <= 0}
               className="btn btn-primary btn-sm self-end h-12"
               data-testid="ai-send"
               aria-label="发送"
             >
-              {status === 'streaming' ? (
+              {isAsking ? (
                 <span className="loading loading-spinner loading-xs" />
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -372,4 +494,15 @@ export function AiDrawer({
       </div>
     </>
   );
+}
+
+function errorMessageText(kind: 'rate_limit' | 'service' | 'network'): string {
+  switch (kind) {
+    case 'rate_limit':
+      return '⚠ 今日 AI 次数已用完,明天再来吧';
+    case 'service':
+      return '⚠ AI 服务暂时不可用,请稍后重试';
+    case 'network':
+      return '⚠ 网络异常,请检查网络后重试';
+  }
 }
