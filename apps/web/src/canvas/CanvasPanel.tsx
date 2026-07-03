@@ -316,6 +316,9 @@ export function CanvasPanel(props: CanvasPanelProps) {
         preserveAspectRatio="xMinYMin meet"
         viewBox={`0 0 ${width / zoom} ${height / zoom}`}
         className="block select-none"
+        // pointer-events:none 让 canvas SVG 不拦截子元素的点击，
+        // 子元素 (parts/wires) 的 pointer-events:auto 让它们保持可交互
+        pointerEvents="none"
         onDragOver={onDragOver}
         onDragLeave={onDragOver}
         onDrop={onDrop}

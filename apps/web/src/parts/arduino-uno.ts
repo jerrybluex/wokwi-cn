@@ -157,6 +157,9 @@ function makeArduinoUno(): PartSpec {
       pcbSvg.removeAttribute('x');
       pcbSvg.removeAttribute('y');
       pcbSvg.setAttribute('id', 'fritzing-uno-pcb');
+      // pointer-events:auto 让 PCB 板子本身成为有效拖拽/点击目标，
+      // 内部的装饰元素通过 querySelectorAll 设置 pointer-events:none
+      pcbSvg.setAttribute('pointer-events', 'auto');
       children.push(pcbSvg);
 
       // PCB 背景层(深蓝绿渐变,放在 pcb 后面,防止 silkscreen 透明区域露出 canvas 底色)
