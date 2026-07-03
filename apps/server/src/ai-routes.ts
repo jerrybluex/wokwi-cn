@@ -388,7 +388,7 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
     let inSection = false;
     let currentTarget = '';
     for (const line of lines) {
-      const sectionMatch = line.match(/^#{1,3}\s*(建议|提示|hint|suggestion)/i);
+      const sectionMatch = line.match(/^#{1,3}\s*💡?\s*(建议|提示|hint|suggestion)/i);
       if (sectionMatch) { inSection = true; continue; }
       const targetMatch = line.match(/^(?:针对|目标|元件|target)[:：]?\s*(\S+)/i);
       if (targetMatch) { currentTarget = targetMatch[1]; continue; }
