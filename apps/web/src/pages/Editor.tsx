@@ -369,8 +369,14 @@ export function EditorPage() {
         </div>
       )}
 
+      {/* 决策:Editor 三列布局
+       *   左 1/3 = 编码 (CodeMirror)
+       *   中 1/2 = 画布 (CanvasPanel,zoom 1.3x,UNO 占主体)
+       *   右 1/6 = 元件库 (12 件缩略图列表,click 添加到画布)
+       * 用 flex 比例 1.5 / 2.25 / 0.75 (= 1/3 / 1/2 / 1/6) 让浏览器
+       * 自然分栏,响应式也好算 (1.5+2.25+0.75 = 4.5)。 */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-1/2 border-r border-base-300 flex flex-col bg-base-100">
+        <div className="flex-[1.5] min-w-[220px] max-w-[460px] border-r border-base-300 flex flex-col bg-base-100">
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between">
             <span>sketch.ino</span>
             <div className="flex gap-1.5">
@@ -431,58 +437,12 @@ export function EditorPage() {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col">
+        <div className="flex-[2.25] flex flex-col min-w-0">
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between gap-2">
             <span>画布</span>
-            <div className="flex items-center gap-2">
-              <span className="text-base-content/40 normal-case font-mono">
-                {partCount} 件 / {wireCount} 线
-              </span>
-              {/* Part library collapsed to a select (decision 21). Wokwi-style
-               * "add part" dropdown — picks a type, adds at canvas center. */}
-              <select
-                aria-label="添加元件"
-                className="select select-bordered select-xs w-40 font-mono"
-                value=""
-                onChange={(e) => {
-                  const type = e.target.value;
-                  if (!type) return;
-                  // 简单布局:在 canvas 中央插入,后续用户可拖动
-                  onChange({
-                    type: 'add-part',
-                    part: {
-                      id: `p${Math.random().toString(36).slice(2, 8)}`,
-                      type,
-                      x: 60,
-                      y: 60,
-                      rotation: 0,
-                    },
-                  });
-                  e.target.value = '';
-                }}
-                data-testid="part-library-select"
-              >
-                <option value="">+ 添加元件…</option>
-                {[
-                  'arduino-uno',
-                  'led',
-                  'button',
-                  'potentiometer',
-                  'resistor',
-                  'hcsr04',
-                  'servo',
-                  'buzzer',
-                  'ssd1306',
-                  'mpu6050',
-                  'seven-segment',
-                  'rgb-led',
-                ].map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <span className="text-base-content/40 normal-case font-mono">
+              {partCount} 件 / {wireCount} 线
+            </span>
           </div>
           <CanvasPanel
             state={history.current}
@@ -498,6 +458,86 @@ export function EditorPage() {
             pins={pins}
             zoom={1.3}
           />
+        </div>
+
+        {/* 右 1/6 元件库 (12 件缩略图列表) */}
+        <div className="flex-[0.75] min-w-[150px] max-w-[260px] border-l border-base-300 bg-base-200 overflow-y-auto">
+          <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300">
+            元件库
+          </div>
+          <ul className="px-2 py-2 space-y-1">
+            {[
+              ['arduino-uno', 'Arduino UNO'],
+              ['led', 'LED'],
+              ['rgb-led', 'RGB LED'],
+              ['button', 'Push Button'],
+              ['potentiometer', 'Potentiometer'],
+              ['resistor', 'Resistor (220Ω)'],
+              ['hcsr04', 'HC-SR04'],
+              ['servo', 'Servo (SG90)'],
+              ['buzzer', 'Active Buzzer'],
+              ['ssd1306', 'OLED 128×64'],
+              ['mpu6050', 'MPU-6050'],
+              ['seven-segment', '7-Segment'],
+            ].map(([t, label]) => (
+              <li key={t}>
+                <button
+                  onClick={() => {
+                    onChange({
+                      type: 'add-part',
+                      part: {
+                        id: `p${Math.random().toString(36).slice(2, 8)}`,
+                        type: t,
+                        x: 60,
+                        y: 60,
+                        rotation: 0,
+                      },
+                    });
+                  }}
+                  className="w-full rounded-md border border-base-300 bg-base-100 hover:bg-base-300/40 cursor-pointer select-none px-2 py-1.5 flex items-center gap-2 text-left"
+                  data-testid={`part-tile-${t}`}
+                  title={`添加 ${label}`}
+                >
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+                    style={{
+                      background:
+                        t === 'arduino-uno'
+                          ? 'var(--canvas-board-uno-pcb)'
+                          : t === 'led'
+                            ? '#ff5252'
+                            : t === 'rgb-led'
+                              ? '#ff5252'
+                              : t === 'button'
+                                ? 'var(--part-lead)'
+                                : t === 'potentiometer'
+                                  ? 'var(--part-body)'
+                                  : t === 'resistor'
+                                    ? '#d2b48c'
+                                    : t === 'hcsr04'
+                                      ? 'var(--part-body)'
+                                      : t === 'servo'
+                                        ? '#f1c40f'
+                                        : t === 'buzzer'
+                                          ? 'var(--part-off)'
+                                          : t === 'ssd1306'
+                                            ? '#0e2a3a'
+                                            : t === 'mpu6050'
+                                              ? '#0e2a3a'
+                                              : '#1a1a1a',
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-[10px] font-mono leading-tight truncate">
+                    {label}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="px-3 py-2 text-[10px] text-base-content/40 border-t border-base-300">
+            点击添加 · 拖到画布
+          </div>
         </div>
       </div>
       <AiDrawer

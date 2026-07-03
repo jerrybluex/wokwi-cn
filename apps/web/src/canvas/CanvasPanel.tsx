@@ -329,25 +329,11 @@ export function CanvasPanel(props: CanvasPanelProps) {
         aria-label="电路画布"
       >
         <GridBackground width={width} height={height} />
-        {/* wires drawn first so they sit under the parts */}
-        <g>
-          {state.wires.map((w) => (
-            <WireLine
-              key={w.id}
-              wire={w}
-              state={state}
-              selected={selectedWireId === w.id}
-              onClick={() => onSelectWire?.(w.id)}
-            />
-          ))}
-        </g>
-        {pendingWireFrom && (
-          <PendingWire
-            pendingFrom={pendingWireFrom}
-            mousePos={mousePos}
-            state={state}
-          />
-        )}
+        {/* Render order matters for visual stacking (later = on top):
+         *   parts (with their full body shapes) draw FIRST, then wires draw
+         *   OVER them so the wire is never occluded by a board / chip body.
+         *   PendingWire is the last layer (in-progress routing sits on top
+         *   of every committed wire too). */}
         <g>
           {state.parts.map((p) => {
             const spec = getPartSpec(p.type);
@@ -396,6 +382,24 @@ export function CanvasPanel(props: CanvasPanelProps) {
             );
           })}
         </g>
+        <g>
+          {state.wires.map((w) => (
+            <WireLine
+              key={w.id}
+              wire={w}
+              state={state}
+              selected={selectedWireId === w.id}
+              onClick={() => onSelectWire?.(w.id)}
+            />
+          ))}
+        </g>
+        {pendingWireFrom && (
+          <PendingWire
+            pendingFrom={pendingWireFrom}
+            mousePos={mousePos}
+            state={state}
+          />
+        )}
         {/* Wire-in-progress pin labels overlay (decision 19). Lives outside
          * PartNode because pin pads now live INSIDE the part body render;
          * labels are decorative / mode-only — pointerEvents none so they
