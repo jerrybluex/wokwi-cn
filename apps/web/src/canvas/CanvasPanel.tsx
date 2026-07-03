@@ -445,11 +445,116 @@ export function CanvasPanel(props: CanvasPanelProps) {
         }}
         wiring={!!pendingWireFrom}
       />
+      {/* 决策 22 (主理人 9:48): 元件库 = 浮动 FAB + 弹窗,0 常驻空间
+       *   - 位置:画布右上角 (避开 UNO 板左上区域)
+       *   - '+' 圆形按钮 (btn-circle btn-primary)
+       *   - 点击 → 弹 popover ul 12 件 (同 dropdown 选项)
+       *   - 选中 → onChange({ type: 'add-part', part: {x:60, y:60} })
+       *   - 点击外部 / 选中选项 → 自动关闭
+       */}
+      <PartLibraryFab
+        onAdd={(type) =>
+          onChange({
+            type: 'add-part',
+            part: {
+              id: genId(type),
+              type,
+              x: 60,
+              y: 60,
+              rotation: 0,
+            },
+          })
+        }
+      />
     </div>
   );
 }
 
 // ---- Sub-components ---------------------------------------------------------
+
+/**
+ * PartLibraryFab — 浮动元件库按钮 (决策 22)
+ *   - 画布右上角圆形 '+' 按钮 (btn-circle btn-primary)
+ *   - 点击 → 弹 popover 列出 12 件选项
+ *   - 选中 → onAdd(type) 通知 parent 添加元件 + 自动关闭
+ *   - 点击外部 → 关闭 (useEffect mousedown listener)
+ *   - 0 常驻空间,主理人反馈"元件库不要占空间"
+ */
+function PartLibraryFab({ onAdd }: { onAdd: (type: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [open]);
+  return (
+    <div ref={ref} className="absolute top-2 right-2 z-20" data-testid="part-library-fab-root">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="btn btn-circle btn-primary btn-sm shadow-lg"
+        aria-label="添加元件"
+        title="添加元件 (FAB)"
+        data-testid="part-library-fab"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={3}
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+      {open && (
+        <ul
+          className="absolute right-0 mt-2 menu bg-base-200 rounded-box w-52 p-2 shadow-lg border border-base-300 z-30"
+          data-testid="part-library-popover"
+        >
+          {[
+            'arduino-uno',
+            'led',
+            'rgb-led',
+            'button',
+            'potentiometer',
+            'resistor',
+            'hcsr04',
+            'servo',
+            'buzzer',
+            'ssd1306',
+            'mpu6050',
+            'seven-segment',
+          ].map((t) => (
+            <li key={t}>
+              <a
+                onClick={(e) => {
+                  e.preventDefault();
+                  onAdd(t);
+                  setOpen(false);
+                }}
+                data-testid={`part-tile-${t}`}
+                className="text-xs font-mono"
+              >
+                {t}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function PartWireLabels({ part, spec }: { part: CanvasPart; spec: PartSpec }) {
   return (

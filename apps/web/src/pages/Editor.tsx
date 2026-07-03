@@ -369,14 +369,14 @@ export function EditorPage() {
         </div>
       )}
 
-      {/* 决策:Editor 三列布局
+      {/* 决策 22 (主理人 9:48): 元件库 = 0 常驻空间浮动 FAB + 弹窗
        *   左 1/3 = 编码 (CodeMirror)
-       *   中 1/2 = 画布 (CanvasPanel,zoom 1.3x,UNO 占主体)
-       *   右 1/6 = 元件库 (12 件缩略图列表,click 添加到画布)
-       * 用 flex 比例 1.5 / 2.25 / 0.75 (= 1/3 / 1/2 / 1/6) 让浏览器
-       * 自然分栏,响应式也好算 (1.5+2.25+0.75 = 4.5)。 */}
+       *   右 2/3 = 画布 (CanvasPanel,zoom 1.3x,UNO 占主体)
+       * 用 flex 比例 1 / 2 (= 1/3 / 2/3) 让浏览器自然分栏。
+       * 元件库通过 CanvasPanel 右上角浮动 + 按钮 + popover 提供,
+       * 不再占固定横向空间,主理人反馈"不要占空间"。 */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-[1.5] min-w-[220px] max-w-[460px] border-r border-base-300 flex flex-col bg-base-100">
+        <div className="flex-[1] min-w-[220px] max-w-[460px] border-r border-base-300 flex flex-col bg-base-100">
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between">
             <span>sketch.ino</span>
             <div className="flex gap-1.5">
@@ -437,7 +437,7 @@ export function EditorPage() {
           </div>
         </div>
 
-        <div className="flex-[2.25] flex flex-col min-w-0">
+        <div className="flex-[2] flex flex-col min-w-0">
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between gap-2">
             <span>画布</span>
             <span className="text-base-content/40 normal-case font-mono">
@@ -458,61 +458,6 @@ export function EditorPage() {
             pins={pins}
             zoom={1.3}
           />
-        </div>
-
-        {/* 右 1/6 元件库 (dropdown,决策 21 Wokwi 风格 + 选择添加到画布)
-         * 决策 22 修正:之前误以为 dropdown 是 unapproved UX change,实际主理人已
-         * 批准决策 21 dropdown;78bd923 误删 dropdown,此处 revert 回 dropdown。 */}
-        <div className="flex-[0.75] min-w-[150px] max-w-[260px] border-l border-base-300 bg-base-200 flex flex-col">
-          <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300">
-            元件库
-          </div>
-          <div className="px-3 py-2">
-            <select
-              aria-label="添加元件"
-              className="select select-bordered select-xs w-full font-mono"
-              value=""
-              onChange={(e) => {
-                const type = e.target.value;
-                if (!type) return;
-                onChange({
-                  type: 'add-part',
-                  part: {
-                    id: `p${Math.random().toString(36).slice(2, 8)}`,
-                    type,
-                    x: 60,
-                    y: 60,
-                    rotation: 0,
-                  },
-                });
-                e.target.value = '';
-              }}
-              data-testid="part-library-select"
-            >
-              <option value="">+ 添加元件…</option>
-              {[
-                'arduino-uno',
-                'led',
-                'rgb-led',
-                'button',
-                'potentiometer',
-                'resistor',
-                'hcsr04',
-                'servo',
-                'buzzer',
-                'ssd1306',
-                'mpu6050',
-                'seven-segment',
-              ].map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="px-3 py-2 text-[10px] text-base-content/40 border-t border-base-300">
-            选择元件添加到画布
-          </div>
         </div>
       </div>
       <AiDrawer
