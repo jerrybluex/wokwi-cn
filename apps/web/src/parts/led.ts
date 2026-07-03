@@ -2,9 +2,14 @@ import type { PartSpec } from './types';
 import { svg, appendAll, pinPad } from './svg';
 
 /**
- * LED — simple two-pin device. Pin 'A' is anode (positive), 'K' is cathode.
- * Brightness comes from PartRenderState.pins['A'] (0 = off, 1 = full on, or
- * 0..255 from analogWrite in PWM-bright mode).
+ * LED — 真 LED 外观 (Wokwi 风格):
+ *   - 红色圆柱 body (rect, 实心) + 半球 dome (semicircle, 半透明)
+ *   - 阴极侧 flat edge 标记 (K)
+ *   - 内部 anvil (三角形) 透过 dome 可见
+ *   - 2 根银色 axial leads 接到 pin pad
+ *   - 亮时:dome 高光 + 圆光晕
+ * Pin 'A' is anode (positive), 'K' is cathode. Brightness from PartRenderState.pins['A']
+ * (0 = off, 1 = full on, or 0..255 from analogWrite in PWM-bright mode).
  */
 function makeLed(): PartSpec {
   return {
@@ -13,8 +18,8 @@ function makeLed(): PartSpec {
     width: 60,
     height: 50,
     pins: [
-      { id: 'A', x: 0, y: 14, label: 'A' },
-      { id: 'K', x: 0, y: 36, label: 'K' },
+      { id: 'A', x: 0, y: 16, label: 'A' },
+      { id: 'K', x: 0, y: 34, label: 'K' },
     ],
     defaultPinValues: { K: 0 },
     render(g, state) {
@@ -26,34 +31,62 @@ function makeLed(): PartSpec {
 
       appendAll(g, [
         // Visual pin pads — hover/click hit area + Wokwi-style dark dots
-        pinPad('A', 0, 14),
-        pinPad('K', 0, 36),
-        svg('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        lit && brightness > 0.6
-          ? svg('circle', {
-              cx: 30,
-              cy: 25,
-              r: 16,
-              fill: colorHex,
-              'fill-opacity': brightness * 0.35,
-            })
-          : null,
-        svg('circle', {
-          cx: 30,
-          cy: 25,
-          r: 12,
-          fill: lit ? colorHex : '#3a3a3a',
-          fillOpacity: lit ? brightness : 1,
+        pinPad('A', 0, 16),
+        pinPad('K', 0, 34),
+        // Axial leads (银色,实心) 从 pad 接到 LED body 边缘
+        svg('line', { x1: 0, y1: 16, x2: 20, y2: 16, stroke: '#a0a0a0', 'stroke-width': 1.5 }),
+        svg('line', { x1: 0, y1: 34, x2: 20, y2: 34, stroke: '#a0a0a0', 'stroke-width': 1.5 }),
+        // Cylindrical body (实心 rect,LED 下半身,圆柱感)
+        svg('rect', {
+          x: 20,
+          y: 20,
+          width: 24,
+          height: 14,
+          fill: lit ? colorHex : '#5a1010',
+          stroke: '#222',
+          'stroke-width': 1.2,
         }),
-        svg('line', { x1: 22, y1: 17, x2: 22, y2: 33, stroke: '#222', 'stroke-width': 2 }),
+        // Dome (半球 semicircle,半透明玻璃感)
+        svg('path', {
+          d: 'M 20 20 A 12 12 0 0 1 44 20 Z',
+          fill: lit ? colorHex : '#5a1010',
+          'fill-opacity': lit ? 0.85 : 0.95,
+          stroke: '#222',
+          'stroke-width': 1.2,
+        }),
+        // Cathode flat edge (右侧 K 标记 — 真 LED 阴极有平面边)
+        svg('line', { x1: 44, y1: 20, x2: 44, y2: 30, stroke: '#000', 'stroke-width': 2.5 }),
+        // Internal anvil (三角形,透过 dome 可见,模拟 LED 内部 anvil 结构)
+        svg('polygon', {
+          points: '26,18 32,12 38,18',
+          fill: '#222',
+          opacity: 0.7,
+        }),
+        // Dome 高光 (亮时显示,3D 效果 — 左上小白点)
+        lit && svg('ellipse', {
+          cx: 26,
+          cy: 14,
+          rx: 3.5,
+          ry: 1.5,
+          fill: '#fff',
+          'fill-opacity': 0.7 * brightness,
+        }),
+        // Glow halo when lit
+        lit && svg('circle', {
+          cx: 32,
+          cy: 24,
+          r: 17,
+          fill: colorHex,
+          'fill-opacity': brightness * 0.3,
+        }),
+        // Label
         svg('text', {
-          x: 30,
-          y: 50,
+          x: 32,
+          y: 47,
           'text-anchor': 'middle',
           fill: 'var(--canvas-text)',
           'font-family': 'JetBrains Mono, monospace',
-          'font-size': 9,
+          'font-size': 8,
         }),
       ].filter(Boolean) as SVGElement[]);
       g.lastElementChild!.textContent = lit ? `${Math.round(brightness * 100)}%` : 'LED';
