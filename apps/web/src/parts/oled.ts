@@ -20,10 +20,10 @@ function makeOled(): PartSpec {
     width: 90,
     height: 70,
     pins: [
-      { id: 'vcc', x: 0, y: 12, label: 'VCC' },
-      { id: 'gnd', x: 0, y: 32, label: 'GND' },
-      { id: 'scl', x: 0, y: 52, label: 'SCL' },
-      { id: 'sda', x: 0, y: 66, label: 'SDA' },
+      { id: 'vcc', x: 0, y: 12, label: 'VCC', pinType: 'vcc' },
+      { id: 'gnd', x: 0, y: 32, label: 'GND', pinType: 'gnd' },
+      { id: 'scl', x: 0, y: 52, label: 'SCL', pinType: 'i2c' },
+      { id: 'sda', x: 0, y: 66, label: 'SDA', pinType: 'i2c' },
     ],
     render(g, _state) {
       appendAll(g, [

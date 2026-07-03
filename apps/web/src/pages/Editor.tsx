@@ -14,6 +14,7 @@ import {
   type History,
   type Change,
   genId,
+  validateWireConnection,
 } from '../canvas/state';
 import { toWiringJSON, fromWiringJSON } from '../canvas/wiring';
 import { buildDemoCircuit } from '../canvas/demo';
@@ -130,10 +131,22 @@ export function EditorPage() {
       from: { partId: string; pinId: string },
       to: { partId: string; pinId: string },
     ) => {
+      // Plan A wiring validation — reject incompatible pin types
+      const check = validateWireConnection(
+        from.partId,
+        from.pinId,
+        to.partId,
+        to.pinId,
+        history.current.parts,
+      );
+      if (!check.valid) {
+        setMessage(check.reason);
+        return;
+      }
       const wire = { id: genId('wire'), from, to };
       setHistory((h) => applyChange(h, { type: 'add-wire', wire }));
     },
-    [],
+    [], // history.current.parts is stable (add-part only, no wire mutations)
   );
 
   const onLoadDemo = () => {

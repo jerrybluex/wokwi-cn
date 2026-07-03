@@ -19,10 +19,10 @@ function makeRgbLed(): PartSpec {
     width: 60,
     height: 60,
     pins: [
-      { id: 'r', x: 0, y: 10, label: 'R' },
-      { id: 'common', x: 0, y: 30, label: 'K' },
-      { id: 'g', x: 0, y: 44, label: 'G' },
-      { id: 'b', x: 0, y: 58, label: 'B' },
+      { id: 'r', x: 0, y: 16, label: 'R', pinType: 'pwm' },
+      { id: 'common', x: 0, y: 44, label: 'COM', pinType: 'gnd' },
+      { id: 'g', x: 60, y: 16, label: 'G', pinType: 'pwm' },
+      { id: 'b', x: 60, y: 44, label: 'B', pinType: 'pwm' },
     ],
     defaultPinValues: { common: 0 },
     render(g, state) {

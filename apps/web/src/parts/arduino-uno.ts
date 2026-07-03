@@ -31,16 +31,16 @@ const PCB_VW = 212.372;
 const PCB_VH = 151.2;
 const SCALE = 170 / PCB_VW; // ≈ 0.8006 (breadboard view scale to 170)
 
-const DIGITAL_PINS = Array.from({ length: 14 }, (_, i) => i);
-const ANALOG_PINS = Array.from({ length: 6 }, (_, i) => i);
-const POWER_PINS: { id: string; label: string }[] = [
-  { id: 'IOREF', label: 'IOREF' },
-  { id: 'RESET', label: 'RESET' },
-  { id: '3V3', label: '3V3' },
-  { id: '5V', label: '5V' },
-  { id: 'GND', label: 'GND' },
-  { id: 'GND2', label: 'GND' },
-  { id: 'Vin', label: 'VIN' },
+const DIGITAL_PINS = Array.from({ length: 14 }, (_, i) => ({ id: `D${i}`, label: `D${i}`, pinType: 'digital' as const }));
+const ANALOG_PINS = Array.from({ length: 6 }, (_, i) => ({ id: `A${i}`, label: `A${i}`, pinType: 'analog' as const }));
+const POWER_PINS: { id: string; label: string; pinType: 'vcc' | 'gnd' | 'digital' }[] = [
+  { id: 'IOREF', label: 'IOREF', pinType: 'digital' },
+  { id: 'RESET', label: 'RESET', pinType: 'digital' },
+  { id: '3V3', label: '3V3', pinType: 'vcc' },
+  { id: '5V', label: '5V', pinType: 'vcc' },
+  { id: 'GND', label: 'GND', pinType: 'gnd' },
+  { id: 'GND2', label: 'GND', pinType: 'gnd' },
+  { id: 'Vin', label: 'VIN', pinType: 'vcc' },
 ];
 
 /**
@@ -119,11 +119,12 @@ function makeArduinoUno(): PartSpec {
     height: H,
     pins: [
       // DIGITAL 14 针 — 顶部,PCB 视觉 → SVG 物理 (scale + offset)
-      ...DIGITAL_PINS.map((i) => ({
-        id: `D${i}`,
+      ...DIGITAL_PINS.map((p, i) => ({
+        id: p.id,
         x: DIGITAL_PAD_CX_PCB[i] * SCALE,
         y: DIGITAL_PAD_CY_PCB * SCALE,
-        label: `D${i}`,
+        label: p.label,
+        pinType: p.pinType,
       })),
       // POWER 7 针 — 底部,PCB 视觉
       ...POWER_PINS.map((p, i) => ({
@@ -131,13 +132,15 @@ function makeArduinoUno(): PartSpec {
         x: POWER_PAD_CX_PCB[i] * SCALE,
         y: POWER_PAD_CY_PCB * SCALE,
         label: p.label,
+        pinType: p.pinType,
       })),
       // ANALOG 6 针 — 底部
-      ...ANALOG_PINS.map((i) => ({
-        id: `A${i}`,
+      ...ANALOG_PINS.map((p, i) => ({
+        id: p.id,
         x: ANALOG_PAD_CX_PCB[i] * SCALE,
         y: ANALOG_PAD_CY_PCB * SCALE,
-        label: `A${i}`,
+        label: p.label,
+        pinType: p.pinType,
       })),
     ],
     defaultPinValues: { GND: 0 },

@@ -21,8 +21,8 @@ function makeButton(): PartSpec {
     width: 60,
     height: 50,
     pins: [
-      { id: 'A', x: 0, y: 14, label: 'A' },
-      { id: 'B', x: 0, y: 36, label: 'B' },
+      { id: 'A', x: 0, y: 14, label: 'A', pinType: 'digital' },
+      { id: 'B', x: 0, y: 36, label: 'B', pinType: 'digital' },
     ],
     render(g, state) {
       const pressed = state.pins['A'] === 1;

@@ -9,6 +9,24 @@
  *  - view 是纯渲染函数: caller pre-translates, view draws
  */
 
+/**
+ * Pin type categories for wiring compatibility validation (Plan A).
+ *
+ * Compatibility rules:
+ *   - 'vcc'  ↔  'vcc'       ✓ (power bus)
+ *   - 'gnd'  ↔  'gnd'       ✓ (ground bus)
+ *   - 'digital'  ↔  'digital'   ✓ (generic digital — button, resistor, etc.)
+ *   - 'digital'  ↔  'pwm'       ✓ (PWM pins work as digital output)
+ *   - 'digital'  ↔  'analog'    ✓ (analog pins also work as digital)
+ *   - 'pwm'   ↔  'pwm'    ✓ (servo/buzzer SIG)
+ *   - 'analog' ↔  'analog' ✓ (potentiometer W)
+ *   - 'i2c'   ↔  'i2c'   ✓ (OLED/MPU6050 SCL/SDA)
+ *   - 'digital'  ↔  'i2c'  ✗
+ *   - 'pwm'   ↔  'i2c'   ✗
+ *   - Any + undefined      ✓ (backward compat — unlabeled pins)
+ */
+export type PinType = 'vcc' | 'gnd' | 'digital' | 'pwm' | 'analog' | 'i2c';
+
 export interface PinDef {
   /** Unique within a part. e.g. 'D13' for Arduino, 'A' for LED anode. */
   id: string;
@@ -18,6 +36,11 @@ export interface PinDef {
   y: number;
   /** Display label rendered next to the pin. */
   label: string;
+  /**
+   * Wiring compatibility type. Undefined means "any type" (backward compat
+   * for parts not yet annotated, and for generic passthrough pins).
+   */
+  pinType?: PinType;
 }
 
 /** Render-time pin state collected by canvas + runner. */

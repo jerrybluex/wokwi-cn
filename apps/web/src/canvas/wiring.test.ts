@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { toWiringJSON, fromWiringJSON, wiresTouching, pinPosition } from './wiring';
 import type { CanvasState } from './state';
 import { getPartSpec } from '../parts/registry';
+import { validateWireConnection } from './state';
 
 const sample: CanvasState = {
   parts: [
@@ -86,5 +87,149 @@ describe('pinPosition', () => {
     //   p90.y - cy =   p0.x - cx
     expect(p90.x - cx).toBeCloseTo(-(p0.y - cy));
     expect(p90.y - cy).toBeCloseTo(p0.x - cx);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Plan A wiring validation — pinType compatibility (P0 bug fix)
+//
+// Compatibility matrix (symmetric via bidirectional lookup):
+//   vcc  ↔ vcc / digital / analog
+//   gnd  ↔ gnd / digital / pwm / analog
+//   digital ↔ digital / pwm / analog / gnd / vcc
+//   pwm   ↔ digital / pwm / analog / gnd
+//   analog ↔ digital / analog / vcc
+//   i2c   ↔ i2c  ONLY (rejected all other combos)
+// ---------------------------------------------------------------------------
+describe('validateWireConnection', () => {
+  // Shared canvas parts used in tests below
+  const parts = [
+    { id: 'uno', type: 'arduino-uno', x: 0, y: 0, rotation: 0 as const },
+    { id: 'led1', type: 'led', x: 0, y: 0, rotation: 0 as const },
+    { id: 'btn1', type: 'button', x: 0, y: 0, rotation: 0 as const },
+    { id: 'servo1', type: 'servo', x: 0, y: 0, rotation: 0 as const },
+    { id: 'buzzer1', type: 'buzzer', x: 0, y: 0, rotation: 0 as const },
+    { id: 'pot1', type: 'potentiometer', x: 0, y: 0, rotation: 0 as const },
+    { id: 'oled1', type: 'ssd1306', x: 0, y: 0, rotation: 0 as const },
+  ];
+
+  // --- Valid connections (correct wiring) ---
+
+  it('allows UNO D9 → LED A (digital ↔ digital)', () => {
+    const r = validateWireConnection('uno', 'D9', 'led1', 'A', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows UNO D9 → LED K (digital ↔ digital)', () => {
+    const r = validateWireConnection('uno', 'D9', 'led1', 'K', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows UNO GND → LED K (gnd ↔ digital — ground completes circuit)', () => {
+    const r = validateWireConnection('uno', 'GND', 'led1', 'K', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows UNO 5V → servo VCC (vcc ↔ vcc)', () => {
+    const r = validateWireConnection('uno', '5V', 'servo1', 'VCC', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows UNO GND → servo GND (gnd ↔ gnd)', () => {
+    const r = validateWireConnection('uno', 'GND', 'servo1', 'GND', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows UNO D9 PWM → servo SIG (digital ↔ pwm)', () => {
+    const r = validateWireConnection('uno', 'D9', 'servo1', 'SIG', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows UNO D3 PWM → buzzer SIG (digital ↔ pwm)', () => {
+    const r = validateWireConnection('uno', 'D3', 'buzzer1', 'SIG', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows UNO A0 analog → potentiometer W (analog ↔ analog)', () => {
+    const r = validateWireConnection('uno', 'A0', 'pot1', 'W', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows UNO 5V → all VCC pins', () => {
+    const vccParts = ['servo1', 'buzzer1', 'oled1'];
+    for (const pid of vccParts) {
+      const part = parts.find((p) => p.id === pid)!;
+      const spec = getPartSpec(part.type)!;
+      const vccPin = spec.pins.find((p) => p.pinType === 'vcc')?.id;
+      if (vccPin) {
+        const r = validateWireConnection('uno', '5V', pid, vccPin, parts);
+        expect(r.valid).toBe(true);
+      }
+    }
+  });
+
+  it('allows UNO GND → all GND pins', () => {
+    const gndParts = ['servo1', 'buzzer1', 'led1', 'pot1', 'oled1'];
+    for (const pid of gndParts) {
+      const part = parts.find((p) => p.id === pid)!;
+      const spec = getPartSpec(part.type)!;
+      const gndPin = spec.pins.find((p) => p.pinType === 'gnd')?.id;
+      if (gndPin) {
+        const r = validateWireConnection('uno', 'GND', pid, gndPin, parts);
+        expect(r.valid).toBe(true);
+      }
+    }
+  });
+
+  it('allows button → UNO GND (digital ↔ gnd — pull-down resistor circuit)', () => {
+    const r = validateWireConnection('btn1', 'A', 'uno', 'GND', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows button → UNO 5V (digital ↔ vcc — pull-up resistor circuit)', () => {
+    const r = validateWireConnection('btn1', 'A', 'uno', '5V', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  it('allows potentiometer A → UNO GND (digital ↔ gnd)', () => {
+    const r = validateWireConnection('pot1', 'A', 'uno', 'GND', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  // --- Invalid connections (P0 regression cases) ---
+
+  it('rejects OLED SCL → UNO D9 digital (i2c ↔ digital — bus protocol mismatch)', () => {
+    const r = validateWireConnection('oled1', 'scl', 'uno', 'D9', parts);
+    expect(r.valid).toBe(false);
+    expect((r as { valid: false; reason: string }).reason).toContain('Pin type 不兼容');
+  });
+
+  it('rejects OLED SDA → UNO D9 digital (i2c ↔ digital)', () => {
+    const r = validateWireConnection('oled1', 'sda', 'uno', 'D9', parts);
+    expect(r.valid).toBe(false);
+  });
+
+  it("rejects UNO A4 → OLED SDA (analog ↔ i2c — analog can't drive I2C bus)", () => {
+    const r = validateWireConnection('uno', 'A4', 'oled1', 'sda', parts);
+    expect(r.valid).toBe(false);
+  });
+
+  it('rejects MPU6050 SCL → UNO D2 digital (i2c ↔ digital)', () => {
+    const mpu = { id: 'mpu1', type: 'mpu6050', x: 0, y: 0, rotation: 0 as const };
+    const allParts = [...parts, mpu];
+    const r = validateWireConnection('mpu1', 'scl', 'uno', 'D2', allParts);
+    expect(r.valid).toBe(false);
+  });
+
+  it('rejects unknown part type gracefully', () => {
+    const r = validateWireConnection('nonexist', 'A', 'led1', 'A', parts);
+    expect(r.valid).toBe(false);
+    expect((r as { valid: false; reason: string }).reason).toBe('Part not found');
+  });
+
+  it('rejects unknown pin gracefully', () => {
+    const r = validateWireConnection('led1', 'Z', 'uno', 'D9', parts);
+    expect(r.valid).toBe(false);
+    expect((r as { valid: false; reason: string }).reason).toBe('Unknown pin');
   });
 });

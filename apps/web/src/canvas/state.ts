@@ -1,4 +1,89 @@
 /**
+ * Pin type compatibility — Plan A wiring validation (P0 bug fix).
+ *
+ * Two pins are compatible when:
+ *   - both are undefined  (unannotated pins — backward compat)
+ *   - at least one is undefined (mixed annotated/unannotated)
+ *   - both are the same PinType
+ *   - 'digital' ↔ any of 'pwm' / 'analog'  (digital pins accept any signal)
+ *   - 'gnd' ↔ 'gnd' and 'vcc' ↔ 'vcc'  (power buses are always compatible)
+ *
+ * Combinations that are REJECTED:
+ *   - i2c ↔ non-i2c  (I2C is a bus protocol, can't mix with GPIO)
+ *   - pwm ↔ i2c / analog ↔ i2c  (protocol mismatch)
+ */
+
+import type { PinType } from '../parts/types';
+import { getPartSpec } from '../parts/registry';
+
+export type WireValidationResult =
+  | { valid: true }
+  | { valid: false; reason: string };
+
+const COMPATIBILITY: Record<string, Set<string>> = {
+  vcc: new Set(['vcc', 'digital', 'analog']),
+  gnd: new Set(['gnd', 'digital', 'pwm', 'analog']),
+  digital: new Set(['digital', 'pwm', 'analog', 'gnd', 'vcc']),
+  pwm: new Set(['digital', 'pwm', 'analog', 'gnd']),
+  analog: new Set(['digital', 'analog', 'vcc']),
+  i2c: new Set(['i2c']),
+};
+
+/**
+ * Returns true when a wire between two pin types is electrically valid.
+ * Undefined on either side always passes (backward compat for legacy parts).
+ * Symmetric: checks both (a→b) and (b→a) — allows connections where either
+ * end is the "active" driver and the other is a passive sink.
+ */
+function typesCompatible(a: PinType | undefined, b: PinType | undefined): boolean {
+  if (!a || !b) return true; // unannotated = any
+  if (a === b) return true;
+  // Check both directions: passive sinks (gnd/vcc) may be compatible with
+  // active signal pins even if they can't "drive" in return.
+  const aToB = COMPATIBILITY[a]?.has(b) ?? false;
+  const bToA = COMPATIBILITY[b]?.has(a) ?? false;
+  return aToB || bToA;
+}
+
+/**
+ * Validate a proposed wire connection before creating it.
+ * Returns { valid: true } or { valid: false, reason: string }.
+ *
+ * Uses getPartSpec to look up pin types — safe to call with any canvas
+ * state; returns false gracefully if a part type is unknown.
+ */
+export function validateWireConnection(
+  fromPartId: string,
+  fromPinId: string,
+  toPartId: string,
+  toPinId: string,
+  parts: { id: string; type: string }[],
+): WireValidationResult {
+  const fromPart = parts.find((p) => p.id === fromPartId);
+  const toPart = parts.find((p) => p.id === toPartId);
+  if (!fromPart || !toPart) return { valid: false, reason: 'Part not found' };
+
+  const fromSpec = getPartSpec(fromPart.type);
+  const toSpec = getPartSpec(toPart.type);
+  if (!fromSpec || !toSpec) return { valid: false, reason: 'Unknown part type' };
+
+  const fromPin = fromSpec.pins.find((p) => p.id === fromPinId);
+  const toPin = toSpec.pins.find((p) => p.id === toPinId);
+  if (!fromPin || !toPin) return { valid: false, reason: 'Unknown pin' };
+
+  const ok = typesCompatible(fromPin.pinType, toPin.pinType);
+  if (!ok) {
+    const a = fromPin.pinType ?? 'any';
+    const b = toPin.pinType ?? 'any';
+    return {
+      valid: false,
+      reason: `Pin type 不兼容: ${fromPin.label}(${a}) ↔ ${toPin.label}(${b})`,
+    };
+  }
+  return { valid: true };
+}
+
+/**
  * Canvas state — pure data + reducer + history (undo/redo).
  *
  * This is the heart of D5. The React layer (CanvasPanel) holds a `History`

@@ -17,8 +17,8 @@ function makeResistor(): PartSpec {
     width: 100,
     height: 40,
     pins: [
-      { id: 'A', x: 0, y: 20, label: 'A' },
-      { id: 'B', x: 100, y: 20, label: 'B' },
+      { id: 'A', x: 0, y: 20, label: 'A', pinType: 'digital' },
+      { id: 'B', x: 100, y: 20, label: 'B', pinType: 'digital' },
     ],
     render(g, _state) {
       appendAll(g, [

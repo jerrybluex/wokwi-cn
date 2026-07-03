@@ -20,11 +20,11 @@ function makeMpu6050(): PartSpec {
     width: 90,
     height: 80,
     pins: [
-      { id: 'vcc', x: 0, y: 12, label: 'VCC' },
-      { id: 'gnd', x: 0, y: 28, label: 'GND' },
-      { id: 'scl', x: 0, y: 44, label: 'SCL' },
-      { id: 'sda', x: 0, y: 60, label: 'SDA' },
-      { id: 'int', x: 90, y: 36, label: 'INT' },
+      { id: 'vcc', x: 0, y: 12, label: 'VCC', pinType: 'vcc' },
+      { id: 'gnd', x: 0, y: 28, label: 'GND', pinType: 'gnd' },
+      { id: 'scl', x: 0, y: 44, label: 'SCL', pinType: 'i2c' },
+      { id: 'sda', x: 0, y: 60, label: 'SDA', pinType: 'i2c' },
+      { id: 'int', x: 90, y: 36, label: 'INT', pinType: 'digital' },
     ],
     render(g, _state) {
       appendAll(g, [

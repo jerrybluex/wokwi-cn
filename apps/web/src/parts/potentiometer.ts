@@ -17,9 +17,9 @@ function makePotentiometer(): PartSpec {
     width: 60,
     height: 80,
     pins: [
-      { id: 'A', x: 0, y: 18, label: 'A' },
-      { id: 'B', x: 60, y: 18, label: 'B' },
-      { id: 'W', x: 30, y: 80, label: 'W' },
+      { id: 'A', x: 0, y: 18, label: 'A', pinType: 'digital' },
+      { id: 'B', x: 60, y: 18, label: 'B', pinType: 'digital' },
+      { id: 'W', x: 30, y: 80, label: 'W', pinType: 'analog' },
     ],
     render(g, state) {
       const raw = state.pins['W'] ?? 50; // canvas gives 0..100

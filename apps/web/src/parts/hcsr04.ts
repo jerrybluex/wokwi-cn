@@ -19,10 +19,10 @@ function makeHcsr04(): PartSpec {
     width: 90,
     height: 70,
     pins: [
-      { id: 'VCC', x: 0, y: 12, label: 'VCC' },
-      { id: 'GND', x: 0, y: 32, label: 'GND' },
-      { id: 'TRIG', x: 90, y: 12, label: 'TRIG' },
-      { id: 'ECHO', x: 90, y: 32, label: 'ECHO' },
+      { id: 'VCC', x: 0, y: 12, label: 'VCC', pinType: 'vcc' },
+      { id: 'GND', x: 0, y: 32, label: 'GND', pinType: 'gnd' },
+      { id: 'TRIG', x: 90, y: 12, label: 'TRIG', pinType: 'digital' },
+      { id: 'ECHO', x: 90, y: 32, label: 'ECHO', pinType: 'digital' },
     ],
     render(g, _state) {
       appendAll(g, [

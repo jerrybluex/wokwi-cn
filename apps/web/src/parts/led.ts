@@ -18,8 +18,8 @@ function makeLed(): PartSpec {
     width: 60,
     height: 50,
     pins: [
-      { id: 'A', x: 0, y: 16, label: 'A' },
-      { id: 'K', x: 0, y: 34, label: 'K' },
+      { id: 'A', x: 0, y: 16, label: 'A', pinType: 'digital' },
+      { id: 'K', x: 0, y: 34, label: 'K', pinType: 'digital' },
     ],
     defaultPinValues: { K: 0 },
     render(g, state) {

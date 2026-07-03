@@ -18,9 +18,9 @@ function makeServo(): PartSpec {
     width: 90,
     height: 70,
     pins: [
-      { id: 'VCC', x: 0, y: 12, label: 'VCC' },
-      { id: 'GND', x: 0, y: 32, label: 'GND' },
-      { id: 'SIG', x: 90, y: 22, label: 'SIG' },
+      { id: 'VCC', x: 0, y: 12, label: 'VCC', pinType: 'vcc' },
+      { id: 'GND', x: 0, y: 32, label: 'GND', pinType: 'gnd' },
+      { id: 'SIG', x: 90, y: 22, label: 'SIG', pinType: 'pwm' },
     ],
     render(g, state) {
       // SIG pin carries 0–255 (PWM). Map to 0–180°.

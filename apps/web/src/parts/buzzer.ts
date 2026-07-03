@@ -17,9 +17,9 @@ function makeBuzzer(): PartSpec {
     width: 60,
     height: 56,
     pins: [
-      { id: 'VCC', x: 0, y: 12, label: 'VCC' },
-      { id: 'GND', x: 0, y: 32, label: 'GND' },
-      { id: 'SIG', x: 60, y: 22, label: 'SIG' },
+      { id: 'VCC', x: 0, y: 12, label: 'VCC', pinType: 'vcc' },
+      { id: 'GND', x: 0, y: 32, label: 'GND', pinType: 'gnd' },
+      { id: 'SIG', x: 60, y: 22, label: 'SIG', pinType: 'pwm' },
     ],
     defaultPinValues: { GND: 0 },
     render(g, state) {
