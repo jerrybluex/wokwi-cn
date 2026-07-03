@@ -460,83 +460,58 @@ export function EditorPage() {
           />
         </div>
 
-        {/* 右 1/6 元件库 (12 件缩略图列表) */}
-        <div className="flex-[0.75] min-w-[150px] max-w-[260px] border-l border-base-300 bg-base-200 overflow-y-auto">
+        {/* 右 1/6 元件库 (dropdown,决策 21 Wokwi 风格 + 选择添加到画布)
+         * 决策 22 修正:之前误以为 dropdown 是 unapproved UX change,实际主理人已
+         * 批准决策 21 dropdown;78bd923 误删 dropdown,此处 revert 回 dropdown。 */}
+        <div className="flex-[0.75] min-w-[150px] max-w-[260px] border-l border-base-300 bg-base-200 flex flex-col">
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300">
             元件库
           </div>
-          <ul className="px-2 py-2 space-y-1">
-            {[
-              ['arduino-uno', 'Arduino UNO'],
-              ['led', 'LED'],
-              ['rgb-led', 'RGB LED'],
-              ['button', 'Push Button'],
-              ['potentiometer', 'Potentiometer'],
-              ['resistor', 'Resistor (220Ω)'],
-              ['hcsr04', 'HC-SR04'],
-              ['servo', 'Servo (SG90)'],
-              ['buzzer', 'Active Buzzer'],
-              ['ssd1306', 'OLED 128×64'],
-              ['mpu6050', 'MPU-6050'],
-              ['seven-segment', '7-Segment'],
-            ].map(([t, label]) => (
-              <li key={t}>
-                <button
-                  onClick={() => {
-                    onChange({
-                      type: 'add-part',
-                      part: {
-                        id: `p${Math.random().toString(36).slice(2, 8)}`,
-                        type: t,
-                        x: 60,
-                        y: 60,
-                        rotation: 0,
-                      },
-                    });
-                  }}
-                  className="w-full rounded-md border border-base-300 bg-base-100 hover:bg-base-300/40 cursor-pointer select-none px-2 py-1.5 flex items-center gap-2 text-left"
-                  data-testid={`part-tile-${t}`}
-                  title={`添加 ${label}`}
-                >
-                  <span
-                    className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
-                    style={{
-                      background:
-                        t === 'arduino-uno'
-                          ? 'var(--canvas-board-uno-pcb)'
-                          : t === 'led'
-                            ? '#ff5252'
-                            : t === 'rgb-led'
-                              ? '#ff5252'
-                              : t === 'button'
-                                ? 'var(--part-lead)'
-                                : t === 'potentiometer'
-                                  ? 'var(--part-body)'
-                                  : t === 'resistor'
-                                    ? '#d2b48c'
-                                    : t === 'hcsr04'
-                                      ? 'var(--part-body)'
-                                      : t === 'servo'
-                                        ? '#f1c40f'
-                                        : t === 'buzzer'
-                                          ? 'var(--part-off)'
-                                          : t === 'ssd1306'
-                                            ? '#0e2a3a'
-                                            : t === 'mpu6050'
-                                              ? '#0e2a3a'
-                                              : '#1a1a1a',
-                    }}
-                    aria-hidden="true"
-                  />
-                  <span className="text-[10px] font-mono leading-tight truncate">
-                    {label}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="px-3 py-2">
+            <select
+              aria-label="添加元件"
+              className="select select-bordered select-xs w-full font-mono"
+              value=""
+              onChange={(e) => {
+                const type = e.target.value;
+                if (!type) return;
+                onChange({
+                  type: 'add-part',
+                  part: {
+                    id: `p${Math.random().toString(36).slice(2, 8)}`,
+                    type,
+                    x: 60,
+                    y: 60,
+                    rotation: 0,
+                  },
+                });
+                e.target.value = '';
+              }}
+              data-testid="part-library-select"
+            >
+              <option value="">+ 添加元件…</option>
+              {[
+                'arduino-uno',
+                'led',
+                'rgb-led',
+                'button',
+                'potentiometer',
+                'resistor',
+                'hcsr04',
+                'servo',
+                'buzzer',
+                'ssd1306',
+                'mpu6050',
+                'seven-segment',
+              ].map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="px-3 py-2 text-[10px] text-base-content/40 border-t border-base-300">
-            点击添加 · 拖到画布
+            选择元件添加到画布
           </div>
         </div>
       </div>
