@@ -42,9 +42,9 @@ export const CHAT_CONTEXT_SYSTEM_PROMPT = [
   '## 💡 建议',
   '请根据学生代码和接线，从以下类型中选择适用的建议，每条一行：',
   '',
-  '- [type: code]    [target: loop/setup/具体行]         [描述]',
-  '- [type: wiring]  [target: 元件名或parts:0/wires:1]  [描述]',
-  '- [type: part]    [target: 元件名]                   [描述]',
+  '- [type: code]    [target: loop/setup/具体行]      [description: 描述]',
+  '- [type: wiring]  [target: 元件名或parts:0/wires:1] [description: 描述]',
+  '- [type: part]    [target: 元件名]                  [description: 描述]',
   '',
   'type 说明：',
   '  code   — 代码逻辑问题（语法错误、逻辑错误、缺失调用等）',
@@ -91,6 +91,29 @@ const chatBodySchema = z.object({
   errorMessage: z.string().optional(),
   question: z.string().optional(),
 });
+
+/** Parse suggestions from AI response — ## 建议 / ## 提示 blocks, emoji-tolerant. */
+export function parseSuggestionsImpl(raw: string): AiSuggestion[] {
+  const suggestions: AiSuggestion[] = [];
+  const lines = raw.split('\n');
+  let inSection = false;
+  let currentTarget = '';
+  for (const line of lines) {
+    // ## 建议 / ## 💡 建议 / ## 💡建议 — emoji optional, any spacing
+    const sectionMatch = line.match(/^#{1,3}\s*(?:💡\s+)?(建议|提示|hint|suggestion)/i);
+    if (sectionMatch) { inSection = true; currentTarget = ''; continue; }
+    const targetMatch = line.match(/^(?:针对|目标|元件|target)[:：]?\s*(\S+)/i);
+    if (targetMatch) { currentTarget = targetMatch[1]; continue; }
+    if (inSection && line.trim() && !line.startsWith('#')) {
+      suggestions.push({
+        type: 'hint',
+        target: currentTarget || 'general',
+        payload: line.trim().replace(/^[-*•]\s*/, ''),
+      });
+    }
+  }
+  return suggestions.slice(0, 5);
+}
 
 /** System prompts per task type — see docs/ai-tutor-prompts.md */
 export const SYSTEM_PROMPTS: Record<Exclude<AiTaskType, 'chat'>, string> = {
@@ -399,34 +422,6 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
     return `${CHAT_CONTEXT_SYSTEM_PROMPT}\n\n当前项目上下文：\n${summary}`;
   }
 
-  /**
-   * Parse suggestions from the raw model response.
-   * v1: looks for markdown-ish hint blocks. In a later phase this could be
-   * a structured JSON output mode from the model.
-   */
-  function parseSuggestions(raw: string): AiSuggestion[] {
-    const suggestions: AiSuggestion[] = [];
-    // Match blocks like "## 建议" or "### 提示" followed by lines
-    const lines = raw.split('\n');
-    let inSection = false;
-    let currentTarget = '';
-    for (const line of lines) {
-      const sectionMatch = line.match(/^#{1,3}\s*💡?\s*(建议|提示|hint|suggestion)/i);
-      if (sectionMatch) { inSection = true; continue; }
-      const targetMatch = line.match(/^(?:针对|目标|元件|target)[:：]?\s*(\S+)/i);
-      if (targetMatch) { currentTarget = targetMatch[1]; continue; }
-      if (inSection && line.trim() && !line.startsWith('#')) {
-        suggestions.push({
-          type: 'hint',
-          target: currentTarget || 'general',
-          payload: line.trim().replace(/^[-*•]\s*/, ''),
-        });
-      }
-    }
-    // Deduplicate
-    return suggestions.slice(0, 5);
-  }
-
   app.post(
     '/api/ai/chat-context',
     { onRequest: [app.authenticate] },
@@ -499,7 +494,7 @@ export async function aiRoutes(app: FastifyInstance): Promise<void> {
         const tokensIn = data.usage?.prompt_tokens ?? 0;
         const tokensOut = data.usage?.completion_tokens ?? 0;
 
-        const suggestions = parseSuggestions(rawReply);
+        const suggestions = parseSuggestionsImpl(rawReply);
 
         await logAiCall({ userId, taskType: 'chat', tokensIn, tokensOut });
 
