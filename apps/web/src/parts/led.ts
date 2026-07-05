@@ -104,14 +104,18 @@ function makeLed(): PartSpec {
           fill: '#fff',
           'fill-opacity': 0.7 * brightness,
         }),
-        // Glow halo when lit
-        lit && svg('circle', {
-          cx: 32,
-          cy: 24,
-          r: 17,
-          fill: colorHex,
-          'fill-opacity': brightness * 0.3,
-        }),
+        // Glow halo when lit — pulsing CSS class (decision 31f LED emissive)
+        lit && (() => {
+          const halo = svg('circle', {
+            cx: 32,
+            cy: 24,
+            r: 17,
+            fill: colorHex,
+            'fill-opacity': brightness * 0.3,
+            class: 'pin-led-emissive',
+          });
+          return halo;
+        })(),
         // Label
         svg('text', {
           x: 32,

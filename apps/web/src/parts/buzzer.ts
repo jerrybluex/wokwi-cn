@@ -30,9 +30,7 @@ function makeBuzzer(): PartSpec {
         pinPad('GND', 0, 32),
         pinPad('SIG', 60, 22),
         svg('circle', { cx: 30, cy: 28, r: 18, fill: 'var(--part-body-deep)', stroke: 'var(--part-chip-edge)', 'stroke-width': 1.5 }),
-        buzzing
-          ? svg('circle', { cx: 30, cy: 28, r: 22, fill: '#f39c12', 'fill-opacity': 0.45 })
-          : null,
+        // Decision 31f: wave ring on TOP of inner circle so animation is visible
         svg('circle', {
           cx: 30,
           cy: 28,
@@ -40,6 +38,18 @@ function makeBuzzer(): PartSpec {
           fill: buzzing ? '#f1c40f' : '#444',
           'fill-opacity': buzzing ? 0.9 : 1,
         }),
+        buzzing
+          ? (() => {
+              const ring = svg('circle', {
+                cx: 30, cy: 28, r: 12,
+                fill: 'none',
+                stroke: '#f39c12',
+                'stroke-width': 2,
+                class: 'buzzer-playing',
+              });
+              return ring;
+            })()
+          : null,
         svg('text', {
           x: 30,
           y: 50,
