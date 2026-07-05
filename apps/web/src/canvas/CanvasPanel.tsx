@@ -60,10 +60,17 @@ export function CanvasPanel(props: CanvasPanelProps) {
     zoom = 1,
   } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
+  // Screen-relative mouse position for tooltip (updated on mousemove)
+  const [screenMousePos, setScreenMousePos] = useState({ x: 0, y: 0 });
   const [dragOver, setDragOver] = useState(false);
   const [dragPartId, setDragPartId] = useState<string | null>(null);
   const [pendingWireFrom, setPendingWireFrom] = useState<{ partId: string; pinId: string } | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [hoveredPin, setHoveredPin] = useState<{ partId: string; pinId: string } | null>(null);
+
+  const handlePinHover = (partId: string, pinId: string | null) => {
+    setHoveredPin(pinId ? { partId, pinId } : null);
+  };
 
   // Wire interaction (decision 20) is event-driven — no wireMode button any more:
   //   mousedown on [data-pin] → set pendingWireFrom
@@ -377,6 +384,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
         onMouseMove={(e) => {
           const pt = clientToSvg(svgRef.current, e.clientX, e.clientY);
           setMousePos(pt);
+          setScreenMousePos({ x: e.clientX, y: e.clientY });
         }}
         role="img"
         aria-label="电路画布"
@@ -404,6 +412,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
                 pinValues={partPins[p.id] ?? {}}
                 pinConflict={partConflict[p.id] ?? {}}
                 onMouseDown={(e) => onPartMouseDown(e, p.id)}
+                onPinHover={(pinId) => handlePinHover(p.id, pinId)}
                 onPinMouseDown={(pinId, e) => {
                   console.log('[WIRE MD] pin=' + pinId + ' part=' + p.id + ' pending=' + JSON.stringify(pendingWireFrom));
                   e.stopPropagation();
@@ -526,6 +535,8 @@ export function CanvasPanel(props: CanvasPanelProps) {
           })
         }
       />
+      {/* 决策 31e: pin tooltip follows cursor */}
+      <PinTooltip hoveredPin={hoveredPin} screenMousePos={screenMousePos} state={state} />
     </div>
   );
 }
@@ -667,6 +678,7 @@ function PartNode({
   onMouseDown,
   onPinMouseDown,
   onPinMouseUp,
+  onPinHover,
 }: {
   part: CanvasPart;
   selected: boolean;
@@ -678,6 +690,7 @@ function PartNode({
   onMouseDown: (e: React.MouseEvent) => void;
   onPinMouseDown: (pinId: string, e: React.MouseEvent) => void;
   onPinMouseUp: (pinId: string, e: React.MouseEvent) => void;
+  onPinHover: (pinId: string | null) => void;
 }) {
   const spec = getPartSpec(part.type);
   if (!spec) return null;
@@ -704,6 +717,11 @@ function PartNode({
       onPinMouseUp(pinEl.getAttribute('data-pin')!, e);
     }
   };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const pinEl = (e.target as Element | null)?.closest('[data-pin]') as Element | null;
+    const hoveredPin = pinEl?.getAttribute('data-pin') ?? null;
+    onPinHover(hoveredPin);
+  };
   return (
     <g
       data-testid={`canvas-part-${part.id}`}
@@ -712,6 +730,7 @@ function PartNode({
       data-pending-from={pendingFrom?.partId === part.id ? pendingFrom.pinId : undefined}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
+      onMouseMove={handleMouseMove}
       style={{ cursor: dragging ? 'grabbing' : wireMode ? 'crosshair' : 'grab' }}
     >
       <PartBody spec={spec} part={part} pinValues={pinValues} pinConflict={pinConflict} />
@@ -977,6 +996,61 @@ function clientToSvg(
   const sx = (clientX - rect.left) / rect.width;
   const sy = (clientY - rect.top) / rect.height;
   return { x: vbX + sx * vbW, y: vbY + sy * vbH };
+}
+
+/**
+ * PinTooltip — decision 31e: floating HTML tooltip following the cursor,
+ * showing pin.id and pin type when the user hovers over a pin pad.
+ *
+ * Displayed only when hoveredPin is set; positioned at mousePos with a
+ * small offset so the cursor doesn't cover the text.
+ */
+function PinTooltip({
+  hoveredPin,
+  screenMousePos,
+  state,
+}: {
+  hoveredPin: { partId: string; pinId: string } | null;
+  screenMousePos: { x: number; y: number };
+  state: CanvasState;
+}) {
+  if (!hoveredPin) return null;
+
+  // Look up the pin type from the registry
+  const part = state.parts.find((p) => p.id === hoveredPin.partId);
+  const spec = part ? getPartSpec(part.type) : null;
+  const pinDef = spec?.pins.find((p) => p.id === hoveredPin.pinId);
+  const pinLabel = pinDef?.label ?? hoveredPin.pinId;
+  const pinType = pinDef?.pinType ?? 'digital';
+  const partLabel = spec?.displayName ?? hoveredPin.partId;
+
+  return (
+    <div
+      className="absolute pointer-events-none z-50"
+      style={{
+        left: screenMousePos.x,
+        top: screenMousePos.y - 36,
+        transform: 'translateX(-50%)',
+      }}
+    >
+      <div className="bg-slate-800 text-white text-xs font-mono rounded px-2 py-1 shadow-lg border border-slate-600 whitespace-nowrap">
+        <span className="text-slate-300">{partLabel}</span>
+        <span className="text-white mx-1">·</span>
+        <span className="text-yellow-300 font-semibold">{pinLabel}</span>
+        <span className="text-slate-400 ml-1">({pinType})</span>
+      </div>
+      {/* Arrow pointing down */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2"
+        style={{ top: '100%' }}
+      >
+        <div
+          className="border-4 border-transparent"
+          style={{ borderTopColor: '#1e293b' }}
+        />
+      </div>
+    </div>
+  );
 }
 
 // re-export for tests
