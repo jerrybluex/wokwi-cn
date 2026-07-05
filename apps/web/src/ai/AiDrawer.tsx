@@ -138,6 +138,67 @@ function SuggestionCard({ s }: { s: AiSuggestion }) {
   );
 }
 
+/** 决策 25 v4: chat history 持久化 (localStorage)
+ * - key: 'wokwi-ai-chat-history' (MVP 简单方案, per-user-per-project 后期再加)
+ * - 不持久化 pending / error 状态 (in-flight 状态, 重启不应该恢复)
+ * - 不持久化 wire / parts / code (这些从 server / codeMirror 拿)
+ */
+const LS_KEY = 'wokwi-ai-chat-history';
+
+/** 从 localStorage 读 history (校验 + 过滤 pending/error, 不返回 in-flight 状态) */
+function loadHistory(): Message[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    // 校验每条消息结构 + 强制清掉 pending/error (这些不应从 LS 恢复)
+    return parsed
+      .filter((m): m is Message => {
+        if (!m || typeof m !== 'object') return false;
+        const msg = m as Message;
+        return (
+          typeof msg.id === 'string' &&
+          (msg.role === 'user' || msg.role === 'ai') &&
+          typeof msg.text === 'string' &&
+          typeof msg.ts === 'number'
+        );
+      })
+      .map((m) => ({
+        id: m.id,
+        role: m.role,
+        text: m.text,
+        ts: m.ts,
+        suggestions: Array.isArray(m.suggestions) ? m.suggestions : undefined,
+        // pending / error 不持久化 (in-flight 状态)
+        pending: false,
+        error: undefined,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/** 写 history 到 localStorage (过滤 pending/error 后再写) */
+function saveHistory(history: Message[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const cleaned = history
+      .filter((m) => !m.pending && !m.error)
+      .map((m) => ({
+        id: m.id,
+        role: m.role,
+        text: m.text,
+        ts: m.ts,
+        ...(m.suggestions && m.suggestions.length > 0 ? { suggestions: m.suggestions } : {}),
+      }));
+    window.localStorage.setItem(LS_KEY, JSON.stringify(cleaned));
+  } catch {
+    // 配额满 / 序列化失败 — 静默跳过, 不影响 UI
+  }
+}
+
 /** AI 助教右侧抽屉 (决策 25 v3) — 默认关闭, 点 toolbar 'AI' 按钮触发 */
 export function AiDrawer({
   open,
@@ -151,12 +212,19 @@ export function AiDrawer({
 }: Props) {
   const [tab, setTab] = useState<StateTab>('code');
   const [remaining, setRemaining] = useState<number>(initialRemaining ?? 20);
-  const [history, setHistory] = useState<Message[]>([]);
+  // 决策 25 v4: chat history 用 localStorage 持久化 — 关闭 drawer / 离开 page / 再回来, history 还在
+  const [history, setHistory] = useState<Message[]>(() => loadHistory());
   const [input, setInput] = useState('');
   const [isAsking, setIsAsking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // 持久化: history 变更时, 过滤掉 pending / error (这些是 in-flight 状态, 重启不应该恢复),
+  //          写回 localStorage
+  useEffect(() => {
+    saveHistory(history);
+  }, [history]);
 
   // refresh remaining count when drawer opens
   useEffect(() => {
@@ -167,13 +235,19 @@ export function AiDrawer({
       .catch(() => {});
   }, [open]);
 
-  // 抽屉关闭时取消未完成请求 + 清空 chat
+  // 抽屉关闭时取消未完成请求 (不删 history — 决策 25 v4 持久化)
   const handleClose = () => {
     abortRef.current?.abort();
     setIsAsking(false);
-    setHistory([]);
     setInput('');
     onClose();
+  };
+
+  // 清空按钮: 显式清空 history (localStorage 也清)
+  const handleClearHistory = () => {
+    abortRef.current?.abort();
+    setIsAsking(false);
+    setHistory([]);
   };
 
   // 加载时滚动跟随
