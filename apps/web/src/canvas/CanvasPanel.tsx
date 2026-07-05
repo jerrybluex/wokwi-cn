@@ -253,11 +253,20 @@ export function CanvasPanel(props: CanvasPanelProps) {
         onRedo();
         return;
       }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
-        e.preventDefault();
-        onChange({ type: 'remove-part', id: selectedId });
-        onSelect?.(null);
-        return;
+      // 决策 28 (主理人 10:47 P0): Delete/Backspace 优先删 wire (selectedWireId), 再删 part (selectedId)
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedWireId) {
+          e.preventDefault();
+          onChange({ type: 'remove-wire', id: selectedWireId });
+          onSelectWire?.(null);
+          return;
+        }
+        if (selectedId) {
+          e.preventDefault();
+          onChange({ type: 'remove-part', id: selectedId });
+          onSelect?.(null);
+          return;
+        }
       }
       if (e.key === 'Escape' && pendingWireFrom) {
         e.preventDefault();
@@ -272,7 +281,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onChange, onSelect, onUndo, onRedo, selectedId, pendingWireFrom]);
+  }, [onChange, onSelect, onSelectWire, onUndo, onRedo, selectedId, selectedWireId, pendingWireFrom]);
 
   // ----- Drop from library → add a part at the drop point -----
   const onDragOver = (e: React.DragEvent) => {
@@ -396,10 +405,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
                 pinConflict={partConflict[p.id] ?? {}}
                 onMouseDown={(e) => onPartMouseDown(e, p.id)}
                 onPinMouseDown={(pinId, e) => {
-                  // Decision 20: click-and-drag wire interaction.
-                  // mousedown on [data-pin] starts the wire (or completes if the
-                  // user clicked a different pin with NO drag). mouseup on a
-                  // different pin while dragging completes the wire.
+                  console.log('[WIRE MD] pin=' + pinId + ' part=' + p.id + ' pending=' + JSON.stringify(pendingWireFrom));
                   e.stopPropagation();
                   if (!pendingWireFrom) {
                     setPendingWireFrom({ partId: p.id, pinId });
@@ -407,6 +413,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
                     pendingWireFrom.partId !== p.id ||
                     pendingWireFrom.pinId !== pinId
                   ) {
+                    console.log('[WIRE MD] creating wire from=' + JSON.stringify(pendingWireFrom) + ' to=' + p.id + '/' + pinId);
                     onWireCreate?.(pendingWireFrom, { partId: p.id, pinId });
                     setPendingWireFrom(null);
                   }
@@ -437,6 +444,10 @@ export function CanvasPanel(props: CanvasPanelProps) {
               state={state}
               selected={selectedWireId === w.id}
               onClick={() => onSelectWire?.(w.id)}
+              onDelete={() => {
+                onChange({ type: 'remove-wire', id: w.id });
+                onSelectWire?.(null);
+              }}
             />
           ))}
         </g>
@@ -751,11 +762,14 @@ function WireLine({
   state,
   selected,
   onClick,
+  onDelete,
 }: {
   wire: Wire;
   state: CanvasState;
   selected: boolean;
   onClick: () => void;
+  /** 决策 28 (主理人 10:47 P0): 选中态显示 X 删除按钮, 触发删除回调 */
+  onDelete?: () => void;
 }) {
   const fromPart = state.parts.find((p) => p.id === wire.from.partId);
   const toPart = state.parts.find((p) => p.id === wire.to.partId);
@@ -766,6 +780,9 @@ function WireLine({
   // Bezier: use midpoint-x as control point offset
   const mx = (a.x + b.x) / 2;
   const path = `M ${a.x} ${a.y} C ${mx} ${a.y} ${mx} ${b.y} ${b.x} ${b.y}`;
+  // 中点 (Bezier 曲线的几何中心 = (mx, (a.y + b.y) / 2))
+  const midX = mx;
+  const midY = (a.y + b.y) / 2;
   return (
     <g
       onClick={onClick}
@@ -784,6 +801,36 @@ function WireLine({
         stroke={selected ? 'var(--canvas-pin-active)' : wire.color ?? 'var(--canvas-wire)'}
         strokeWidth={selected ? 3 : 2}
       />
+      {/* 决策 28 (主理人 10:47 P0): 选中态显示红圈 X 删除按钮 (线段中点) */}
+      {selected && (
+        <g
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete?.();
+          }}
+          style={{ cursor: 'pointer' }}
+          data-testid={`wire-delete-${wire.id}`}
+        >
+          {/* 透明 hit area (扩大点击区) */}
+          <circle cx={midX} cy={midY} r={12} fill="transparent" />
+          {/* 红圈背景 */}
+          <circle cx={midX} cy={midY} r={9} fill="#dc2626" stroke="white" strokeWidth={1.5} />
+          {/* X 字符 */}
+          <text
+            x={midX}
+            y={midY + 1}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="white"
+            fontFamily="sans-serif"
+            fontSize={11}
+            fontWeight="bold"
+            style={{ userSelect: 'none', pointerEvents: 'none' }}
+          >
+            ✕
+          </text>
+        </g>
+      )}
     </g>
   );
 }
