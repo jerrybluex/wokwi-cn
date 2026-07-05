@@ -1,4 +1,4 @@
-import type { PartModel, PartSpec } from './types';
+import type { PartSpec } from './types';
 import { svg, appendAll, pinPad } from './svg';
 
 /**
