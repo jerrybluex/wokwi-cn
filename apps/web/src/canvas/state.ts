@@ -25,7 +25,7 @@ const COMPATIBILITY: Record<string, Set<string>> = {
   gnd: new Set(['gnd', 'digital', 'pwm', 'analog']),
   digital: new Set(['digital', 'pwm', 'analog', 'gnd', 'vcc']),
   pwm: new Set(['digital', 'pwm', 'analog', 'gnd']),
-  analog: new Set(['digital', 'analog', 'vcc']),
+  analog: new Set(['digital', 'analog', 'vcc', 'gnd']),
   i2c: new Set(['i2c']),
 };
 

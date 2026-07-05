@@ -98,7 +98,7 @@ describe('pinPosition', () => {
 //   gnd  ↔ gnd / digital / pwm / analog
 //   digital ↔ digital / pwm / analog / gnd / vcc
 //   pwm   ↔ digital / pwm / analog / gnd
-//   analog ↔ digital / analog / vcc
+//   analog ↔ digital / analog / vcc / gnd  (决策 32c: W↔GND 对称)
 //   i2c   ↔ i2c  ONLY (rejected all other combos)
 // ---------------------------------------------------------------------------
 describe('validateWireConnection', () => {
@@ -152,6 +152,12 @@ describe('validateWireConnection', () => {
 
   it('allows UNO A0 analog → potentiometer W (analog ↔ analog)', () => {
     const r = validateWireConnection('uno', 'A0', 'pot1', 'W', parts);
+    expect(r.valid).toBe(true);
+  });
+
+  // 决策 32c: W↔GND 对称 — analog↔gnd 双向通过
+  it('allows potentiometer W ↔ UNO GND (analog ↔ gnd)', () => {
+    const r = validateWireConnection('pot1', 'W', 'uno', 'GND', parts);
     expect(r.valid).toBe(true);
   });
 
