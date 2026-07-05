@@ -21,7 +21,7 @@ import { buildDemoCircuit } from '../canvas/demo';
 import { projectsApi } from '../projects/api';
 import { useAutosave } from '../projects/useAutosave';
 import { AiButton } from '../ai/AiButton';
-import { AiDrawer } from '../ai/AiDrawer';
+import { AiPanel } from '../ai/AiDrawer';
 
 const DEFAULT_CODE = `// D5 Demo: blink D13 on the canvas
 // 右侧画布已预置:UNO + 220Ω + LED
@@ -405,8 +405,12 @@ export function EditorPage() {
        *   右 2/3 = 画布 (CanvasPanel,zoom 1.3x,UNO 占主体)
        * 用 flex 比例 1 / 2 (= 1/3 / 2/3) 让浏览器自然分栏。
        * 元件库通过 CanvasPanel 右上角浮动 + 按钮 + popover 提供,
-       * 不再占固定横向空间,主理人反馈"不要占空间"。 */}
-      <div className="flex-1 flex overflow-hidden">
+       * 不再占固定横向空间,主理人反馈"不要占空间"。
+        * 决策 25 / 24 v2: AI 助教**始终可见**底部对话框
+        *   - 上半 (flex-1): 左 1/3 代码 + 中 2/3 画布
+        *   - 下半 (h-[280px]): AI Panel (始终可见, 不关闭, 不需快捷键) */}
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        <div className="flex-1 flex overflow-hidden min-h-0">
         <div className="flex-[1] min-w-[220px] max-w-[460px] border-r border-base-300 flex flex-col bg-base-100">
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between">
             <span>sketch.ino</span>
@@ -490,17 +494,19 @@ export function EditorPage() {
             zoom={1.3}
           />
         </div>
+        </div>
+      {/* 决策 25 / 决策 24 v2: AI 助教**始终可见**底部对话框 (字面执行主理人原话"一个对话框") */}
+      <div className="h-[280px] shrink-0">
+        <AiPanel
+          code={code}
+          compileError={status === 'error' ? message : null}
+          wires={history.current.wires}
+          parts={history.current.parts}
+          projectName={projectName}
+          initialRemaining={aiRemaining}
+        />
       </div>
-      <AiDrawer
-        open={aiDrawerOpen}
-        onClose={() => setAiDrawerOpen(false)}
-        code={code}
-        compileError={status === 'error' ? message : null}
-        wires={history.current.wires}
-        parts={history.current.parts}
-        projectName={projectName}
-        initialRemaining={aiRemaining}
-      />
+      </div>
     </div>
   );
 }
