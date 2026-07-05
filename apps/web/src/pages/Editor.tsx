@@ -492,6 +492,7 @@ export function EditorPage() {
         compileError={status === 'error' ? message : null}
         wires={history.current.wires}
         parts={history.current.parts}
+        projectId={projectId ?? undefined}
         projectName={projectName}
         initialRemaining={aiRemaining}
       />

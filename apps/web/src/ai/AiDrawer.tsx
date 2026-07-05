@@ -64,6 +64,7 @@ type Props = {
   compileError: string | null;
   wires: WireForDisplay[];
   parts: PartForDisplay[];
+  projectId?: string;       // 决策 32e: per-projectId chat history 隔离
   projectName?: string;
   initialRemaining?: number;
 };
@@ -139,17 +140,21 @@ function SuggestionCard({ s }: { s: AiSuggestion }) {
 }
 
 /** 决策 25 v4: chat history 持久化 (localStorage)
- * - key: 'wokwi-ai-chat-history' (MVP 简单方案, per-user-per-project 后期再加)
+ * - key: 'wokwi-ai-chat-history-{projectId}' (决策 32e per-projectId 隔离)
  * - 不持久化 pending / error 状态 (in-flight 状态, 重启不应该恢复)
  * - 不持久化 wire / parts / code (这些从 server / codeMirror 拿)
  */
-const LS_KEY = 'wokwi-ai-chat-history';
+
+/** 决策 32e: 按 projectId 隔离 localStorage key */
+function getLsKey(projectId?: string): string {
+  return projectId ? `wokwi-ai-chat-history-${projectId}` : 'wokwi-ai-chat-history';
+}
 
 /** 从 localStorage 读 history (校验 + 过滤 pending/error, 不返回 in-flight 状态) */
-function loadHistory(): Message[] {
+function loadHistory(projectId?: string): Message[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = window.localStorage.getItem(LS_KEY);
+    const raw = window.localStorage.getItem(getLsKey(projectId));
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
@@ -181,7 +186,7 @@ function loadHistory(): Message[] {
 }
 
 /** 写 history 到 localStorage (过滤 pending/error 后再写) */
-function saveHistory(history: Message[]): void {
+function saveHistory(history: Message[], projectId?: string): void {
   if (typeof window === 'undefined') return;
   try {
     const cleaned = history
@@ -193,7 +198,7 @@ function saveHistory(history: Message[]): void {
         ts: m.ts,
         ...(m.suggestions && m.suggestions.length > 0 ? { suggestions: m.suggestions } : {}),
       }));
-    window.localStorage.setItem(LS_KEY, JSON.stringify(cleaned));
+    window.localStorage.setItem(getLsKey(projectId), JSON.stringify(cleaned));
   } catch {
     // 配额满 / 序列化失败 — 静默跳过, 不影响 UI
   }
@@ -207,13 +212,14 @@ export function AiDrawer({
   compileError,
   wires,
   parts,
+  projectId,        // 决策 32e: per-projectId chat history 隔离
   projectName,
   initialRemaining,
 }: Props) {
   const [tab, setTab] = useState<StateTab>('code');
   const [remaining, setRemaining] = useState<number>(initialRemaining ?? 20);
   // 决策 25 v4: chat history 用 localStorage 持久化 — 关闭 drawer / 离开 page / 再回来, history 还在
-  const [history, setHistory] = useState<Message[]>(() => loadHistory());
+  const [history, setHistory] = useState<Message[]>(() => loadHistory(projectId));
   const [input, setInput] = useState('');
   const [isAsking, setIsAsking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -223,8 +229,8 @@ export function AiDrawer({
   // 持久化: history 变更时, 过滤掉 pending / error (这些是 in-flight 状态, 重启不应该恢复),
   //          写回 localStorage
   useEffect(() => {
-    saveHistory(history);
-  }, [history]);
+    saveHistory(history, projectId);
+  }, [history, projectId]);
 
   // refresh remaining count when drawer opens
   useEffect(() => {
