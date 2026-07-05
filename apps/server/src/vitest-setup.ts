@@ -5,5 +5,5 @@
 import { config } from 'dotenv';
 import { resolve } from 'node:path';
 
-// apps/server/src/vitest-setup.ts → root .env
-config({ path: resolve(__dirname, '../../../.env') });
+// apps/server/src/vitest-setup.ts → apps/server/.env
+config({ path: resolve(__dirname, '../.env') });

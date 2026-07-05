@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildServer } from './server.js';
 import { prisma } from './db.js';
@@ -76,34 +76,56 @@ describe('POST /api/ai/chat-context', () => {
   });
 
   it('returns fallback reply when DEEPSEEK_API_KEY is not set', async () => {
-    const cookie = await registerAndLogin('no-apikey');
-    const res = await app.inject({
-      method: 'POST', url: '/api/ai/chat-context',
-      headers: { cookie },
-      payload: { studentMessage: 'LED 不亮', projectState: DEFAULT_STATE },
-    });
-    expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body).toHaveProperty('answer');
-    expect(body.answer).toContain('AI 助教暂时不可用');
-    expect(body).toHaveProperty('suggestions');
-    expect(Array.isArray(body.suggestions)).toBe(true);
+    const savedKey = process.env.DEEPSEEK_API_KEY;
+    process.env.DEEPSEEK_API_KEY = '';
+    try {
+      const cookie = await registerAndLogin('no-apikey');
+      const res = await app.inject({
+        method: 'POST', url: '/api/ai/chat-context',
+        headers: { cookie },
+        payload: { studentMessage: 'LED 不亮', projectState: DEFAULT_STATE },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body).toHaveProperty('answer');
+      expect(body.answer).toContain('AI 助教暂时不可用');
+      expect(body).toHaveProperty('suggestions');
+      expect(Array.isArray(body.suggestions)).toBe(true);
+    } finally {
+      process.env.DEEPSEEK_API_KEY = savedKey;
+    }
   });
 
-  it('returns fallback reply when projectState.errors has compilation errors', async () => {
-    const cookie = await registerAndLogin('with-errors');
-    const stateWithErrors = {
-      ...DEFAULT_STATE,
-      errors: ["error: 'digitalWrite' was not declared in this scope"],
-    };
-    const res = await app.inject({
-      method: 'POST', url: '/api/ai/chat-context',
-      headers: { cookie },
-      payload: { studentMessage: '代码报错', projectState: stateWithErrors },
+  it('returns a helpful reply when projectState.errors has compilation errors', async () => {
+    // Mock fetch so we don't depend on the real DeepSeek API.
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        choices: [{ message: { content: '编译器说 digitalWrite 没声明，这通常是因为没有 #include <Arduino.h> 或者函数名拼写错了。' } }],
+        usage: { prompt_tokens: 50, completion_tokens: 30 },
+      }),
     });
-    expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body.answer).toContain('AI 助教暂时不可用');
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mockFetch;
+    try {
+      const cookie = await registerAndLogin('with-errors');
+      const stateWithErrors = {
+        ...DEFAULT_STATE,
+        errors: ["error: 'digitalWrite' was not declared in this scope"],
+      };
+      const res = await app.inject({
+        method: 'POST', url: '/api/ai/chat-context',
+        headers: { cookie },
+        payload: { studentMessage: '代码报错', projectState: stateWithErrors },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body).toHaveProperty('answer');
+      expect(body.answer).toContain('digitalWrite');
+      expect(body).toHaveProperty('suggestions');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it('returns 429 when rate limit exceeded', async () => {
