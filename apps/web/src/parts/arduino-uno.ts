@@ -192,12 +192,18 @@ function makeArduinoUno(): PartSpec {
       // 决策 31a (主理人 13:26 P0): 4 LED (L/TX/RX/ON) 真实发光感.
       // PCB SVG 内 chip-LED0805 visual 是空的 (只有 title),手动 append 4 个 circle
       // 在 LED 位置 + CSS class .pin-led-glow (drop-shadow filter 模拟发光).
+      // 决策 32d (u1 nested SVG viewBox fix): 把 LED glow append 到 pcbSvg 内部 (PCB 视觉坐标空间),
+      // 跟 PCB 内部元素一起缩放 (viewBox 0 0 212.372 151.2 → width 170 height 133, SCALE 0.8006),
+      // 避免 part body coords (12, 11) vs PCB 缩放后显示 (12*0.8006, 11*0.8006) ≈ (9.6, 8.8)
+      // 偏 ~2.4 像素导致 LED glow 跟 PCB 实物 LED 视觉不对齐.
+      // r 用 PCB 视觉坐标空间值,缩放后视觉 r ≈ 2 * 0.8006 ≈ 1.6 px.
+      const pcbRootForLeds = pcbSvg; // SVG 内部坐标空间
       for (const led of LED_INDICATORS) {
-        children.push(
+        pcbRootForLeds.appendChild(
           svg('circle', {
             cx: led.cx,
             cy: led.cy,
-            r: 1.6,
+            r: 2,
             class: led.cls,
             'pointer-events': 'none',
           }),
