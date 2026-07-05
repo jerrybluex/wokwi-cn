@@ -96,3 +96,96 @@ export function pinPosition(
   }
   return { x: part.x + cx + rx, y: part.y + cy + ry };
 }
+
+/**
+ * PCB-style wire routing — Manhattan (90-degree) orthogonal paths.
+ *
+ * Algorithm: for two points A and B, draw a 2-segment L-route:
+ *   A → (midX, A.y) → B    (horizontal-first)
+ *   or
+ *   A → (A.x, midY) → B    (vertical-first, when horizontal would be too long)
+ *
+ * The midpoint is chosen at 1/2 of the total distance along the dominant axis,
+ * creating a clean right-angle bend that mimics PCB traces.
+ *
+ * Future improvements (Phase 2):
+ *   - Obstacle avoidance (shift around other parts)
+ *   - Multi-segment Z-routes when simple L-routes cross
+ *   - Auto-reroute when parts move
+ */
+
+/** Round-robin wire colors — 7 distinct PCB-style colors. */
+export const WIRE_COLORS = [
+  '#ef4444', // red
+  '#3b82f6', // blue
+  '#22c55e', // green
+  '#a855f7', // purple
+  '#eab308', // yellow
+  '#f97316', // orange
+  '#06b6d4', // cyan
+] as const;
+
+let _wireColorIndex = 0;
+/** Cycle through WIRE_COLORS for each new wire. */
+export function nextWireColor(): string {
+  const color = WIRE_COLORS[_wireColorIndex % WIRE_COLORS.length];
+  _wireColorIndex++;
+  return color;
+}
+
+/**
+ * Compute a Manhattan (90-degree) orthogonal SVG path between two points.
+ * Returns an array of {x, y} waypoints including start and end.
+ *
+ * Routing strategy:
+ *   - |dx| >= |dy| → horizontal-first (L-shape via midX)
+ *   - |dy| > |dx|  → vertical-first   (L-shape via midY)
+ *   - For very short wires (< 5px), use a simple diagonal as-is
+ *
+ * @param from  Start point {x, y}
+ * @param to    End point {x, y}
+ * @param offsetPerpendicular  Extra perpendicular offset (for collision avoidance, Phase 2)
+ */
+export function manhattanRoute(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  offsetPerpendicular = 0,
+): Array<{ x: number; y: number }> {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dist = Math.hypot(dx, dy);
+
+  // For very short wires, just connect directly
+  if (dist < 5) {
+    return [{ x: from.x, y: from.y }, { x: to.x, y: to.y }];
+  }
+
+  // Manhattan routing: L-shape via midpoint
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    // Horizontal-first: from → (midX, from.y) → to
+    const midX = from.x + dx / 2;
+    return [
+      { x: from.x, y: from.y },
+      { x: midX + offsetPerpendicular, y: from.y },
+      { x: to.x + offsetPerpendicular, y: to.y },
+    ];
+  } else {
+    // Vertical-first: from → (from.x, midY) → to
+    const midY = from.y + dy / 2;
+    return [
+      { x: from.x, y: from.y },
+      { x: from.x, y: midY + offsetPerpendicular },
+      { x: to.x, y: to.y + offsetPerpendicular },
+    ];
+  }
+}
+
+/**
+ * Convert an array of waypoints into an SVG path string.
+ * Uses 'L' (line-to) commands for a sharp 90-degree PCB trace.
+ */
+export function waypointsToPath(pts: Array<{ x: number; y: number }>): string {
+  if (pts.length === 0) return '';
+  const [first, ...rest] = pts;
+  return `M ${first.x} ${first.y}` + rest.map((p) => ` L ${p.x} ${p.y}`).join('');
+}

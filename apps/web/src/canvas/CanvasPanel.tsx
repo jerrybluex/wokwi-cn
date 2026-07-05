@@ -19,7 +19,7 @@ import {
   type Rotation,
   type Wire,
 } from './state';
-import { pinPosition, wiresTouching } from './wiring';
+  import { pinPosition, wiresTouching, manhattanRoute, waypointsToPath, nextWireColor } from './wiring';
 import { PART_DRAG_MIME } from './PartLibraryPanel';
 
 export interface CanvasPanelProps {
@@ -777,11 +777,11 @@ function WireLine({
   const a = pinPosition(fromPart, wire.from.pinId);
   const b = pinPosition(toPart, wire.to.pinId);
   if (!a || !b) return null;
-  // Bezier: use midpoint-x as control point offset
-  const mx = (a.x + b.x) / 2;
-  const path = `M ${a.x} ${a.y} C ${mx} ${a.y} ${mx} ${b.y} ${b.x} ${b.y}`;
-  // 中点 (Bezier 曲线的几何中心 = (mx, (a.y + b.y) / 2))
-  const midX = mx;
+  // PCB-style Manhattan routing: L-shape orthogonal path
+  const waypoints = manhattanRoute(a, b);
+  const path = waypointsToPath(waypoints);
+  // Delete button at bounding-box center (consistent regardless of route shape)
+  const midX = (a.x + b.x) / 2;
   const midY = (a.y + b.y) / 2;
   return (
     <g
@@ -848,9 +848,9 @@ function PendingWire({
   if (!fromPart) return null;
   const a = pinPosition(fromPart, pendingFrom.pinId);
   if (!a) return null;
-  // Bezier: straight mid-point offset curve
-  const mx = (a.x + mousePos.x) / 2;
-  const path = `M ${a.x} ${a.y} C ${mx} ${a.y} ${mx} ${mousePos.y} ${mousePos.x} ${mousePos.y}`;
+  // PCB-style pending wire: Manhattan L-route to cursor
+  const waypoints = manhattanRoute(a, mousePos);
+  const path = waypointsToPath(waypoints);
   return (
     <path
       d={path}

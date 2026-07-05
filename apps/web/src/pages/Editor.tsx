@@ -16,7 +16,7 @@ import {
   genId,
   validateWireConnection,
 } from '../canvas/state';
-import { toWiringJSON, fromWiringJSON } from '../canvas/wiring';
+import { toWiringJSON, fromWiringJSON, nextWireColor } from '../canvas/wiring';
 import { buildDemoCircuit } from '../canvas/demo';
 import { projectsApi } from '../projects/api';
 import { useAutosave } from '../projects/useAutosave';
@@ -144,7 +144,7 @@ export function EditorPage() {
         setMessage(check.reason);
         return;
       }
-      const wire = { id: genId('wire'), from, to };
+      const wire = { id: genId('wire'), from, to, color: nextWireColor() };
       setHistory((h) => applyChange(h, { type: 'add-wire', wire }));
     },
     [history],

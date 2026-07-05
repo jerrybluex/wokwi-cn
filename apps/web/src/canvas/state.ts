@@ -160,7 +160,7 @@ export type Wire = {
   id: string;
   from: { partId: string; pinId: string };
   to: { partId: string; pinId: string };
-  color?: string;
+  color?: string; // PCB-style wire color, round-robin assigned on creation
 };
 
 export type CanvasState = {
