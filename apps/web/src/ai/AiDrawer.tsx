@@ -1,21 +1,24 @@
 /**
- * AiDrawer → AiPanel — AI 助教**始终可见**对话框 (决策 25 / 决策 24 v2)
+ * AiDrawer — AI 助教右侧抽屉 (决策 25 v3: 主理人 9:10 第三次修正)
  *
- * 主理人 9:57 P0 反馈: 抽屉 (Cmd+I 默认关闭) ≠ "一个对话框"。
- * 字面执行主理人 20:18 原话: "我的想法应该就是一个对话框,学生输入问题,AI 直接回答"
+ * 字面执行主理人原话: '一个对话框' = 按钮 click → 抽屉滑入 (默认关闭)
  *
- * 重设计后:
- *   - 始终可见 (默认显示, 不需快捷键打开)
- *   - 不关闭 (学生随时能看到 AI 入口)
- *   - 4 个 state tabs: 代码 / 报错 / 连线 / 元件 (read-only 项目状态展示)
- *   - chat history (multi-turn user/AI 气泡滚动)
- *   - 底部 textarea + 发送按钮 (Enter 发送, Shift+Enter 换行)
- *   - 联调 server POST /api/ai/chat-context (coder 推送 commits)
+ * 形态:
+ *   - 默认关闭 (主理人 9:10: 不是底部固定, 也不是 Cmd+I)
+ *   - 点 toolbar 'AI' 按钮 (Editor.tsx 第 377-384 行 旁边) → 抽屉从右滑入
+ *   - 抽屉内容: 4 state tabs + chat history + textarea + send + suggestions 卡片
+ *
+ * 内容保留 (来自决策 24 v1 + 决策 25 v2):
+ *   - 4 state tabs (代码 / 报错 / 连线 / 元件) read-only 项目状态展示
+ *   - 多轮 chat history (user/AI 气泡)
+ *   - 底部 textarea + send (Enter 发送, Shift+Enter 换行)
+ *   - onAsk fetch POST /api/ai/chat-context (coder d920652/126c9fe/23c3c9f 修 emoji 解析)
  *     request:  { studentMessage, projectState: { code, errors, wirings, parts } }
  *     response: { answer, suggestions: AiSuggestion[] }
+ *   - suggestions 卡片 (3 type 不同颜色)
+ *   - 错误处理: 429 (rate_limit) / 502 (service) / network
  *
  * v1 范围: 只读, 给建议 (不动连线, 不改代码)
- * 容器由 Editor.tsx 决定 (底部 280px 全宽 panel)
  */
 import { useEffect, useRef, useState } from 'react';
 import { aiApi } from './api';
@@ -36,11 +39,8 @@ type Message = {
   role: 'user' | 'ai';
   text: string;
   ts: number;
-  /** AI message only — 决策 24 server parses suggestions from answer */
   suggestions?: AiSuggestion[];
-  /** True while the request is in flight (for placeholder / spinner) */
   pending?: boolean;
-  /** True if the AI message ended in an error (rate_limit / network / service) */
   error?: 'rate_limit' | 'service' | 'network' | 'no_key';
 };
 
@@ -58,15 +58,12 @@ type PartForDisplay = {
 };
 
 type Props = {
-  /** Current code (CodeMirror buffer) */
+  open: boolean;
+  onClose: () => void;
   code: string;
-  /** Compile / runtime error message, if any */
   compileError: string | null;
-  /** Current wirings array — for "连线" tab + AI context */
   wires: WireForDisplay[];
-  /** Current parts array — for "元件" tab + AI context */
   parts: PartForDisplay[];
-  /** Project name (header decoration) */
   projectName?: string;
   initialRemaining?: number;
 };
@@ -78,9 +75,6 @@ const STATE_TABS: Array<{ id: StateTab; label: string }> = [
   { id: 'parts', label: '元件' },
 ];
 
-/** Hit /api/ai/chat-context (决策 24 server endpoint, coder d0148a7).
- * Returns: { answer, suggestions } on success;
- *          throws on 429 (rate_limit) / 502 (ai_service_error) / network. */
 async function askChatContext(opts: {
   studentMessage: string;
   projectState: {
@@ -120,7 +114,6 @@ async function askChatContext(opts: {
   return data;
 }
 
-/** Suggestion card — type-specific 颜色 (决策 24 视觉规范) */
 function SuggestionCard({ s }: { s: AiSuggestion }) {
   const colorClass =
     s.type === 'wiring'
@@ -145,8 +138,10 @@ function SuggestionCard({ s }: { s: AiSuggestion }) {
   );
 }
 
-/** AI Panel — 始终可见的对话框 (决策 25 / 24 v2). 容器由 Editor 决定 (底部 280px 全宽). */
-export function AiPanel({
+/** AI 助教右侧抽屉 (决策 25 v3) — 默认关闭, 点 toolbar 'AI' 按钮触发 */
+export function AiDrawer({
+  open,
+  onClose,
   code,
   compileError,
   wires,
@@ -163,20 +158,31 @@ export function AiPanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // refresh remaining count on mount + when project changes
+  // refresh remaining count when drawer opens
   useEffect(() => {
+    if (!open) return;
     aiApi
       .getRemaining()
       .then((r) => setRemaining(r.remaining))
       .catch(() => {});
-  }, [projectName]);
+  }, [open]);
 
-  // 自动 abort on unmount
+  // 抽屉关闭时取消未完成请求 + 清空 chat
+  const handleClose = () => {
+    abortRef.current?.abort();
+    setIsAsking(false);
+    setHistory([]);
+    setInput('');
+    onClose();
+  };
+
+  // 加载时滚动跟随
   useEffect(() => {
-    return () => abortRef.current?.abort();
-  }, []);
+    if (history.length > 0 && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [history]);
 
-  /** 决策 24 v1+: 调用 /api/ai/chat-context */
   const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed) return;
@@ -200,7 +206,6 @@ export function AiPanel({
     setInput('');
     setIsAsking(true);
 
-    // abort any in-flight
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -254,7 +259,6 @@ export function AiPanel({
     }
   };
 
-  // Textarea: Enter 发送, Shift+Enter 换行
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -263,218 +267,199 @@ export function AiPanel({
   };
 
   return (
-    <section
-      role="region"
-      aria-label="AI 助教对话框"
-      className="bg-base-100 border-t border-base-300 flex flex-col h-full"
-      data-testid="ai-panel"
-    >
-      {/* Header: title (always visible, no close button) */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-base-300 bg-base-200 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 3l1.9 5.9 6.1.6-4.7 4 1.4 6-4.7-3.5L7.3 19.5l1.4-6-4.7-4 6.1-.6L12 3z" />
-          </svg>
-          <span className="font-bold text-sm">AI 助教</span>
-          {projectName && (
-            <span className="text-[10px] text-base-content/50 ml-1 truncate">
-              · {projectName}
-            </span>
-          )}
-          <span className="text-[10px] text-base-content/40 ml-2 hidden sm:inline">
-            (始终可见 · 输入问题直接回答)
-          </span>
+    <>
+      {/* Backdrop — 点击关闭 */}
+      <div
+        className={`fixed inset-0 bg-black/30 z-40 transition-opacity duration-200 ${
+          open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={handleClose}
+        aria-hidden="true"
+      />
+
+      {/* Drawer — 右侧 fixed, translate-x 切换显隐 */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="AI 助教"
+        className={`fixed right-0 top-0 z-50 bg-base-100 shadow-2xl flex flex-col transition-transform duration-200
+          w-[min(28rem,calc(100vw-1rem))]
+          h-[min(100vh,100dvh)]
+          ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        data-testid="ai-drawer"
+      >
+        {/* Header: title + close X */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-base-300 bg-base-200">
+          <div className="flex items-center gap-2 min-w-0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3l1.9 5.9 6.1.6-4.7 4 1.4 6-4.7-3.5L7.3 19.5l1.4-6-4.7-4 6.1-.6L12 3z" />
+            </svg>
+            <span className="font-bold text-sm">AI 助教</span>
+            {projectName && (
+              <span className="text-[10px] text-base-content/50 ml-1 truncate">
+                · {projectName}
+              </span>
+            )}
+          </div>
+          <button onClick={handleClose} className="btn btn-ghost btn-xs btn-square" aria-label="关闭 (Esc)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+
+        {/* State tabs: 4 个项目状态展示 */}
+        <div className="px-4 py-2 border-b border-base-200 flex gap-1" role="tablist">
+          {STATE_TABS.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              onClick={() => setTab(t.id)}
+              className={`btn btn-xs flex-1 ${tab === t.id ? 'btn-primary' : 'btn-ghost'}`}
+              data-testid={`ai-tab-${t.id}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* State content area (read-only) */}
+        <div className="border-b border-base-200 px-4 py-2 max-h-32 overflow-y-auto bg-base-200/50">
+          {tab === 'code' && (
+            <pre className="text-[10px] font-mono whitespace-pre-wrap break-words text-base-content/80">
+              {code.trim() || '// (无代码)'}
+            </pre>
+          )}
+          {tab === 'errors' && (
+            <pre className="text-[10px] font-mono whitespace-pre-wrap text-error">
+              {compileError ?? '(无报错)'}
+            </pre>
+          )}
+          {tab === 'wirings' && (
+            <div className="text-[10px] font-mono text-base-content/70">
+              {wires.length === 0 ? '(无线)' : `${wires.length} 条连线`}
+            </div>
+          )}
+          {tab === 'parts' && (
+            <div className="text-[10px] font-mono text-base-content/70">
+              {parts.length === 0 ? '(无元件)' : `${parts.length} 个元件`}
+            </div>
+          )}
+        </div>
+
+        {/* Chat history (multi-turn) */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+          {history.length === 0 && !isAsking && (
+            <div className="text-center text-xs text-base-content/50 py-8">
+              <div className="mb-2 text-2xl">💬</div>
+              <p>跟 AI 聊聊你的项目</p>
+              <p className="mt-1 text-[10px]">例如:我的 LED 不亮怎么办?</p>
+              <p className="mt-1 text-[10px] opacity-70">AI 会读你的代码 / 报错 / 连线 / 元件</p>
+            </div>
+          )}
+
+          {history.map((m) => (
+            <div
+              key={m.id}
+              className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              data-testid={`ai-msg-${m.role}`}
+            >
+              <div className="max-w-[88%] min-w-0">
+                <div
+                  className={`rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                    m.role === 'user'
+                      ? 'bg-primary text-primary-content'
+                      : m.error
+                        ? 'bg-error/10 border border-error/40 text-error-content'
+                        : 'bg-base-200 text-base-content'
+                  }`}
+                >
+                  {m.pending ? (
+                    <span className="inline-flex items-center gap-1.5 text-base-content/60">
+                      <span className="loading loading-spinner loading-xs" />
+                      思考中…
+                    </span>
+                  ) : (
+                    m.text
+                  )}
+                </div>
+                {m.role === 'ai' && !m.pending && m.suggestions && m.suggestions.length > 0 && (
+                  <div className="mt-1.5 space-y-1" data-testid="ai-suggestions">
+                    <div className="text-[10px] text-base-content/50 px-1">
+                      💡 {m.suggestions.length} 条建议
+                    </div>
+                    {m.suggestions.map((s, idx) => (
+                      <SuggestionCard key={idx} s={s} />
+                    ))}
+                  </div>
+                )}
+                {m.role === 'ai' && !m.pending && m.error && (
+                  <div className="text-[10px] text-base-content/50 px-1 mt-1">
+                    {m.error === 'rate_limit' && '配额已用完,明天再来'}
+                    {m.error === 'service' && 'AI 服务暂时不可用'}
+                    {m.error === 'network' && '网络异常'}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Status bar */}
+        <div className="px-4 py-1.5 border-t border-base-200 flex items-center justify-between">
           <span className="text-[10px] text-base-content/50">
             {isAsking ? (
               <span className="text-primary animate-pulse">AI 正在读你的项目…</span>
             ) : (
-              <>今日剩余 {remaining} 次</>
+              <>空闲 · 今日剩余 {remaining} 次</>
             )}
           </span>
-          {history.length > 0 && (
+          {remaining <= 0 && (
+            <span className="text-[10px] text-warning">明天重置</span>
+          )}
+        </div>
+
+        {/* Input: textarea + send */}
+        <div className="px-4 py-3 border-t border-base-300">
+          <div className="flex gap-2 items-end">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="输入问题…(Enter 发送,Shift+Enter 换行)"
+              disabled={isAsking || remaining <= 0}
+              className="textarea textarea-bordered textarea-sm flex-1 resize-none min-h-12 max-h-32 leading-snug text-sm"
+              rows={2}
+              data-testid="ai-input"
+              aria-label="学生输入"
+            />
             <button
               type="button"
-              onClick={() => setHistory([])}
-              className="btn btn-ghost btn-xs"
-              data-testid="ai-clear"
-              aria-label="清空对话"
-              title="清空对话历史"
+              onClick={() => void handleSend()}
+              disabled={!input.trim() || isAsking || remaining <= 0}
+              className="btn btn-primary btn-sm self-end h-12"
+              data-testid="ai-send"
+              aria-label="发送"
             >
-              清空
+              {isAsking ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                </svg>
+              )}
             </button>
+          </div>
+          {remaining <= 0 && (
+            <p className="text-[10px] text-center text-base-content/50 mt-1">
+              今日次数已用完 · 每天 20 次免费
+            </p>
           )}
         </div>
       </div>
-
-      <div className="flex flex-1 min-h-0">
-        {/* Left: 4 state tabs + 当前 state 显示 (always visible, like IDE inspector) */}
-        <div className="w-72 border-r border-base-300 flex flex-col shrink-0 bg-base-200/40">
-          <div className="flex gap-1 p-2 border-b border-base-300" role="tablist">
-            {STATE_TABS.map((t) => (
-              <button
-                key={t.id}
-                role="tab"
-                onClick={() => setTab(t.id)}
-                className={`btn btn-xs flex-1 ${tab === t.id ? 'btn-primary' : 'btn-ghost'}`}
-                data-testid={`ai-tab-${t.id}`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 overflow-y-auto p-3">
-            {tab === 'code' && (
-              <pre className="text-[11px] font-mono whitespace-pre-wrap break-words text-base-content/80 leading-relaxed">
-                {code.trim() || '// (无代码)'}
-              </pre>
-            )}
-            {tab === 'errors' && (
-              <pre className="text-[11px] font-mono whitespace-pre-wrap text-error leading-relaxed">
-                {compileError ?? '(无报错)'}
-              </pre>
-            )}
-            {tab === 'wirings' && (
-              <div className="text-[11px] font-mono text-base-content/70 space-y-1">
-                {wires.length === 0 ? (
-                  <div className="text-base-content/40">(无线)</div>
-                ) : (
-                  wires.map((w, i) => (
-                    <div key={w.id ?? i} className="border border-base-300 rounded px-2 py-1 bg-base-100">
-                      <div className="text-[10px] text-base-content/40">#{i + 1}</div>
-                      <div className="text-[10px]">
-                        {w.from.partId}:{w.from.pinId}
-                        <span className="text-base-content/40 mx-1">↔</span>
-                        {w.to.partId}:{w.to.pinId}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-            {tab === 'parts' && (
-              <div className="text-[11px] font-mono text-base-content/70 space-y-1">
-                {parts.length === 0 ? (
-                  <div className="text-base-content/40">(无元件)</div>
-                ) : (
-                  parts.map((p, i) => (
-                    <div key={p.id ?? i} className="border border-base-300 rounded px-2 py-1 bg-base-100">
-                      <div className="text-[10px]">
-                        <span className="font-bold">{p.type}</span>
-                        <span className="text-base-content/40 ml-1">id={p.id}</span>
-                      </div>
-                      <div className="text-[10px] text-base-content/50">
-                        pos=({p.x}, {p.y})
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: chat history + textarea */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-            {history.length === 0 && !isAsking && (
-              <div className="text-center text-xs text-base-content/50 py-8">
-                <div className="mb-2 text-2xl">💬</div>
-                <p>跟 AI 聊聊你的项目</p>
-                <p className="mt-1 text-[10px]">例如:我的 LED 不亮怎么办?</p>
-                <p className="mt-1 text-[10px] opacity-70">AI 会读你的代码 / 报错 / 连线 / 元件</p>
-              </div>
-            )}
-
-            {history.map((m) => (
-              <div
-                key={m.id}
-                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                data-testid={`ai-msg-${m.role}`}
-              >
-                <div className="max-w-[80%] min-w-0">
-                  <div
-                    className={`rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                      m.role === 'user'
-                        ? 'bg-primary text-primary-content'
-                        : m.error
-                          ? 'bg-error/10 border border-error/40 text-error-content'
-                          : 'bg-base-200 text-base-content'
-                    }`}
-                  >
-                    {m.pending ? (
-                      <span className="inline-flex items-center gap-1.5 text-base-content/60">
-                        <span className="loading loading-spinner loading-xs" />
-                        思考中…
-                      </span>
-                    ) : (
-                      m.text
-                    )}
-                  </div>
-                  {m.role === 'ai' && !m.pending && m.suggestions && m.suggestions.length > 0 && (
-                    <div className="mt-1.5 space-y-1" data-testid="ai-suggestions">
-                      <div className="text-[10px] text-base-content/50 px-1">
-                        💡 {m.suggestions.length} 条建议
-                      </div>
-                      {m.suggestions.map((s, idx) => (
-                        <SuggestionCard key={idx} s={s} />
-                      ))}
-                    </div>
-                  )}
-                  {m.role === 'ai' && !m.pending && m.error && (
-                    <div className="text-[10px] text-base-content/50 px-1 mt-1">
-                      {m.error === 'rate_limit' && '配额已用完,明天再来'}
-                      {m.error === 'service' && 'AI 服务暂时不可用'}
-                      {m.error === 'network' && '网络异常'}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Input: textarea + send button (Enter=send, Shift+Enter=newline) */}
-          <div className="px-4 py-3 border-t border-base-300 shrink-0">
-            <div className="flex gap-2 items-end">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="输入问题…(Enter 发送,Shift+Enter 换行)"
-                disabled={isAsking || remaining <= 0}
-                className="textarea textarea-bordered textarea-sm flex-1 resize-none min-h-10 max-h-24 leading-snug text-sm"
-                rows={2}
-                data-testid="ai-input"
-                aria-label="学生输入"
-              />
-              <button
-                type="button"
-                onClick={() => void handleSend()}
-                disabled={!input.trim() || isAsking || remaining <= 0}
-                className="btn btn-primary btn-sm self-end h-10"
-                data-testid="ai-send"
-                aria-label="发送"
-              >
-                {isAsking ? (
-                  <span className="loading loading-spinner loading-xs" />
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-                  </svg>
-                )}
-              </button>
-            </div>
-            {remaining <= 0 && (
-              <p className="text-[10px] text-center text-base-content/50 mt-1">
-                今日次数已用完 · 每天 20 次免费
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
+    </>
   );
 }
 

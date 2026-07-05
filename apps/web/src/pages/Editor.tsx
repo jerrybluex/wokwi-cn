@@ -20,8 +20,8 @@ import { toWiringJSON, fromWiringJSON } from '../canvas/wiring';
 import { buildDemoCircuit } from '../canvas/demo';
 import { projectsApi } from '../projects/api';
 import { useAutosave } from '../projects/useAutosave';
-import { AiButton } from '../ai/AiButton';
-import { AiPanel } from '../ai/AiDrawer';
+// AiButton 移除 (决策 25 v3: 简化 toolbar AI 按钮, 无 dropdown)
+import { AiDrawer } from '../ai/AiDrawer';
 
 const DEFAULT_CODE = `// D5 Demo: blink D13 on the canvas
 // 右侧画布已预置:UNO + 220Ω + LED
@@ -77,23 +77,7 @@ export function EditorPage() {
     });
   }, []);
 
-  // ── AI drawer Cmd+I / Ctrl+I shortcut (决策 24 v1) ──
-  // 按下切换抽屉开/关(代码 textarea / input 焦点时也生效,避免抢画布焦点)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const cmd = e.metaKey || e.ctrlKey;
-      if (cmd && e.key.toLowerCase() === 'i') {
-        // 不在 textarea / input 内抢焦点 (除非 AI drawer 内部的 textarea)
-        const target = e.target as HTMLElement | null;
-        const inCodeEditor = target?.closest('.cm-editor');
-        if (inCodeEditor) return; // 让 CodeMirror 自己处理 Ctrl+I (indent)
-        e.preventDefault();
-        setAiDrawerOpen((o) => !o);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  // (决策 25 v3) 移除 Cmd+I 快捷键 — 主理人没要, 入口 = toolbar 'AI' 按钮 click
 
   // ── Load project when projectId changes ──
   useEffect(() => {
@@ -383,14 +367,21 @@ export function EditorPage() {
             </svg>
             清空
           </button>
-          <AiButton
-            code={code}
-            compileError={status === 'error' ? message : null}
-            remaining={aiRemaining}
-              onOpen={() => {
-                setAiDrawerOpen(true);
-              }}
-          />
+          {/* 决策 25 v3: AI 助教按钮在 '清空' 旁边 — 点击打开抽屉 (主理人 9:10 字面意图)
+           * 形态: 🤖 emoji + 'AI' 文字 + 次数 badge (参考最初 AiButton D8)
+           * 移除 Cmd+I 快捷键 (主理人没要)
+           * 移除原 AiButton dropdown (任务类型选择 — 决策 25 简化: 学生直接问问题) */}
+          <button
+            type="button"
+            onClick={() => setAiDrawerOpen(true)}
+            className="btn btn-ghost btn-xs gap-1"
+            title="AI 助教"
+            data-testid="ai-toolbar-button"
+          >
+            <span aria-hidden="true">🤖</span>
+            <span className="text-xs">AI</span>
+            <span className="badge badge-xs badge-ghost">{aiRemaining}</span>
+          </button>
         </div>
       </header>
 
@@ -400,17 +391,14 @@ export function EditorPage() {
         </div>
       )}
 
-      {/* 决策 22 (主理人 9:48): 元件库 = 0 常驻空间浮动 FAB + 弹窗
+{/* 决策 22 (主理人 9:48): 元件库 = 0 常驻空间浮动 FAB + 弹窗
        *   左 1/3 = 编码 (CodeMirror)
        *   右 2/3 = 画布 (CanvasPanel,zoom 1.3x,UNO 占主体)
        * 用 flex 比例 1 / 2 (= 1/3 / 2/3) 让浏览器自然分栏。
        * 元件库通过 CanvasPanel 右上角浮动 + 按钮 + popover 提供,
        * 不再占固定横向空间,主理人反馈"不要占空间"。
-        * 决策 25 / 24 v2: AI 助教**始终可见**底部对话框
-        *   - 上半 (flex-1): 左 1/3 代码 + 中 2/3 画布
-        *   - 下半 (h-[280px]): AI Panel (始终可见, 不关闭, 不需快捷键) */}
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <div className="flex-1 flex overflow-hidden min-h-0">
+         * 决策 25 v3: AI 助教改回 drawer (默认关闭), toolbar 'AI' 按钮触发 */}
+      <div className="flex-1 flex overflow-hidden">
         <div className="flex-[1] min-w-[220px] max-w-[460px] border-r border-base-300 flex flex-col bg-base-100">
           <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-base-content/60 font-bold border-b border-base-300 flex items-center justify-between">
             <span>sketch.ino</span>
@@ -495,18 +483,17 @@ export function EditorPage() {
           />
         </div>
         </div>
-      {/* 决策 25 / 决策 24 v2: AI 助教**始终可见**底部对话框 (字面执行主理人原话"一个对话框") */}
-      <div className="h-[280px] shrink-0">
-        <AiPanel
-          code={code}
-          compileError={status === 'error' ? message : null}
-          wires={history.current.wires}
-          parts={history.current.parts}
-          projectName={projectName}
-          initialRemaining={aiRemaining}
-        />
-      </div>
-      </div>
+      {/* 决策 25 v3: AI 助教抽屉 (默认关闭, toolbar 'AI' 按钮触发, 主理人 9:10 字面意图) */}
+      <AiDrawer
+        open={aiDrawerOpen}
+        onClose={() => setAiDrawerOpen(false)}
+        code={code}
+        compileError={status === 'error' ? message : null}
+        wires={history.current.wires}
+        parts={history.current.parts}
+        projectName={projectName}
+        initialRemaining={aiRemaining}
+      />
     </div>
   );
 }
