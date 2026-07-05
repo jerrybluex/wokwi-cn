@@ -233,6 +233,7 @@ export function EditorPage() {
 
     const runner = new ArduinoRunner();
     runnerRef.current = runner;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__runner = runner;
     let lastPinUpdate = 0;
     runner.onPin((ev) => {

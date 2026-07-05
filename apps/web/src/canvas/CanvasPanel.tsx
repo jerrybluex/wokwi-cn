@@ -19,7 +19,7 @@ import {
   type Rotation,
   type Wire,
 } from './state';
-  import { pinPosition, wiresTouching, manhattanRoute, waypointsToPath, nextWireColor } from './wiring';
+  import { pinPosition, wiresTouching, manhattanRoute, waypointsToPath } from './wiring';
 import { PART_DRAG_MIME } from './PartLibraryPanel';
 
 export interface CanvasPanelProps {
@@ -313,7 +313,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
       setDragOver(true);
     }
   };
-  const onDragLeave = () => setDragOver(false);
+  const _onDragLeave = () => setDragOver(false);
   const onDrop = (e: React.DragEvent) => {
     setDragOver(false);
     const type = e.dataTransfer.getData(PART_DRAG_MIME);

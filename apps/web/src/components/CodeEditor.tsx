@@ -96,6 +96,7 @@ export function CodeEditor({
     const view = new EditorView({ state, parent: hostRef.current });
     viewRef.current = view;
     // QA debug: expose on window for Playwright tests
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__cmView = view;
     return () => {
       view.destroy();

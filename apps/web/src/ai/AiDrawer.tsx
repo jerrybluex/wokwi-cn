@@ -243,13 +243,6 @@ export function AiDrawer({
     onClose();
   };
 
-  // 清空按钮: 显式清空 history (localStorage 也清)
-  const handleClearHistory = () => {
-    abortRef.current?.abort();
-    setIsAsking(false);
-    setHistory([]);
-  };
-
   // 加载时滚动跟随
   useEffect(() => {
     if (history.length > 0 && scrollRef.current) {

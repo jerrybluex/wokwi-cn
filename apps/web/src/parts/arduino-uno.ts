@@ -218,7 +218,7 @@ function makeArduinoUno(): PartSpec {
       // Hit area 跟 visual pad 共享 data-pin,event.target.closest('[data-pin]') 都能识别。
       const SVG_NS = 'http://www.w3.org/2000/svg';
       const HIT_R = 8; // canvas 视觉 ~6.4 px,Wokwi 编辑器 hit 区
-      const addHitArea = (padEl: SVGCircleElement, pinId: string) => {
+      const addHitArea = (padEl: SVGCircleElement, _pinId: string) => {
         const hit = document.createElementNS(SVG_NS, 'circle') as SVGCircleElement;
         hit.setAttribute('cx', padEl.getAttribute('cx') ?? '0');
         hit.setAttribute('cy', padEl.getAttribute('cy') ?? '0');
