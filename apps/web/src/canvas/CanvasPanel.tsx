@@ -115,16 +115,22 @@ export function CanvasPanel(props: CanvasPanelProps) {
 
   // Init every pin with default 0
   const pinValue = new Map<string, number>();
+  // Tracks pins that are in electrical conflict (multiple sources driving different values)
+  const pinConflict = new Set<string>();
+
   for (const part of state.parts) {
     for (const pin of getPartSpec(part.type)?.pins ?? []) {
       pinValue.set(`${part.id}:${pin.id}`, 0);
     }
   }
 
-  // Source pins: named D<num> (Arduino digital pins) with a runner value
+  // Source pins: D<num> from runner, plus GND=0 and VCC=1 implicit sources
   const sourcePins: Array<{ key: string; value: number }> = [];
   for (const part of state.parts) {
-    for (const pin of getPartSpec(part.type)?.pins ?? []) {
+    const spec = getPartSpec(part.type);
+    if (!spec) continue;
+    for (const pin of spec.pins) {
+      // D<num> pins driven by runner
       const num = parseInt(pin.id.replace(/\D/g, ''), 10);
       if (!isNaN(num) && pin.id.toUpperCase().startsWith('D')) {
         const runnerVal = pins[num];
@@ -132,13 +138,27 @@ export function CanvasPanel(props: CanvasPanelProps) {
           sourcePins.push({ key: `${part.id}:${pin.id}`, value: runnerVal });
         }
       }
+      // GND pins → 0 source
+      if (pin.pinType === 'gnd') {
+        sourcePins.push({ key: `${part.id}:${pin.id}`, value: 0 });
+      }
+      // VCC pins → 1 source
+      if (pin.pinType === 'vcc') {
+        sourcePins.push({ key: `${part.id}:${pin.id}`, value: 1 });
+      }
     }
   }
 
-  // BFS: propagate values from sources through the wire graph
+  // BFS: propagate from all sources simultaneously.
+  // Track per-pin source count to detect conflicts (multiple different sources).
+  const pinSourceCount = new Map<string, number>(); // key → number of sources assigned
   const visited = new Set<string>();
   const queue: Array<{ key: string; value: number }> = [...sourcePins];
-  for (const s of sourcePins) pinValue.set(s.key, s.value);
+
+  for (const s of sourcePins) {
+    pinValue.set(s.key, s.value);
+    pinSourceCount.set(s.key, 1);
+  }
 
   while (queue.length > 0) {
     const { key, value } = queue.shift()!;
@@ -147,16 +167,35 @@ export function CanvasPanel(props: CanvasPanelProps) {
     const neighbors = adj.get(key) ?? [];
     for (const nb of neighbors) {
       if (!visited.has(nb)) {
-        // If this neighbor hasn't been assigned a source value yet, assign ours
-        if (!pinValue.has(nb) || pinValue.get(nb) === 0) {
+        const prev = pinValue.get(nb);
+        if (prev === undefined || prev === 0) {
+          // First source to reach this pin
           pinValue.set(nb, value);
+          pinSourceCount.set(nb, 1);
+        } else if (prev !== value) {
+          // Conflict: another source already set this pin to a different value
+          pinConflict.add(nb);
+          pinSourceCount.set(nb, (pinSourceCount.get(nb) ?? 1) + 1);
+        } else {
+          // Same value — increment source count but no conflict
+          pinSourceCount.set(nb, (pinSourceCount.get(nb) ?? 1) + 1);
         }
         queue.push({ key: nb, value });
       }
     }
   }
 
-  // Pack into per-part maps
+  // Pack conflict map per part (used by render + model)
+  const partConflict: Record<string, Record<string, boolean>> = {};
+  for (const part of state.parts) {
+    const m: Record<string, boolean> = {};
+    for (const pin of getPartSpec(part.type)?.pins ?? []) {
+      m[pin.id] = pinConflict.has(`${part.id}:${pin.id}`);
+    }
+    partConflict[part.id] = m;
+  }
+
+  // Pack numeric values
   for (const part of state.parts) {
     const partMap: Record<string, number> = {};
     for (const pin of getPartSpec(part.type)?.pins ?? []) {
@@ -166,9 +205,10 @@ export function CanvasPanel(props: CanvasPanelProps) {
   }
 
   // ── Run part models (they may write to their own pins) ─────────────────
-  // digitalRead reads the current resolved pin value (after BFS propagation).
   const digitalRead = (partId: string, pinId: string): number =>
     pinValue.get(`${partId}:${pinId}`) ?? 0;
+  const isPinConflict = (partId: string, pinId: string): boolean =>
+    pinConflict.has(`${partId}:${pinId}`);
 
   for (const part of state.parts) {
     const spec = getPartSpec(part.type);
@@ -176,6 +216,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
     const ctx = {
       now: Date.now(),
       digitalRead: (pinId: string) => digitalRead(part.id, pinId),
+      isPinConflict: (pinId: string) => isPinConflict(part.id, pinId),
       pins: partPins[part.id] ?? {},
     };
     try {
@@ -352,6 +393,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
                 wireMode={!!pendingWireFrom}
                 pendingFrom={pendingWireFrom}
                 pinValues={partPins[p.id] ?? {}}
+                pinConflict={partConflict[p.id] ?? {}}
                 onMouseDown={(e) => onPartMouseDown(e, p.id)}
                 onPinMouseDown={(pinId, e) => {
                   // Decision 20: click-and-drag wire interaction.
@@ -610,6 +652,7 @@ function PartNode({
   wireMode,
   pendingFrom,
   pinValues,
+  pinConflict,
   onMouseDown,
   onPinMouseDown,
   onPinMouseUp,
@@ -620,6 +663,7 @@ function PartNode({
   wireMode: boolean;
   pendingFrom: { partId: string; pinId: string } | null;
   pinValues: Record<string, number>;
+  pinConflict: Record<string, boolean>;
   onMouseDown: (e: React.MouseEvent) => void;
   onPinMouseDown: (pinId: string, e: React.MouseEvent) => void;
   onPinMouseUp: (pinId: string, e: React.MouseEvent) => void;
@@ -659,7 +703,7 @@ function PartNode({
       onMouseUp={handleMouseUp}
       style={{ cursor: dragging ? 'grabbing' : wireMode ? 'crosshair' : 'grab' }}
     >
-      <PartBody spec={spec} part={part} pinValues={pinValues} />
+      <PartBody spec={spec} part={part} pinValues={pinValues} pinConflict={pinConflict} />
       {selected && (
         <rect
           x={part.x - 4}
@@ -677,27 +721,28 @@ function PartNode({
   );
 }
 
-function PartBody({ spec, part, pinValues }: { spec: PartSpec; part: CanvasPart; pinValues: Record<string, number> }) {
-  // Re-render the part's body inside an SVG <g> by calling spec.render.
-  // We attach a ref to that <g> and let PartBodyView re-render it on each
-  // pin update.
+function PartBody({ spec, part, pinValues, pinConflict }: {
+  spec: PartSpec; part: CanvasPart; pinValues: Record<string, number>; pinConflict: Record<string, boolean>;
+}) {
   return (
     <g
       transform={`translate(${part.x} ${part.y}) rotate(${part.rotation} ${spec.width / 2} ${spec.height / 2})`}
     >
-      <PartBodyView spec={spec} part={part} pinValues={pinValues} />
+      <PartBodyView spec={spec} part={part} pinValues={pinValues} pinConflict={pinConflict} />
     </g>
   );
 }
 
-function PartBodyView({ spec, part, pinValues }: { spec: PartSpec; part: CanvasPart; pinValues: Record<string, number> }) {
+function PartBodyView({ spec, part, pinValues, pinConflict }: {
+  spec: PartSpec; part: CanvasPart; pinValues: Record<string, number>; pinConflict: Record<string, boolean>;
+}) {
   const ref = useRef<SVGGElement | null>(null);
   useEffect(() => {
     const g = ref.current;
     if (!g) return;
     while (g.firstChild) g.removeChild(g.firstChild);
-    spec.render(g, { pins: pinValues });
-  }, [spec, part.id, part.rotation, pinValues]);
+    spec.render(g, { pins: pinValues, pinConflict });
+  }, [spec, part.id, part.rotation, pinValues, pinConflict]);
   return <g ref={ref} />;
 }
 

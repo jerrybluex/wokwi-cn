@@ -1,5 +1,33 @@
-import type { PartSpec } from './types';
+import type { PartSpec, PartContext } from './types';
 import { svg, appendAll, pinPad } from './svg';
+
+/**
+ * LED model: computes brightness from A/K pin state.
+ *
+ * LED is ON when:
+ *   - A (anode) driven high (>0)
+ *   - K (cathode) at GND (=0)
+ *   - No electrical conflict on either A or K pin
+ *
+ * LED is OFF (short/reverse-bias condition) when:
+ *   - K is driven high (VCC or signal=1) while A is low → reverse bias
+ *   - Any electrical conflict detected on A or K pin
+ *   - A=K short circuit (both on same net with conflicting sources)
+ */
+function ledModel(ctx: PartContext): { pinId: string; value: number }[] {
+  const aVal = ctx.pins['A'] ?? 0;
+  const kVal = ctx.pins['K'] ?? 0;
+  const aConflict = ctx.isPinConflict('A');
+  const kConflict = ctx.isPinConflict('K');
+
+  // Short or conflict: LED disabled
+  if (aConflict || kConflict) return [];
+  // Reverse bias: K driven high while A not higher → LED off
+  if (kVal > 0 && aVal <= kVal) return [];
+  // Normal forward bias: pass A value through (LED brightness from anode)
+  if (aVal > 0) return [{ pinId: 'A', value: aVal }];
+  return [];
+}
 
 /**
  * LED — 真 LED 外观 (Wokwi 风格):
@@ -10,6 +38,9 @@ import { svg, appendAll, pinPad } from './svg';
  *   - 亮时:dome 高光 + 圆光晕
  * Pin 'A' is anode (positive), 'K' is cathode. Brightness from PartRenderState.pins['A']
  * (0 = off, 1 = full on, or 0..255 from analogWrite in PWM-bright mode).
+ *
+ * Model: detects reverse-bias (K driven high) and conflict/short conditions
+ * to correctly turn the LED off.
  */
 function makeLed(): PartSpec {
   return {
@@ -22,10 +53,12 @@ function makeLed(): PartSpec {
       { id: 'K', x: 0, y: 34, label: 'K', pinType: 'digital' },
     ],
     defaultPinValues: { K: 0 },
+    model: ledModel,
     render(g, state) {
       const anode = state.pins['A'] ?? 0;
-      // PWM-aware: brighten if analog value > 0
-      const brightness = anode > 0 ? Math.max(0.15, Math.min(1, anode)) : 0;
+      const hasConflict = state.pinConflict?.['A'] || state.pinConflict?.['K'];
+      // PWM-aware: brighten if analog value > 0; off if conflict or reverse bias
+      const brightness = hasConflict ? 0 : (anode > 0 ? Math.max(0.15, Math.min(1, anode)) : 0);
       const colorHex = '#ff5252'; // MVP: 固定红色,颜色由 canvas 状态切换
       const lit = brightness > 0;
 

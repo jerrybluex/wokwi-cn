@@ -52,6 +52,50 @@ function typesCompatible(a: PinType | undefined, b: PinType | undefined): boolea
  * Uses getPartSpec to look up pin types — safe to call with any canvas
  * state; returns false gracefully if a part type is unknown.
  */
+/**
+ * LED-specific rules: reject connections that would short the LED.
+ * These are checked after general pin-type compatibility.
+ *
+ * Rejected:
+ *   - LED.A → GND  (anode pulled to ground = dead short)
+ *   - LED.K → VCC  (cathode pulled to VCC = reverse-bias short)
+ *
+ * Allowed (and correct):
+ *   - LED.K → GND  (normal circuit: cathode to ground)
+ *   - LED.A → signal (normal: anode driven high)
+ */
+function validateLedWire(
+  fromPartType: string,
+  fromPinId: string,
+  toPartType: string,
+  toPinId: string,
+): WireValidationResult {
+  const isLedA = (t: string, p: string) => t === 'led' && p === 'A';
+  const isLedK = (t: string, p: string) => t === 'led' && p === 'K';
+  const isVcc = (t: string, p: string) =>
+    t === 'arduino-uno' && (p === '5V' || p === '3V3' || p === 'Vin');
+  const isGnd = (t: string, p: string) =>
+    t === 'arduino-uno' && (p === 'GND' || p === 'GND2');
+
+  // LED anode (A) connected to GND → short (anode pulled low, LED off)
+  if (isLedA(fromPartType, fromPinId) && isGnd(toPartType, toPinId)) {
+    return { valid: false, reason: 'LED 阳极(A)不能接 GND，这会使 LED 短路不亮' };
+  }
+  if (isLedA(toPartType, toPinId) && isGnd(fromPartType, fromPinId)) {
+    return { valid: false, reason: 'LED 阳极(A)不能接 GND，这会使 LED 短路不亮' };
+  }
+
+  // LED cathode (K) connected to VCC → short (cathode pulled high, reverse bias)
+  if (isLedK(fromPartType, fromPinId) && isVcc(toPartType, toPinId)) {
+    return { valid: false, reason: 'LED 阴极(K)不能接 VCC，这会使 LED 短路不亮' };
+  }
+  if (isLedK(toPartType, toPinId) && isVcc(fromPartType, fromPinId)) {
+    return { valid: false, reason: 'LED 阴极(K)不能接 VCC，这会使 LED 短路不亮' };
+  }
+
+  return { valid: true };
+}
+
 export function validateWireConnection(
   fromPartId: string,
   fromPinId: string,
@@ -80,6 +124,11 @@ export function validateWireConnection(
       reason: `Pin type 不兼容: ${fromPin.label}(${a}) ↔ ${toPin.label}(${b})`,
     };
   }
+
+  // LED-specific rules
+  const ledRule = validateLedWire(fromPart.type, fromPinId, toPart.type, toPinId);
+  if (!ledRule.valid) return ledRule;
+
   return { valid: true };
 }
 

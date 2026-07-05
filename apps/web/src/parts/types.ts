@@ -48,6 +48,11 @@ export interface PartRenderState {
   selected?: boolean;
   /** Pin values keyed by PinDef.id. 0/1 for digital, 0..255 for analog. */
   pins: Record<string, number>;
+  /**
+   * Conflict flags keyed by PinDef.id. True when multiple electrical sources
+   * drive the same net to different values (short / conflicting signals).
+   */
+  pinConflict?: Record<string, boolean>;
 }
 
 /** Runtime context for PartModel — see types. */
@@ -56,6 +61,11 @@ export interface PartContext {
   now: number;
   /** Last digitalRead by id (digital 0/1 only). */
   digitalRead: (pinId: string) => number;
+  /**
+   * True when this pin has multiple conflicting electrical sources driving it.
+   * Causes LED to turn off (short / conflict condition).
+   */
+  isPinConflict: (pinId: string) => boolean;
   /** Full resolved pin values for this part (after BFS propagation), 0..255. */
   pins: Record<string, number>;
 }

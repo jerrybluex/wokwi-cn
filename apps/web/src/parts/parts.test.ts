@@ -114,12 +114,12 @@ describe('LED brightness from PWM-style state', () => {
 
 describe('parts with models expose a callable function', () => {
   it('hc-sr04 model returns without errors', () => {
-    const ctx = { now: 0, digitalRead: () => 0, pins: {} };
+    const ctx = { now: 0, digitalRead: () => 0, isPinConflict: () => false, pins: {} };
     expect(() => hcsr04.model?.(ctx)).not.toThrow();
   });
 
   it('servo model propagates PWM 0-255 through SIG pin (not truncated)', () => {
-    const ctx = { now: 0, digitalRead: () => 0, pins: { SIG: 90 } };
+    const ctx = { now: 0, digitalRead: () => 0, isPinConflict: () => false, pins: { SIG: 90 } };
     const writes = servo.model?.(ctx);
     expect(writes).toHaveLength(1);
     expect(writes![0].pinId).toBe('SIG');
@@ -127,12 +127,12 @@ describe('parts with models expose a callable function', () => {
   });
 
   it('buzzer model returns without errors', () => {
-    const ctx = { now: 0, digitalRead: () => 0, pins: { SIG: 1 } };
+    const ctx = { now: 0, digitalRead: () => 0, isPinConflict: () => false, pins: { SIG: 1 } };
     expect(() => buzzer.model?.(ctx)).not.toThrow();
   });
 
   it('mpu6050 model returns without errors', () => {
-    const ctx = { now: 0, digitalRead: () => 0, pins: {} };
+    const ctx = { now: 0, digitalRead: () => 0, isPinConflict: () => false, pins: {} };
     expect(() => mpu6050.model?.(ctx)).not.toThrow();
   });
 });
