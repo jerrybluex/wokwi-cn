@@ -11,8 +11,13 @@ import { svg, appendAll, pinPad } from './svg';
  * mouseup sets pins['A']=0. Model reads it and writes it back so the value
  * flows to connected parts.
  *
- * The actual click→pin wiring lives in CanvasPanel; model ensures the pin
- * value is visible to other components via the BFS propagation.
+ * View: Wokwi 1:1 真图 (决策 31b, 来源 github.com/wokwi/wokwi-elements
+ * src/pushbutton-element.ts renderSVG). 视觉结构:
+ *   - 灰色方形 body (wokwi rect 12×12 fill=#464646)
+ *   - 浅灰内框 (wokwi rect 10.5×10.5 fill=#eaeaea)
+ *   - 4 角黑色固定螺丝 (wokwi g fill=#1b1b1)
+ *   - 4 边灰色 PCB 焊盘 path (wokwi g fill=#999)
+ *   - 中心圆 button cap (coder 5dcd054 加 .pin-button-pressed class, 决策 31f)
  */
 function makeButton(): PartSpec {
   return {
@@ -26,29 +31,56 @@ function makeButton(): PartSpec {
     ],
     render(g, state) {
       const pressed = state.pins['A'] === 1;
-      const capClass = pressed ? '#ff5252' : 'var(--part-stroke-soft)';
+      const colorHex = '#ff5252'; // MVP: 固定红色 cap,跟 wokwi default 一致
 
       appendAll(g, [
         pinPad('A', 0, 14),
         pinPad('B', 0, 36),
-        svg('line', { x1: 0, y1: 14, x2: 18, y2: 14, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 36, x2: 18, y2: 36, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
+        // Axial leads — 银色,2 根从 pad 接到 button body 左侧
+        svg('line', { x1: 0, y1: 14, x2: 16, y2: 14, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
+        svg('line', { x1: 0, y1: 36, x2: 16, y2: 36, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
+        // 灰色方形 body (wokwi rect 12×12 fill=#464646)
         svg('rect', {
-          x: 16,
-          y: 8,
-          width: 32,
-          height: 34,
-          rx: 3,
-          fill: 'var(--part-body)',
-          stroke: 'var(--part-stroke)',
-          'stroke-width': 1.5,
+          x: 16, y: 8, width: 32, height: 34,
+          rx: 1, ry: 1,
+          fill: '#464646',
         }),
-        // Decision 31f: button pressed state — cap depresses with CSS filter
+        // 浅灰内框 (wokwi rect 10.5×10.5 fill=#eaeaea)
+        svg('rect', {
+          x: 17.5, y: 9.5, width: 29, height: 31,
+          rx: 0.7, ry: 0.7,
+          fill: '#eaeaea',
+        }),
+        // 4 角黑色固定螺丝 (wokwi g fill=#1b1b1, cx 在 4 个角)
+        svg('circle', { cx: 17, cy: 9, r: 1.2, fill: '#1b1b1b' }),
+        svg('circle', { cx: 47, cy: 9, r: 1.2, fill: '#1b1b1b' }),
+        svg('circle', { cx: 17, cy: 41, r: 1.2, fill: '#1b1b1b' }),
+        svg('circle', { cx: 47, cy: 41, r: 1.2, fill: '#1b1b1b' }),
+        // 4 边灰色 PCB 焊盘 path (wokwi g fill=#999 简化版,小三角形)
+        svg('rect', { x: 28, y: 6, width: 8, height: 2, rx: 0.5, fill: '#999' }),
+        svg('rect', { x: 28, y: 42, width: 8, height: 2, rx: 0.5, fill: '#999' }),
+        svg('rect', { x: 14, y: 22, width: 2, height: 6, rx: 0.5, fill: '#999' }),
+        svg('rect', { x: 48, y: 22, width: 2, height: 6, rx: 0.5, fill: '#999' }),
+        // 中心圆 button cap (wokwi r=3.822 in mm-scale, 我的比例 r=11)
+        // 决策 31f: 按时 cap 变暗 + drop-shadow (coder CSS .pin-button-pressed)
         (() => {
-          const cap = svg('circle', { cx: 32, cy: 25, r: 9, fill: capClass });
+          const cap = svg('circle', {
+            cx: 32, cy: 25, r: 11,
+            fill: pressed ? colorHex : colorHex,
+            'fill-opacity': pressed ? '0.85' : '1',
+            stroke: '#2f2f2f',
+            'stroke-opacity': '0.47',
+            'stroke-width': 0.3,
+          });
           if (pressed) cap.setAttribute('class', 'pin-button-pressed');
           return cap;
         })(),
+        // 中心 cap 高光 (wokwi 内层 highlight)
+        svg('circle', {
+          cx: 29, cy: 22, r: 3.5,
+          fill: '#ffffff',
+          'fill-opacity': '0.4',
+        }),
         svg('text', {
           x: 32,
           y: 50,
