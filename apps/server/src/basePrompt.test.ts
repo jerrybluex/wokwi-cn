@@ -103,6 +103,21 @@ describe('buildStateSummary', () => {
     expect(summary).toContain('led1:A');
   });
 
+  it('reads standard partId/pinId wire fields (主理人 P0)', () => {
+    const state = {
+      ...minimalState,
+      wirings: [
+        { from: { partId: 'u1', pinId: 'D13' }, to: { partId: 'led1', pinId: 'A' } },
+        { from: { partId: 'led1', pinId: 'K' }, to: { partId: 'u1', pinId: 'GND' } },
+      ],
+    };
+    const summary = buildStateSummary(state);
+    expect(summary).toContain('u1:D13');
+    expect(summary).toContain('led1:A');
+    expect(summary).toContain('led1:K');
+    expect(summary).toContain('u1:GND');
+  });
+
   it('truncates code longer than 1200 chars', () => {
     const longCode = 'void loop() {} '.repeat(200); // > 1200 chars
     const state = { ...minimalState, code: longCode };

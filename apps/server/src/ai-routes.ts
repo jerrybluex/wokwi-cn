@@ -68,8 +68,15 @@ export function buildStateSummary(
 
   const wiringsList = state.wirings.length
     ? state.wirings.map((w: unknown) => {
-        const ww = w as { from?: { part: string; pin: string }; to?: { part: string; pin: string } };
-        return `  - ${ww.from?.part}:${ww.from?.pin} ↔ ${ww.to?.part}:${ww.to?.pin}`;
+        // Frontend Wire type uses partId/pinId (standard); accept both styles for compat.
+        const ww = w as Record<string, unknown>;
+        const from = ww.from as Record<string, unknown> | undefined;
+        const to = ww.to as Record<string, unknown> | undefined;
+        const fromPart = (from?.['partId'] ?? from?.['part']) as string | undefined;
+        const fromPin = (from?.['pinId'] ?? from?.['pin']) as string | undefined;
+        const toPart = (to?.['partId'] ?? to?.['part']) as string | undefined;
+        const toPin = (to?.['pinId'] ?? to?.['pin']) as string | undefined;
+        return `  - ${fromPart ?? '?'}:${fromPin ?? '?'} ↔ ${toPart ?? '?'}:${toPin ?? '?'}`;
       }).join('\n')
     : '  (无导线)';
 
