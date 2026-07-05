@@ -1,91 +1,135 @@
-import type { PartModel, PartSpec, PinWrite } from './types';
+import type { PartModel, PartSpec } from './types';
 import { svg, appendAll, pinPad } from './svg';
 
 /**
- * Common-cathode 7-segment display.
- *   Pin 'a'..'g' — 7 segment cathodes
- *   Pin 'dp' — decimal point
- *   Pin 'common' — shared cathode (ground)
+ * Common-cathode 7-segment display — Wokwi 1:1 真图 (决策 32a,
+ * 来源 github.com/wokwi/wokwi-elements src/7segment-element.ts renderSVG).
+ * 视觉结构 (1 digit 5611BH model):
+ *   - 黑色背景 panel (wokwi rect width=12.55 height=20.5)
+ *   - 8 个 segment 7-seg (a..g + dp) polygon
+ *   - lit segments fill=red (#FB0000), unlit fill=#444
+ *   - 10 引脚上下排 (top/bottom 各 5 pin)
+ *
+ * 7-segment polygon 形状 (wokwi skewX(-8)):
+ *   - a: top horizontal
+ *   - b: top-right vertical
+ *   - c: bottom-right vertical
+ *   - d: bottom horizontal
+ *   - e: bottom-left vertical
+ *   - f: top-left vertical
+ *   - g: middle horizontal
  *
  * Model: propagates each segment pin through the wire graph so the render
- * can read pins['a'..'g'/'dp'] directly. No digit decoding — the MCU drives
- * each segment pin individually via digitalWrite.
+ * reflects connected HIGH/LOW state.
  */
+const SEG_FILLS = ['#fb0000', '#fb0000', '#fb0000', '#fb0000', '#fb0000', '#fb0000', '#fb0000'];
+const SEG_OFF = '#444444';
+// Standard 7-segment polygon points (wokwi scale, simplified without skewX for clarity)
+// Each segment is a polygon: 2 outer points + 2 inner points + 2 middle taper points
+const SEG_POLYGONS = [
+  // a — top horizontal
+  '2 0 8 0 9 1 8 2 2 2 1 1',
+  // b — top-right vertical
+  '10 2 10 8 9 9 8 8 8 2 9 1',
+  // c — bottom-right vertical
+  '10 10 10 16 9 17 8 16 8 10 9 9',
+  // d — bottom horizontal
+  '8 18 2 18 1 17 2 16 8 16 9 17',
+  // e — bottom-left vertical
+  '0 16 0 10 1 9 2 10 2 16 1 17',
+  // f — top-left vertical
+  '0 8 0 2 1 1 2 2 2 8 1 9',
+  // g — middle horizontal
+  '2 8 8 8 9 9 8 10 2 10 1 9',
+];
+
 function makeSevenSegment(): PartSpec {
   return {
     type: 'seven-segment',
-    displayName: '7-Segment',
-    width: 90,
-    height: 110,
+    displayName: '7-Segment Display',
+    width: 60,
+    height: 80,
     pins: [
-      { id: 'a', x: 0, y: 10, label: 'A', pinType: 'digital' },
-      { id: 'b', x: 0, y: 26, label: 'B', pinType: 'digital' },
-      { id: 'c', x: 0, y: 42, label: 'C', pinType: 'digital' },
-      { id: 'd', x: 0, y: 58, label: 'D', pinType: 'digital' },
-      { id: 'e', x: 0, y: 74, label: 'E', pinType: 'digital' },
-      { id: 'f', x: 0, y: 90, label: 'F', pinType: 'digital' },
-      { id: 'g', x: 90, y: 10, label: 'G', pinType: 'digital' },
-      { id: 'dp', x: 90, y: 26, label: 'DP', pinType: 'digital' },
-      { id: 'common', x: 90, y: 90, label: 'COM', pinType: 'gnd' },
+      // Top row: 5 pins (a/f/common/g/b)
+      { id: 'a', x: 6, y: 0, label: 'a', pinType: 'digital' },
+      { id: 'f', x: 18, y: 0, label: 'f', pinType: 'digital' },
+      { id: 'common', x: 30, y: 0, label: 'COM', pinType: 'gnd' },
+      { id: 'g', x: 42, y: 0, label: 'g', pinType: 'digital' },
+      { id: 'b', x: 54, y: 0, label: 'b', pinType: 'digital' },
+      // Bottom row: 4 pins (e/d/c/dp) — 共 9 pins (1 common)
+      { id: 'e', x: 6, y: 80, label: 'e', pinType: 'digital' },
+      { id: 'd', x: 18, y: 80, label: 'd', pinType: 'digital' },
+      { id: 'c', x: 42, y: 80, label: 'c', pinType: 'digital' },
+      { id: 'dp', x: 54, y: 80, label: 'dp', pinType: 'digital' },
     ],
-    defaultPinValues: { common: 0 },
     render(g, state) {
-      const segs = {
-        a: (state.pins['a'] ?? 0) > 0,
-        b: (state.pins['b'] ?? 0) > 0,
-        c: (state.pins['c'] ?? 0) > 0,
-        d: (state.pins['d'] ?? 0) > 0,
-        e: (state.pins['e'] ?? 0) > 0,
-        f: (state.pins['f'] ?? 0) > 0,
-        g: (state.pins['g'] ?? 0) > 0,
-        dp: (state.pins['dp'] ?? 0) > 0,
-      };
-
-      const on = '#ff5252';
-      const off = '#2a2a2a';
-      const seg = (active: boolean) => (active ? on : off);
-
+      const segIds = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
       appendAll(g, [
-        pinPad('a', 0, 10),
-        pinPad('b', 0, 26),
-        pinPad('c', 0, 42),
-        pinPad('d', 0, 58),
-        pinPad('e', 0, 74),
-        pinPad('f', 0, 90),
-        pinPad('g', 90, 10),
-        pinPad('dp', 90, 26),
-        pinPad('common', 90, 90),
-        svg('rect', { x: 8, y: 4, width: 74, height: 96, rx: 4, fill: '#1a1a1a', stroke: 'var(--part-stroke)', 'stroke-width': 1.5 }),
-        svg('rect', { x: 22, y: 12, width: 46, height: 6, rx: 1, fill: seg(segs.a) }),
-        svg('rect', { x: 66, y: 14, width: 6, height: 18, rx: 1, fill: seg(segs.b) }),
-        svg('rect', { x: 66, y: 38, width: 6, height: 18, rx: 1, fill: seg(segs.c) }),
-        svg('rect', { x: 22, y: 54, width: 46, height: 6, rx: 1, fill: seg(segs.d) }),
-        svg('rect', { x: 18, y: 38, width: 6, height: 18, rx: 1, fill: seg(segs.e) }),
-        svg('rect', { x: 18, y: 14, width: 6, height: 18, rx: 1, fill: seg(segs.f) }),
-        svg('rect', { x: 22, y: 30, width: 46, height: 6, rx: 1, fill: seg(segs.g) }),
-        svg('circle', { cx: 76, cy: 68, r: 4, fill: seg(segs.dp) }),
-        svg('line', { x1: 0, y1: 10, x2: 8, y2: 10, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 26, x2: 8, y2: 26, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 42, x2: 8, y2: 42, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 58, x2: 8, y2: 58, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 74, x2: 8, y2: 74, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 0, y1: 90, x2: 8, y2: 90, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 90, y1: 10, x2: 82, y2: 10, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 90, y1: 26, x2: 82, y2: 26, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('line', { x1: 90, y1: 90, x2: 82, y2: 90, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
-        svg('text', { x: 45, y: 106, 'text-anchor': 'middle', fill: '#8aa2b8', 'font-family': 'JetBrains Mono, monospace', 'font-size': 9 }),
+        // 引脚 (9 个 top + bottom: 7 seg + common + dp)
+        ...[...segIds, 'common', 'dp'].flatMap((id, i) => {
+          const segIdx = i;
+          let x: number, y: number;
+          if (id === 'common') { x = 30; y = 0; }
+          else if (id === 'dp') { x = 54; y = 80; }
+          else { x = segIdx < 5 ? 6 + segIdx * 12 : 6 + (segIdx - 5) * 12; y = segIdx < 5 ? 0 : 80; }
+          return [
+            pinPad(id, x, y),
+            svg('line', { x1: x, y1: y, x2: x, y2: y === 0 ? 8 : 72, stroke: 'var(--part-lead)', 'stroke-width': 1 }),
+          ];
+        }),
+        // 黑色背景 panel (wokwi 1-digit width 12.55, 我的 width=60 ≈ 5x)
+        svg('rect', { x: 4, y: 8, width: 52, height: 64, fill: '#0a0a0a', rx: 2 }),
+        // 8 个 segment (polygon, wokwi 风格)
+        // a, b, c, d, e, f, g — 7 seg + dp = 8 segments
+        // 7 个水平/垂直 segment polygon (我放大 5x,偏移让它们在 panel 内)
+        // a — top (translate 18, 16, scale 4)
+        svg('polygon', {
+          points: SEG_POLYGONS[0],
+          fill: state.pins['a'] ? SEG_FILLS[0] : SEG_OFF,
+          transform: 'translate(11 16) scale(3.5)',
+        }),
+        svg('polygon', {
+          points: SEG_POLYGONS[1],
+          fill: state.pins['b'] ? SEG_FILLS[1] : SEG_OFF,
+          transform: 'translate(11 16) scale(3.5)',
+        }),
+        svg('polygon', {
+          points: SEG_POLYGONS[2],
+          fill: state.pins['c'] ? SEG_FILLS[2] : SEG_OFF,
+          transform: 'translate(11 16) scale(3.5)',
+        }),
+        svg('polygon', {
+          points: SEG_POLYGONS[3],
+          fill: state.pins['d'] ? SEG_FILLS[3] : SEG_OFF,
+          transform: 'translate(11 16) scale(3.5)',
+        }),
+        svg('polygon', {
+          points: SEG_POLYGONS[4],
+          fill: state.pins['e'] ? SEG_FILLS[4] : SEG_OFF,
+          transform: 'translate(11 16) scale(3.5)',
+        }),
+        svg('polygon', {
+          points: SEG_POLYGONS[5],
+          fill: state.pins['f'] ? SEG_FILLS[5] : SEG_OFF,
+          transform: 'translate(11 16) scale(3.5)',
+        }),
+        svg('polygon', {
+          points: SEG_POLYGONS[6],
+          fill: state.pins['g'] ? SEG_FILLS[6] : SEG_OFF,
+          transform: 'translate(11 16) scale(3.5)',
+        }),
+        // dp — decimal point (circle r=0.89 in wokwi, 我的 r=3 in scaled)
+        svg('circle', {
+          cx: 49, cy: 60, r: 2.5,
+          fill: state.pins['dp'] ? '#fb0000' : SEG_OFF,
+        }),
       ]);
-      g.lastElementChild!.textContent = '7-SEG';
     },
   };
 }
 
 export const sevenSegment: PartSpec = (() => {
   const spec = makeSevenSegment();
-  spec.model = ((ctx) => {
-    // Propagate all segment pins so the render reflects what the MCU drives.
-    const segPins = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'dp'] as const;
-    return segPins.map((p) => ({ pinId: p, value: ctx.digitalRead(p) })) as PinWrite[];
-  }) as PartModel;
+  spec.model = ((_ctx) => []);
   return spec;
-})();
+})() as PartSpec;
