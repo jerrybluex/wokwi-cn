@@ -624,17 +624,35 @@ function PartLibraryFab({ onAdd }: { onAdd: (type: string) => void }) {
             'seven-segment',
           ].map((t) => (
             <li key={t}>
-              <a
-                onClick={(e) => {
-                  e.preventDefault();
+              {/* 决策 33 (主理人 19:45 P0): 拖不动 — 改成 draggable div 双模式
+                  (drag-drop + click 保留). canvas drop handler (line 309-323) 已支持
+                  PART_DRAG_MIME 通过 e.dataTransfer.getData 取 type. */}
+              <div
+                draggable
+                onDragStart={(e) => {
+                  // drag-drop: 把 part type 放进 dataTransfer,canvas drop handler 接
+                  e.dataTransfer.setData(PART_DRAG_MIME, t);
+                  e.dataTransfer.effectAllowed = 'copy';
+                }}
+                onClick={() => {
+                  // click 保留 (双模式): 之前 <a onClick> 直接添加,现在 <div onClick> 一样
                   onAdd(t);
                   setOpen(false);
                 }}
                 data-testid={`part-tile-${t}`}
-                className="text-xs font-mono"
+                className="text-xs font-mono cursor-grab active:cursor-grabbing select-none px-3 py-2 hover:bg-base-300 rounded"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onAdd(t);
+                    setOpen(false);
+                  }
+                }}
               >
                 {t}
-              </a>
+              </div>
             </li>
           ))}
         </ul>

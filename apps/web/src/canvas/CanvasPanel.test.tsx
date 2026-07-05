@@ -204,3 +204,58 @@ describe('Keyboard shortcuts', () => {
     expect(utils).toBeTruthy();
   });
 });
+
+// 决策 33 (主理人 19:45 P0): 元件都拖不动 — FAB popover tile 改成 draggable div 双模式
+describe('PartLibraryFab drag-drop + click', () => {
+  it('FAB opens popover when clicked, part-tile is draggable with dataTransfer.setData', () => {
+    const { utils } = setup();
+    // 点 FAB 按钮 打开 popover
+    const fab = utils.getByTestId('part-library-fab');
+    act(() => {
+      fireEvent.click(fab);
+    });
+    // 找 LED tile (决策 33: <div draggable> 替代 <a>)
+    const ledTile = utils.getByTestId('part-tile-led');
+    expect(ledTile).toBeTruthy();
+    // dragstart 模拟 — 用 native DataTransfer (跟 dispatchDrop helper 一致)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dt = new (globalThis as any).DataTransfer();
+    act(() => {
+      fireEvent.dragStart(ledTile, { dataTransfer: dt });
+    });
+    // 验证 dataTransfer 写入 PART_DRAG_MIME + 'led'
+    expect(dt.getData(PART_DRAG_MIME)).toBe('led');
+  });
+
+  it('click on part-tile still works (双模式保留)', () => {
+    const { utils, getState } = setup();
+    const fab = utils.getByTestId('part-library-fab');
+    act(() => {
+      fireEvent.click(fab);
+    });
+    const ledTile = utils.getByTestId('part-tile-led');
+    act(() => {
+      fireEvent.click(ledTile);
+    });
+    // click 直接添加 — LED 加入 state
+    const s = getState();
+    expect(s.parts.find((p) => p.type === 'led')).toBeTruthy();
+  });
+
+  it('all 12 part-tiles are draggable', () => {
+    const { utils } = setup();
+    const fab = utils.getByTestId('part-library-fab');
+    act(() => {
+      fireEvent.click(fab);
+    });
+    const types = [
+      'arduino-uno', 'led', 'rgb-led', 'button', 'potentiometer', 'resistor',
+      'hcsr04', 'servo', 'buzzer', 'ssd1306', 'mpu6050', 'seven-segment',
+    ];
+    for (const t of types) {
+      const tile = utils.getByTestId(`part-tile-${t}`);
+      // decision 33: 改为 <div draggable>, 应该有 draggable=true attribute
+      expect((tile as HTMLElement).getAttribute('draggable')).toBe('true');
+    }
+  });
+});
