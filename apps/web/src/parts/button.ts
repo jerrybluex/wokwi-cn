@@ -43,7 +43,12 @@ function makeButton(): PartSpec {
           stroke: 'var(--part-stroke)',
           'stroke-width': 1.5,
         }),
-        svg('circle', { cx: 32, cy: 25, r: 9, fill: capClass }),
+        // Decision 31f: button pressed state — cap depresses with CSS filter
+        (() => {
+          const cap = svg('circle', { cx: 32, cy: 25, r: 9, fill: capClass });
+          if (pressed) cap.setAttribute('class', 'pin-button-pressed');
+          return cap;
+        })(),
         svg('text', {
           x: 32,
           y: 50,

@@ -36,7 +36,13 @@ function makePotentiometer(): PartSpec {
         svg('circle', { cx: 30, cy: 30, r: 24, fill: 'var(--part-body-deep)', stroke: 'var(--part-stroke-soft)', 'stroke-width': 1.5 }),
         svg('circle', { cx: 30, cy: 30, r: 22, fill: 'var(--part-body-pit)' }),
         svg('circle', { cx: 30, cy: 6, r: 1.5, fill: '#777' }),
-        svg('line', { x1: 30, y1: 30, x2: x2, y2: y2, stroke: 'var(--canvas-text)', 'stroke-width': 3, 'stroke-linecap': 'round' }),
+        svg('line', {
+          x1: 30, y1: 30, x2: x2, y2: y2,
+          stroke: 'var(--canvas-text)',
+          'stroke-width': 3,
+          'stroke-linecap': 'round',
+          class: 'pot-dial-rotating', // Decision 31f: smooth CSS transition on rotation
+        }),
         svg('circle', { cx: 30, cy: 30, r: 3, fill: 'var(--part-lead)' }),
         svg('line', { x1: 0, y1: 18, x2: 18, y2: 18, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),
         svg('line', { x1: 60, y1: 18, x2: 42, y2: 18, stroke: 'var(--part-lead)', 'stroke-width': 1.5 }),

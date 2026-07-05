@@ -66,10 +66,18 @@ export function CanvasPanel(props: CanvasPanelProps) {
   const [dragPartId, setDragPartId] = useState<string | null>(null);
   const [pendingWireFrom, setPendingWireFrom] = useState<{ partId: string; pinId: string } | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Decision 31e: pin tooltip hover state
   const [hoveredPin, setHoveredPin] = useState<{ partId: string; pinId: string } | null>(null);
+  // Decision 31f: button pressed state — tracks {partId: pinId → value}
+  // Updated on PartNode mousedown/mouseup for 'button' type parts
+  const [buttonPinOverrides, setButtonPinOverrides] = useState<Record<string, number>>({});
 
   const handlePinHover = (partId: string, pinId: string | null) => {
     setHoveredPin(pinId ? { partId, pinId } : null);
+  };
+  // Decision 31f: button pressed — update buttonPinOverrides state
+  const handleButtonPress = (partId: string, pressed: boolean) => {
+    setButtonPinOverrides((prev) => ({ ...prev, [`${partId}:A`]: pressed ? 1 : 0 }));
   };
 
   // Wire interaction (decision 20) is event-driven — no wireMode button any more:
@@ -237,10 +245,17 @@ export function CanvasPanel(props: CanvasPanelProps) {
   }
 
   // Rebuild partPins with model-updated values
+  // Decision 31f: button pressed state — inject buttonPinOverrides on top
   for (const part of state.parts) {
     const partMap: Record<string, number> = {};
     for (const pin of getPartSpec(part.type)?.pins ?? []) {
       partMap[pin.id] = pinValue.get(`${part.id}:${pin.id}`) ?? 0;
+    }
+    // Button pressed: canvas mousedown/mouseup writes pins['A']=1/0
+    // Keyed as `${partId}:A`
+    if (part.type === 'button') {
+      const override = buttonPinOverrides[`${part.id}:A`];
+      if (override !== undefined) partMap['A'] = override;
     }
     partPins[part.id] = partMap;
   }
@@ -413,6 +428,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
                 pinConflict={partConflict[p.id] ?? {}}
                 onMouseDown={(e) => onPartMouseDown(e, p.id)}
                 onPinHover={(pinId) => handlePinHover(p.id, pinId)}
+                onButtonPress={handleButtonPress}
                 onPinMouseDown={(pinId, e) => {
                   console.log('[WIRE MD] pin=' + pinId + ' part=' + p.id + ' pending=' + JSON.stringify(pendingWireFrom));
                   e.stopPropagation();
@@ -679,6 +695,7 @@ function PartNode({
   onPinMouseDown,
   onPinMouseUp,
   onPinHover,
+  onButtonPress,
 }: {
   part: CanvasPart;
   selected: boolean;
@@ -691,6 +708,7 @@ function PartNode({
   onPinMouseDown: (pinId: string, e: React.MouseEvent) => void;
   onPinMouseUp: (pinId: string, e: React.MouseEvent) => void;
   onPinHover: (pinId: string | null) => void;
+  onButtonPress: (partId: string, pressed: boolean) => void;
 }) {
   const spec = getPartSpec(part.type);
   if (!spec) return null;
@@ -707,6 +725,8 @@ function PartNode({
     const pinEl = (e.target as Element | null)?.closest('[data-pin]') as Element | null;
     if (pinEl?.hasAttribute('data-pin')) {
       onPinMouseDown(pinEl.getAttribute('data-pin')!, e);
+      // Decision 31f: button pressed — set pins['A']=1 on mousedown
+      if (part.type === 'button') onButtonPress(part.id, true);
       return;
     }
     onMouseDown(e);
@@ -715,6 +735,8 @@ function PartNode({
     const pinEl = (e.target as Element | null)?.closest('[data-pin]') as Element | null;
     if (pinEl?.hasAttribute('data-pin')) {
       onPinMouseUp(pinEl.getAttribute('data-pin')!, e);
+      // Decision 31f: button released — set pins['A']=0 on mouseup
+      if (part.type === 'button') onButtonPress(part.id, false);
     }
   };
   const handleMouseMove = (e: React.MouseEvent) => {
