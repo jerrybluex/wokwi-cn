@@ -1,4 +1,4 @@
-import type { PartModel, PartSpec } from './types';
+import type { PartModel, PartSpec, PartDatasheet } from './types';
 import { svg, appendAll, pinPad } from './svg';
 
 /**
@@ -20,7 +20,7 @@ import { svg, appendAll, pinPad } from './svg';
  *   - 底部 3 引脚标签 GND/SIG/VCC
  *   - 引脚位置保留 A x=0 y=18 / B x=60 y=18 / W x=30 y=80
  */
-function makePotentiometer(): PartSpec {
+function makePotentiometer(): PartSpec & { datasheet?: PartDatasheet } {
   return {
     type: 'potentiometer',
     displayName: 'Potentiometer',
@@ -123,6 +123,12 @@ function makePotentiometer(): PartSpec {
         labels[1].textContent = 'W';
         labels[2].textContent = 'B';
       }
+    },
+    // Decision 31f: real electrical datasheet
+    datasheet: {
+      resistance: 10000,       // Ω total resistance
+      rotationRange: 270,       // degrees mechanical travel
+      description: '10kΩ旋转电位器,最大270°,线性碳膜',
     },
   };
 }

@@ -1,4 +1,4 @@
-import type { PartModel, PartSpec, PinWrite } from './types';
+import type { PartModel, PartSpec, PartDatasheet, PinWrite } from './types';
 import { svg, appendAll, pinPad } from './svg';
 
 /**
@@ -19,7 +19,7 @@ import { svg, appendAll, pinPad } from './svg';
  *   - 4 边灰色 PCB 焊盘 path (wokwi g fill=#999)
  *   - 中心圆 button cap (coder 5dcd054 加 .pin-button-pressed class, 决策 31f)
  */
-function makeButton(): PartSpec {
+function makeButton(): PartSpec & { datasheet?: PartDatasheet } {
   return {
     type: 'button',
     displayName: 'Push Button',
@@ -91,6 +91,11 @@ function makeButton(): PartSpec {
         }),
       ]);
       (g.querySelector('text') as SVGTextElement)!.textContent = pressed ? 'PRESSED' : 'BUTTON';
+    },
+    // Decision 31f: real electrical datasheet
+    datasheet: {
+      maxCurrent: 10,       // mA contact rating
+      description: '方形轻触按键,最大10mA,机械寿命>10000次',
     },
   };
 }

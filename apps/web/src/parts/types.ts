@@ -79,6 +79,26 @@ export interface PinWrite {
 /** Optional — runs every tick when this part is on the canvas. */
 export type PartModel = (ctx: PartContext) => PinWrite[] | void;
 
+/**
+ * Datasheet — real electrical parameters for simulation and display.
+ * Used by spec.pins info tooltips and future simulation fidelity.
+ * Decision 31f: added for LED/button/potentiometer/buzzer.
+ */
+export interface PartDatasheet {
+  /** Forward voltage (LED) or rated voltage (buzzer). Volts. */
+  voltage?: number;
+  /** Maximum continuous current. Milliamps. */
+  maxCurrent?: number;
+  /** Resistance in ohms (potentiometer). */
+  resistance?: number;
+  /** Rotation range in degrees (potentiometer). */
+  rotationRange?: number;
+  /** Rated frequency in Hz (buzzer). */
+  frequency?: number;
+  /** Short human-readable description for tooltip. */
+  description?: string;
+}
+
 export interface PartSpec {
   /** Unique stable id matching PartRegistry keys ('led', 'arduino-uno', ...). */
   type: string;
@@ -97,6 +117,8 @@ export interface PartSpec {
   render(g: SVGGElement, state: PartRenderState): void;
   /** Optional simulation logic. */
   model?: PartModel;
+  /** Decision 31f: real electrical datasheet parameters. */
+  datasheet?: PartDatasheet;
 }
 
 /** Component instance placed on the canvas. */

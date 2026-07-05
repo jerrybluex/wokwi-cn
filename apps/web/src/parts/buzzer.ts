@@ -1,4 +1,4 @@
-import type { PartModel, PartSpec, PinWrite } from './types';
+import type { PartModel, PartSpec, PartDatasheet, PinWrite } from './types';
 import { svg, appendAll, pinPad } from './svg';
 
 /**
@@ -18,7 +18,7 @@ import { svg, appendAll, pinPad } from './svg';
  *   - 3 根底部引脚 (VCC 灰 / GND 红 / SIG 灰, 对应 wokwi 2 pin 风格延伸)
  *   - 亮时: 内圆变黄 (wokwi fill #f1c40f) + 波纹 (.buzzer-playing coder 5dcd054 决策 31f)
  */
-function makeBuzzer(): PartSpec {
+function makeBuzzer(): PartSpec & { datasheet?: PartDatasheet } {
   return {
     type: 'buzzer',
     displayName: 'Active Buzzer',
@@ -111,6 +111,13 @@ function makeBuzzer(): PartSpec {
         labels[0].textContent = '+';
         labels[1].textContent = '−';
       }
+    },
+    // Decision 31f: real electrical datasheet
+    datasheet: {
+      voltage: 5,       // V rated
+      maxCurrent: 30,   // mA
+      frequency: 2300,   // Hz typical
+      description: '有源蜂鸣器,5V/30mA,内置振荡电路,音调2300Hz',
     },
   };
 }

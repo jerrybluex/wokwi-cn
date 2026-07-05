@@ -1,4 +1,4 @@
-import type { PartSpec, PartContext } from './types';
+import type { PartSpec, PartContext, PartDatasheet } from './types';
 import { svg, appendAll, pinPad } from './svg';
 
 /**
@@ -43,7 +43,7 @@ function ledModel(ctx: PartContext): { pinId: string; value: number }[] {
  * Pin 'A' is anode (positive), 'K' is cathode. Brightness from PartRenderState.pins['A']
  * (0 = off, 1 = full on, or 0..255 from analogWrite in PWM-bright mode).
  */
-function makeLed(): PartSpec {
+function makeLed(): PartSpec & { datasheet?: PartDatasheet } {
   return {
     type: 'led',
     displayName: 'LED',
@@ -173,6 +173,12 @@ function makeLed(): PartSpec {
       ].filter(Boolean) as SVGElement[]);
       const labelEl = g.querySelector('text');
       if (labelEl) labelEl.textContent = lit ? `${Math.round(brightness * 100)}%` : 'LED';
+    },
+    // Decision 31f: real electrical datasheet
+    datasheet: {
+      voltage: 2.0,       // Vf forward voltage @ 20mA (red LED)
+      maxCurrent: 20,      // mA absolute max
+      description: '红色Through-Hole LED,Vf=2.0V,If=20mA max',
     },
   };
 }
