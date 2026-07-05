@@ -314,6 +314,8 @@ export function CanvasPanel(props: CanvasPanelProps) {
     }
   };
   const _onDragLeave = () => setDragOver(false);
+  // 决策 35 (verifier 20:08 BUG): dragLeave 时必须 setDragOver(false) 让蓝色虚线框消失,
+  // 之前 onDragLeave={onDragOver} 错误重用 onDragOver (setDragOver(true)) 导致虚线框残留.
   const onDrop = (e: React.DragEvent) => {
     setDragOver(false);
     const type = e.dataTransfer.getData(PART_DRAG_MIME);
@@ -392,7 +394,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
         // 子元素 (parts/wires) 的 pointer-events:auto 让它们保持可交互
         pointerEvents="none"
         onDragOver={onDragOver}
-        onDragLeave={onDragOver}
+        onDragLeave={_onDragLeave}
         onDrop={onDrop}
         onClick={onSvgClick}
         onMouseUp={onSvgMouseUp}
