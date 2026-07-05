@@ -31,6 +31,19 @@ const PCB_VW = 212.372;
 const PCB_VH = 151.2;
 const SCALE = 170 / PCB_VW; // ≈ 0.8006 (breadboard view scale to 170)
 
+// 决策 31a (主理人 13:26 P0): 4 LED (L/TX/RX/ON) 真实发光感.
+// 位置基于 PCB 视觉坐标,经 SVG viewBox 212.372×151.2 → 170×133 自动缩放.
+//   L  (绿) — 板子左上,USB 头旁
+//   ON (绿) — 板子右上,POWER 头旁
+//   TX (黄) — ON 左侧,跟 RX 一组
+//   RX (黄) — TX 左侧
+const LED_INDICATORS: { id: string; cx: number; cy: number; cls: string }[] = [
+  { id: 'L', cx: 12, cy: 11, cls: 'pin-led-glow pin-led-L' },
+  { id: 'RX', cx: 86, cy: 56, cls: 'pin-led-glow pin-led-RX' },
+  { id: 'TX', cx: 95, cy: 56, cls: 'pin-led-glow pin-led-TX' },
+  { id: 'ON', cx: 199, cy: 56, cls: 'pin-led-glow pin-led-ON' },
+];
+
 const DIGITAL_PINS = Array.from({ length: 14 }, (_, i) => ({ id: `D${i}`, label: `D${i}`, pinType: 'digital' as const }));
 const ANALOG_PINS = Array.from({ length: 6 }, (_, i) => ({ id: `A${i}`, label: `A${i}`, pinType: 'analog' as const }));
 const POWER_PINS: { id: string; label: string; pinType: 'vcc' | 'gnd' | 'digital' }[] = [
@@ -175,6 +188,21 @@ function makeArduinoUno(): PartSpec {
           'stroke-width': 1.5,
         }),
       );
+
+      // 决策 31a (主理人 13:26 P0): 4 LED (L/TX/RX/ON) 真实发光感.
+      // PCB SVG 内 chip-LED0805 visual 是空的 (只有 title),手动 append 4 个 circle
+      // 在 LED 位置 + CSS class .pin-led-glow (drop-shadow filter 模拟发光).
+      for (const led of LED_INDICATORS) {
+        children.push(
+          svg('circle', {
+            cx: led.cx,
+            cy: led.cy,
+            r: 1.6,
+            class: led.cls,
+            'pointer-events': 'none',
+          }),
+        );
+      }
 
       appendAll(g, children);
 

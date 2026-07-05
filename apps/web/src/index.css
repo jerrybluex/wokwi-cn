@@ -123,3 +123,27 @@ g[data-wire-mode='true'] .pin-pad-hit {
 [data-part-id] > g > g > *:not([data-pin]):not(svg) {
   pointer-events: none;
 }
+
+/* 决策 31a (主理人 13:26 P0): UNO 4 LED 真实发光感.
+ * 4 LED (L/TX/RX/ON) 位置在 arduino-uno.ts LED_INDICATORS 定义,
+ * 通过 .pin-led-glow + 颜色 variant (L/TX/RX/ON) 实现发光圆点.
+ * drop-shadow filter 模拟 LED 实物发光感,大小 4-5 px 模糊半径. */
+.pin-led-glow {
+  filter: drop-shadow(0 0 2.5px currentColor);
+}
+.pin-led-L {
+  fill: #22b573; /* 绿 */
+  color: #22b573;
+}
+.pin-led-TX {
+  fill: #f5b400; /* 黄 */
+  color: #f5b400;
+}
+.pin-led-RX {
+  fill: #f5b400; /* 黄 */
+  color: #f5b400;
+}
+.pin-led-ON {
+  fill: #22b573; /* 绿 */
+  color: #22b573;
+}
