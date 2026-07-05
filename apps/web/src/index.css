@@ -116,11 +116,14 @@ g[data-wire-mode='true'] .pin-pad-hit {
   cursor: crosshair;
 }
 
-/* 所有元件内部不带 data-pin 的装饰 SVG 元素默认 pointer-events:auto，
- * 会遮挡 pin pad 点击区。统一禁用，只保留带 data-pin 的 pad 可交互。
+/* 决策 23 / 856ce90 原意: 装饰 element 不要拦截 pin pad 点击.
+ * 决策 36 重做 (PM 20:25 拍板 C, 实跑 dev 验证): broad rule 把 part body 全部 pe:none,
+ * 导致 click 没有 target, 拖拽失效 (主理人 dev 实测无法移动 r1).
+ * 修复: 只关 text silkscreen 装饰 (PCB 丝印), body rect/path/circle 保持 auto 让 drag 工作.
+ * pinPad circle 有 data-pin (CSS 已 :not([data-pin]) 排除前) 仍是 auto, 点击命中 pad.
  * DOM 路径: <g data-part-id> → <g transform> → <g ref> → SVG 子元素
  * 注意：排除 <svg>（PCB 等嵌套 SVG 需要保持 auto，让事件能到达内部的 pad 圆形）*/
-[data-part-id] > g > g > *:not([data-pin]):not(svg) {
+[data-part-id] text {
   pointer-events: none;
 }
 

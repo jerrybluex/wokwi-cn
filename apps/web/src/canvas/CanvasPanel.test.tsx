@@ -122,7 +122,9 @@ describe('<CanvasPanel />', () => {
     const { utils } = setup(state);
     const wire = utils.getByTestId('canvas-wire-w1');
     expect(wire).toBeTruthy();
-    expect(wire.querySelectorAll('path')).toHaveLength(2);
+    /* 决策 36 重做: 移除独立 12px 透明 hit area path, 只保留 visible stroke (click 自身).
+     * 之前是 2 paths (transparent hit + visible), 现在 1 path (visible stroke). */
+    expect(wire.querySelectorAll('path')).toHaveLength(1);
   });
 
   it('renders pin pads for every part (decision 19: data-pin attribute)', () => {

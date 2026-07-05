@@ -407,13 +407,32 @@ export function CanvasPanel(props: CanvasPanelProps) {
         aria-label="电路画布"
       >
         <GridBackground width={width} height={height} />
-        {/* Render order matters for visual stacking (later = on top):
-         *   parts (with their full body shapes) draw FIRST, then wires draw
-         *   OVER them so the wire is never occluded by a board / chip body.
-         *   PendingWire is the last layer (in-progress routing sits on top
-         *   of every committed wire too). */}
-        {/* pointer-events:auto 让 part / wire 可点击；pointer-events:none
-         *  让 canvas SVG 本身不拦截点击，让装饰元素透传给 pad */}
+        {/* 决策 36 重做 (PM 20:25 拍板 C, 实跑 dev 验证): 
+         *   - Render order: wires FIRST, parts LAST (pin pads on top).
+         *   - decision 22 原意是 wires 视觉在 parts 上面 (用户能看到连线穿过)
+         *     但 SVG painter order 是 DOM 顺序 (later = on top),wire 在 pin pad
+         *     上 click 会拦截 pin pad 点击 (elementsFromPoint 实测 wire 路径优先).
+         *   - 现在 wires 在 DOM 早,但 visible stroke 仍 pe:stroke 让用户可点 wire 选中.
+         *   - pin pad circle 永远在 wire 之上 → click 落到 pin pad → wire 模式触发.
+         *   - 视觉: wire 在 pin pad 内部被 12px pad 遮盖 (只在 pin 出口小段不可见),
+         *     大部分 wire 仍在 part body 外 (可见),不影响 demo clarity.
+         */}
+        <g className="pointer-events-auto">
+          {state.wires.map((w) => (
+            <WireLine
+              key={w.id}
+              wire={w}
+              state={state}
+              selected={selectedWireId === w.id}
+              onClick={() => onSelectWire?.(w.id)}
+              onDelete={() => {
+                onChange({ type: 'remove-wire', id: w.id });
+                onSelectWire?.(null);
+              }}
+            />
+          ))}
+        </g>
+        {/* pointer-events:auto 让 part body / pin pad 可点击 (拖拽 / wire 拖线). */}
         <g className="pointer-events-auto">
           {state.parts.map((p) => {
             const spec = getPartSpec(p.type);
@@ -463,23 +482,8 @@ export function CanvasPanel(props: CanvasPanelProps) {
             );
           })}
         </g>
-        <g className="pointer-events-auto">
-          {state.wires.map((w) => (
-            <WireLine
-              key={w.id}
-              wire={w}
-              state={state}
-              selected={selectedWireId === w.id}
-              onClick={() => onSelectWire?.(w.id)}
-              onDelete={() => {
-                onChange({ type: 'remove-wire', id: w.id });
-                onSelectWire?.(null);
-              }}
-            />
-          ))}
-        </g>
         {pendingWireFrom && (
-          <g className="pointer-events-auto">
+          <g className="pointer-events-none">
             <PendingWire
               pendingFrom={pendingWireFrom}
               mousePos={mousePos}
@@ -846,25 +850,26 @@ function WireLine({
   const midY = (a.y + b.y) / 2;
   return (
     <g
-      onClick={onClick}
-      style={{ cursor: 'pointer' }}
+      pointerEvents="none"
       data-testid={`canvas-wire-${wire.id}`}
     >
-      <path
-        d={path}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={12}
-      />
+      {/* 决策 36 重做 (PM 20:25 拍板 C): wire 容器 pointer-events:none 让 click
+       * 穿透到 parts. 视觉 stroke 自己 pointer-events:stroke,让 wire 可见 stroke
+       * (2-3px) 仍可选中 (决策 28). 不再单独 12px buffer,因为 buffer 会盖住 parts
+       * 拦截 click (主理人 dev 实测 r1 body 中心在 wire buffer 内 → wire 选中而非 part 拖拽). */}
       <path
         d={path}
         fill="none"
         stroke={selected ? 'var(--canvas-pin-active)' : wire.color ?? 'var(--canvas-wire)'}
         strokeWidth={selected ? 3 : 2}
+        pointerEvents="stroke"
+        onClick={onClick}
+        style={{ cursor: 'pointer' }}
       />
       {/* 决策 28 (主理人 10:47 P0): 选中态显示红圈 X 删除按钮 (线段中点) */}
       {selected && (
         <g
+          pointerEvents="auto"
           onClick={(e) => {
             e.stopPropagation();
             onDelete?.();
