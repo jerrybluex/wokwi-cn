@@ -390,9 +390,20 @@ export function CanvasPanel(props: CanvasPanelProps) {
         preserveAspectRatio="xMinYMin meet"
         viewBox={`0 0 ${width / zoom} ${height / zoom}`}
         className="block select-none"
-        // pointer-events:none 让 canvas SVG 不拦截子元素的点击，
-        // 子元素 (parts/wires) 的 pointer-events:auto 让它们保持可交互
-        pointerEvents="none"
+        // pointer-events:auto (决策 36 主理人 20:06 P0 修复): SVG 自己接收 mousedown
+        // + 让子元素 (parts/wires) 通过 closest('[data-part-id]') 找到目标 part
+        // 之前 pointer-events:none + 子装饰 element 也 none → click 穿透 SVG 到外层 div → mousedown 没 handler → part 无法移动
+        pointerEvents="auto"
+        // 决策 36: SVG onMouseDown 转发给最近 part (e.target.closest('[data-part-id]')),
+        // 让 part body 空白处能拖动 part (不只是 pin pad)
+        onMouseDown={(e) => {
+          if (pendingWireFrom) return; // wire mode 时不处理 part drag
+          const partEl = (e.target as Element | null)?.closest('[data-part-id]');
+          if (partEl) {
+            const partId = partEl.getAttribute('data-part-id');
+            if (partId) onPartMouseDown(e, partId);
+          }
+        }}
         onDragOver={onDragOver}
         onDragLeave={_onDragLeave}
         onDrop={onDrop}
@@ -428,7 +439,7 @@ export function CanvasPanel(props: CanvasPanelProps) {
                 pendingFrom={pendingWireFrom}
                 pinValues={partPins[p.id] ?? {}}
                 pinConflict={partConflict[p.id] ?? {}}
-                onMouseDown={(e) => onPartMouseDown(e, p.id)}
+                // 决策 36: PartNode 不再 onMouseDown prop (SVG 层接管 part drag 转发)
                 onPinHover={(pinId) => handlePinHover(p.id, pinId)}
                 onButtonPress={handleButtonPress}
                 onPinMouseDown={(pinId, e) => {
@@ -711,7 +722,6 @@ function PartNode({
   pendingFrom,
   pinValues,
   pinConflict,
-  onMouseDown,
   onPinMouseDown,
   onPinMouseUp,
   onPinHover,
@@ -724,7 +734,6 @@ function PartNode({
   pendingFrom: { partId: string; pinId: string } | null;
   pinValues: Record<string, number>;
   pinConflict: Record<string, boolean>;
-  onMouseDown: (e: React.MouseEvent) => void;
   onPinMouseDown: (pinId: string, e: React.MouseEvent) => void;
   onPinMouseUp: (pinId: string, e: React.MouseEvent) => void;
   onPinHover: (pinId: string | null) => void;
@@ -741,6 +750,11 @@ function PartNode({
   // mousedown AND mouseup on the part wrapper. mousedown picks the start
   // pin (or starts a part drag if the click landed outside a pad);
   // mouseup picks the target pin or falls through to cancel.
+  //
+  // 决策 36 (主理人 20:06 P0): part 拖拽逻辑已移到 CanvasPanel SVG 层 (line 394 onMouseDown
+  // 通过 closest('[data-part-id]') 找 part + 调用 onPartMouseDown). PartNode 这里只
+  // 负责 pin pad 事件 (handleMouseDown 通过 closest('[data-pin]') 区分 pin/空白), 让
+  // SVG 层 + PartNode 层各自处理不同 event target 路径。
   const handleMouseDown = (e: React.MouseEvent) => {
     const pinEl = (e.target as Element | null)?.closest('[data-pin]') as Element | null;
     if (pinEl?.hasAttribute('data-pin')) {
@@ -749,7 +763,8 @@ function PartNode({
       if (part.type === 'button') onButtonPress(part.id, true);
       return;
     }
-    onMouseDown(e);
+    // 决策 36 (主理人 20:06 P0): 非 pin pad 的 click 由 CanvasPanel SVG 层 onMouseDown 处理
+    // (closest('[data-part-id]') 找 part + 调用 onPartMouseDown). PartNode 不再处理 part drag.
   };
   const handleMouseUp = (e: React.MouseEvent) => {
     const pinEl = (e.target as Element | null)?.closest('[data-pin]') as Element | null;
